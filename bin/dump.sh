@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 TMPFILE=${TEMP:-/tmp}/$(basename "$0").$$
 echo "command-line arguments: $@" > "${TMPFILE}"
 echo "command-line arguments \$0: \"$0\"" >> "${TMPFILE}"
@@ -12,4 +12,3 @@ done
 echo "STDIN:" >> "${TMPFILE}"
 cat >> "${TMPFILE}"
 echo "Dumped contents to \"${TMPFILE}\"."
-
