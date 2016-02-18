@@ -1,0 +1,13 @@
+#!/bin/bash
+
+shopt -qs extglob
+
+selectors=
+for arg
+do
+    case $arg in
+	+([0-9]))   selectors="$selectors \$$arg";;
+	*)	    selectors="$selectors \"$arg\"";;
+    esac
+done
+awk "{ print$selectors }"
