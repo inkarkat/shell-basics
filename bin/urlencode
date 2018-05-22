@@ -1,6 +1,6 @@
 #!/bin/bash
 # Source: http://stackoverflow.com/a/10660730/813602
-readonly string=${1:?}
+readonly string=${1?}
 readonly strlen=${#string}
 encoded=
 pos=
