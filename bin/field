@@ -2,12 +2,40 @@
 
 shopt -qs extglob
 
-selectors=
-for arg
+printUsage()
+{
+    cat <<HELPTEXT
+Print selected field(s) N from stdin, separated by SEP.
+Usage: "$(basename "$1")" [-F|--field-separator FS] N|SEP [...] [-?|-h|--help]
+Print everything but passed field(s) N from stdin.
+Usage: "$(basename "$1")" [-F|--field-separator FS] -v|--remove N [...] [-?|-h|--help]
+HELPTEXT
+}
+
+typeset -a fsArgs
+isRemoveFields=
+while [ $# -ne 0 ]
 do
-    case $arg in
-	+([0-9]))   selectors="$selectors \$$arg";;
-	*)	    selectors="$selectors \"$arg\"";;
+    case "$1" in
+	--help|-h|-\?)		shift; printUsage "$0"; exit 0;;
+	--remove|-v)		shift; isRemoveFields=t;;
+	--field-separator|-F)	shift; fsArgs=(-F "$1"); shift;;
+	--)			shift; break;;
+	-*)			{ echo "ERROR: Unknown option \"$1\"!"; echo; printUsage "$0"; } >&2; exit 2;;
+	*)			break;;
     esac
 done
-awk "{ print$selectors }"
+
+if [ "$isRemoveFields" ]; then
+    awk -v nrs="$*" "BEGIN{ split(nrs, numbers, \" \"); for (n in numbers) fields[numbers[n]] = 1 } { for (i=1; i <= NF; i++) printf \"%s\", (i in fields ? (i == NF ? ORS : \"\") : \$i (i == NF ? ORS : OFS)) }"
+else
+    selectors=
+    for arg
+    do
+	case $arg in
+	    +([0-9]))   selectors="$selectors \$$arg";;
+	    *)	    selectors="$selectors \"$arg\"";;
+	esac
+    done
+    awk "${fsArgs[@]}" "{ print$selectors }"
+fi
