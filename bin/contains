@@ -1,6 +1,6 @@
-$!/bin/bash
-needle=$1
-shift
+#!/bin/bash
+
+needle=$1; shift
 for elem
 do
     [ "$needle" = "$elem" ] && exit 0
