@@ -1,4 +1,6 @@
 #!/bin/bash
 
+program=$1
+shift
 set -x
-. "$@"
+. "$program" "$@"
