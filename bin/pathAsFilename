@@ -1,0 +1,45 @@
+#!/bin/bash
+
+printUsage()
+{
+    cat <<HELPTEXT
+Usage: "$(basename "$1")" -e|--encode|-d|--decode FILE [-?|-h|--help]
+HELPTEXT
+}
+
+action=
+while [ $# -ne 0 ]
+do
+    case "$1" in
+	--help|-h|-\?)	shift; printUsage "$0"; exit 0;;
+	--encode|-e)	shift; action=encode;;
+	--decode|-d)	shift; action=decode;;
+	--)		shift; break;;
+	-*)		{ echo "ERROR: Unknown option \"$1\"!"; echo; printUsage "$0"; } >&2; exit 2;;
+	*)		break;;
+    esac
+done
+[ $# -eq 1 ] || { printUsage "$0"; exit 2; }
+
+
+case "$action" in
+    encode)
+	absoluteFilespec="$(readlink -nf -- "$1")" || exit $?
+	[ "$HOME" -a -d "$HOME" ] && absoluteFilespec="${absoluteFilespec/#${HOME%/}/\~}"
+
+	name="$absoluteFilespec"
+	name="${name//=/==}"
+	name="${name//\//=+}"
+	name="${name//:/=-}"
+	printf '%s\n' "$name"
+	;;
+    decode)
+	filespec="$1"
+	filespec="${filespec//=-/:}"
+	filespec="${filespec//=+/\/}"
+	filespec="${filespec//==/=}"
+	[ "$HOME" -a -d "$HOME" ] && filespec="${filespec/#~\//${HOME%/}\/}"
+	printf '%s\n' "$filespec"
+	;;
+    *)	printUsage "$2"; exit 2;;
+esac
