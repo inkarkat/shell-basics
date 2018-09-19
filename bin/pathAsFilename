@@ -19,7 +19,7 @@ do
 	*)		break;;
     esac
 done
-[ $# -eq 1 ] || { printUsage "$0"; exit 2; }
+[ $# -eq 1 ] || { printUsage "$0" >&2; exit 2; }
 
 
 case "$action" in
@@ -41,5 +41,5 @@ case "$action" in
 	[ "$HOME" -a -d "$HOME" ] && filespec="${filespec/#~\//${HOME%/}\/}"
 	printf '%s\n' "$filespec"
 	;;
-    *)	printUsage "$2"; exit 2;;
+    *)	printf >&2 'ASSERT: Invalid action: %s\n' "$action"; exit 2;;
 esac
