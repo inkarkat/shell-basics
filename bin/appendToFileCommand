@@ -1,0 +1,25 @@
+#!/bin/bash
+
+printUsage()
+{
+    cat <<HELPTEXT
+Print a Bash command that appends the passed TEXT to FILE.
+Useful to build up a batch file of future tasks, e.g. within a existsOr
+autosource check.
+HELPTEXT
+    printf 'Usage: %q %s\n' "$(basename "$1")" 'FILE [TEXT ...] [-?|-h|--help]'
+}
+case "$1" in
+    --help|-h|-\?)	shift; printUsage "$0"; exit 0;;
+esac
+if [ $# -eq 0 ]; then
+    printUsage "$0" >&2
+    exit 2
+fi
+
+filespec=${1:?}; shift
+if [ $# -eq 0 ]; then
+    printf "echo >> %q\\n" "$filespec"
+else
+    printf "printf '%%s\\\\n' %q >> %q\\n" "$*" "$filespec"
+fi
