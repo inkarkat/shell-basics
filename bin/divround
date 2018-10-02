@@ -1,0 +1,30 @@
+#!/bin/bash
+
+set -u
+
+round()
+{
+    local val
+    printf -v val "%.${2:-1}f" "${1:?}"
+
+    # Drop trailing .000
+    val=${val%%*(0)}	# This only works if extglob is enabled.
+    val=${val%%0}	# Fallback for a single digit.
+    val=${val%.}
+
+    printf '%s\n' "$val"
+}
+
+
+# Divide passed number by 10^(PRECISION + 1) and round with PRECISION
+# fractional places.
+# Example: 123456 -> 1234.6
+# Example: 1234567 2 -> 1234.57
+precision=${2:-1}
+precisionPlusOne=$((precision + 1))
+if [ $precisionPlusOne -gt ${#1} ]; then
+    float=0
+else
+    float="${1:0: -$precisionPlusOne}.${1: -$precisionPlusOne}"
+fi
+round "$float" "$precision"
