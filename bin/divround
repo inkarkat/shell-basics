@@ -1,6 +1,7 @@
 #!/bin/bash
 
 set -u
+shopt -qs extglob
 
 round()
 {
@@ -8,8 +9,7 @@ round()
     printf -v val "%.${2:-1}f" "${1:?}"
 
     # Drop trailing .000
-    val=${val%%*(0)}	# This only works if extglob is enabled.
-    val=${val%%0}	# Fallback for a single digit.
+    val=${val%%*(0)}
     val=${val%.}
 
     printf '%s\n' "$val"
@@ -26,5 +26,11 @@ if [ $precisionPlusOne -gt ${#1} ]; then
     float=0
 else
     float="${1:0: -$precisionPlusOne}.${1: -$precisionPlusOne}"
+
+    # If the integer part in in the thousands or larger, there's no use to
+    # include any fractions. Just round off to the closest integer value then.
+    if [ ${#1} -ge $((precisionPlusOne + 4)) ]; then
+	precision=0
+    fi
 fi
 round "$float" "$precision"
