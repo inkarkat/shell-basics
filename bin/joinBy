@@ -1,8 +1,32 @@
 #!/bin/bash
 # Source: https://stackoverflow.com/a/17841619/813602
 
+printUsage()
+{
+    cat <<HELPTEXT
+Join all ARGs with SEPARATOR in between each.
+HELPTEXT
+    printf 'Usage: %q %s\n' "$(basename "$1")" '[--prefix PREFIX] [--suffix SUFFIX] SEPARATOR [ARG ...] [-?|-h|--help]'
+}
+prefix=
+suffix=
+while [ $# -ne 0 ]
+do
+    case "$1" in
+	--help|-h|-\?)	shift; printUsage "$0"; exit 0;;
+	--prefix)	shift; prefix="$1"; shift;;
+	--suffix)	shift; suffix="$1"; shift;;
+	--)		shift; break;;
+	*)		break;;
+    esac
+done
+if [ $# -eq 0 ]; then
+    printUsage "$0" >&2
+    exit 2
+fi
+
 delimiter=${1?}; shift
 [ $# -eq 0 ] && exit
-printf '%s' "$1"; shift
+printf '%s%s' "$prefix" "$1"; shift
 printf "%s" "${@/#/$delimiter}"
-printf '\n'
+printf '%s\n' "$suffix"
