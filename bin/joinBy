@@ -1,0 +1,8 @@
+#!/bin/bash
+# Source: https://stackoverflow.com/a/17841619/813602
+
+delimiter=${1?}; shift
+[ $# -eq 0 ] && exit
+printf '%s' "$1"; shift
+printf "%s" "${@/#/$delimiter}"
+printf '\n'
