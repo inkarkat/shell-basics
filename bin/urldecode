@@ -1,0 +1,24 @@
+#!/bin/bash
+# Source: https://stackoverflow.com/a/37840948/813602
+
+printUsage()
+{
+    cat <<HELPTEXT
+URL-decode TEXT (or text read from stdin via -).
+HELPTEXT
+    printf 'Usage: %q %s\n' "$(basename "$1")" 'TEXT|- [-?|-h|--help]'
+}
+case "$1" in
+    --help|-h|-\?)	shift; printUsage "$0"; exit 0;;
+esac
+
+[ $# -ne 1 ] && { printUsage "$0" >&2; exit 2; }
+
+if [ "$1" = '-' ]; then
+    string=$(< /dev/stdin)
+else
+    string=${1?}
+fi
+spaceUnescaped=${string//+/ }
+backslashEscaped=${spaceUnescaped//\\/\\\\}
+printf '%b\n' "${backslashEscaped//%/\\x}"
