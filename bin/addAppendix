@@ -20,12 +20,12 @@ appendix=$1; shift
 
 # Handle at most three file extensions with each having a maximum of 10
 # characters (to avoid false positives as in "invoice Mr. Flabberwocky.txt").
-if [[ "$filename" =~ ^(.*)(\.[[:alnum:]]{1,10}\.[[:alnum:]]{1,10}\.[[:alnum:]]{1,10})$ ]]; then
-    printf '%s%s%s\n' "${BASH_REMATCH[1]}" "$appendix" "${BASH_REMATCH[2]}"
-elif [[ "$filename" =~ ^(.*)(\.[[:alnum:]]{1,10}\.[[:alnum:]]{1,10})$ ]]; then
-    printf '%s%s%s\n' "${BASH_REMATCH[1]}" "$appendix" "${BASH_REMATCH[2]}"
-elif [[ "$filename" =~ ^(.*)(\.[[:alnum:]]{1,10})$ ]]; then
-    printf '%s%s%s\n' "${BASH_REMATCH[1]}" "$appendix" "${BASH_REMATCH[2]}"
+if [[ "$filename" =~ ^(.*)\.([[:alnum:]]{1,10}\.[[:alnum:]]{1,10}\.[[:alnum:]]{1,10})$ ]]; then
+    printf '%s%s.%s\n' "${BASH_REMATCH[1]}" "$appendix" "${BASH_REMATCH[2]}"
+elif [[ "$filename" =~ ^(.*)\.([[:alnum:]]{1,10}\.[[:alnum:]]{1,10})$ ]]; then
+    printf '%s%s.%s\n' "${BASH_REMATCH[1]}" "$appendix" "${BASH_REMATCH[2]}"
+elif [[ "$filename" =~ ^(.*)\.([[:alnum:]]{1,10})$ ]]; then
+    printf '%s%s.%s\n' "${BASH_REMATCH[1]}" "$appendix" "${BASH_REMATCH[2]}"
 else
     printf '%s%s\n' "$filename" "$appendix"
 fi
