@@ -19,12 +19,12 @@ do
 	*)		break;;
     esac
 done
-[ $# -eq 1 ] || { printUsage "$0" >&2; exit 2; }
+[ "$action" -a $# -eq 1 ] || { printUsage "$0" >&2; exit 2; }
 
 
 case "$action" in
     encode)
-	absoluteFilespec="$(readlink -nf -- "$1")" || exit $?
+	absoluteFilespec="$(realpath --no-symlinks -- "$1")" || exit $?
 	[ "$HOME" -a -d "$HOME" ] && absoluteFilespec="${absoluteFilespec/#${HOME%/}/\~}"
 
 	name="$absoluteFilespec"
