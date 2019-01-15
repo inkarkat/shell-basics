@@ -3,7 +3,11 @@
 printUsage()
 {
     cat <<HELPTEXT
-Usage: "$(basename "$1")" -e|--encode|-d|--decode FILE [-?|-h|--help]
+Encode FILESPEC for use as a filename; i.e. escape all forbidden characters
+(e.g. forward slashes) so that the result is a valid filename.
+Usage: "$(basename "$1")" -e|--encode FILESPEC [-?|-h|--help]
+Decode ENCODED into a filespec.
+Usage: "$(basename "$1")" -d|--decode ENCODED [-?|-h|--help]
 HELPTEXT
 }
 
