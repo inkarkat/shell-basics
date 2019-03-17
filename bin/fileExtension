@@ -5,11 +5,19 @@ printUsage()
     cat <<HELPTEXT
 Print the file extension (without the leading .) of FILENAME (or DEFAULT-EXT /
 nothing if no extension is found).
+With -d|--strip, the extension is removed instead and the bare filename without
+extension is printed.
+With -s|--split, both bare filename and extension are printed on separate lines,
+e.g. for parsing via read:
 HELPTEXT
-    printf 'Usage: %q %s\n' "$(basename "$1")" 'FILENAME [DEFAULT-EXT] [-?|-h|--help]'
+    printf 'Usage: %q %s\n' "$(basename "$1")" '[-d|--strip|-s|--split] FILENAME [DEFAULT-EXT] [-?|-h|--help]'
+    printf 'Example: readarray -t fileSplit < <(%q --split "foo bar.tar.gz")\n' "$(basename "$1")"
 }
+action=ext
 case "$1" in
     --help|-h|-\?)	shift; printUsage "$0"; exit 0;;
+    --strip|-d)		shift; action=strip;;
+    --split|-s)		shift; action=split;;
 esac
 if [ $# -lt 1 -o $# -gt 2 ]; then
     printUsage "$0" >&2
@@ -24,8 +32,16 @@ defaultExtension=$1; shift
 if [[ "$filename" =~ ^(.*)\.([[:alnum:]]{1,10}\.[[:alnum:]]{1,10}\.[[:alnum:]]{1,10})$ ]] ||
     [[ "$filename" =~ ^(.*)\.([[:alnum:]]{1,10}\.[[:alnum:]]{1,10})$ ]] ||
     [[ "$filename" =~ ^(.*)\.([[:alnum:]]{1,10})$ ]]; then
+    name="${BASH_REMATCH[1]}"
     ext="${BASH_REMATCH[2]}"
 else
+    name="$filename"
     ext="$defaultExtension"
 fi
-printf '%s\n' "$ext"
+
+case "$action" in
+    ext)    printf '%s\n' "$ext";;
+    strip)  printf '%s\n' "$name";;
+    split)  printf '%s\n%s\n' "$name" "$ext";;
+    *)	    printf >&2 'ASSERT: Invalid action: %s\n' "$action"; exit 2;;
+esac
