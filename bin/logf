@@ -1,0 +1,4 @@
+#!/bin/sh
+
+format="$1"; shift
+printf "%s $format" "$(date '+%d-%b-%Y_%T.%N')" "$@"
