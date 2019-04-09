@@ -4,18 +4,22 @@ printUsage()
 {
     cat <<HELPTEXT
 Encode FILESPEC for use as a filename; i.e. escape all forbidden characters
-(e.g. forward slashes) so that the result is a valid filename.
-Usage: "$(basename "$1")" -e|--encode FILESPEC [-?|-h|--help]
+(e.g. forward slashes) so that the result is a valid filename. Canonicalizes
+FILESPEC into an absolute path (so at least FILESPEC's directory has to exist)
+unless --as-is is given.
+Usage: "$(basename "$1")" [--as-is] -e|--encode FILESPEC [-?|-h|--help]
 Decode ENCODED into a filespec.
 Usage: "$(basename "$1")" -d|--decode ENCODED [-?|-h|--help]
 HELPTEXT
 }
 
+isAsIs=
 action=
 while [ $# -ne 0 ]
 do
     case "$1" in
 	--help|-h|-\?)	shift; printUsage "$0"; exit 0;;
+	--as-is)	shift; isAsIs=t;;
 	--encode|-e)	shift; action=encode;;
 	--decode|-d)	shift; action=decode;;
 	--)		shift; break;;
@@ -28,8 +32,12 @@ done
 
 case "$action" in
     encode)
-	absoluteFilespec="$(realpath --no-symlinks -- "$1")" || exit $?
-	[ "$HOME" -a -d "$HOME" ] && absoluteFilespec="${absoluteFilespec/#${HOME%/}/\~}"
+	if [ "$isAsIs" ]; then
+	    absoluteFilespec="$1"
+	else
+	    absoluteFilespec="$(realpath --no-symlinks -- "$1")" || exit $?
+	    [ "$HOME" -a -d "$HOME" ] && absoluteFilespec="${absoluteFilespec/#${HOME%/}/\~}"
+	fi
 
 	name="$absoluteFilespec"
 	name="${name//=/==}"
