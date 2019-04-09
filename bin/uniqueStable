@@ -1,0 +1,49 @@
+#!/bin/bash
+
+printUsage()
+{
+    cat <<HELPTEXT
+Omit repeated (also on non-adjacent) lines while keeping the ordering of the
+original lines. Filters FILE(s) (or standard input) so that each line is
+contained only once (in its first occurrence, across all FILEs).
+With -i[SUFFIX]|--in-place[=SUFFIX], edit files in place (makes backup if SUFFIX
+supplied).
+With -e|--exclude PATTERN, keeps duplicate lines matching (awk) PATTERN. For
+example, use '^[ \t]$' to keep all lines that are empty or contain just
+whitespace.
+HELPTEXT
+    printf 'Usage: %q %s\n' "$(basename "$1")" '[-e|--exclude PATTERN] [-i[SUFFIX]|--in-place[=SUFFIX]] [FILE, ...] [-?|-h|--help]'
+}
+
+typeset -a awkCall=(awk)
+isInPlace=
+inPlaceExtension=
+excludePattern=
+while [ $# -ne 0 ]
+do
+    case "$1" in
+	--exclude|-e)	shift; excludePattern="$1"; shift;;
+	-i|--in-place)		isInPlace=t; shift;;
+	-i?*|--in-place=*)	isInPlace=t; inPlaceExtension="${1#-i}"; inPlaceExtension="${inPlaceExtension#--in-place=}"; shift;;
+	--help|-h|-\?)	shift; printUsage "$0"; exit 0;;
+	--)		shift; break;;
+	-*)		{ echo "ERROR: Unknown option \"$1\"!"; echo; printUsage "$0"; } >&2; exit 2;;
+	*)		break;;
+    esac
+done
+if [ "$isInPlace" ]; then
+    awkCall=(gawk -i inplace -v "INPLACE_SUFFIX=$inPlaceExtension")
+fi
+
+
+exec "${awkCall[@]}" -v excludePattern="$excludePattern" '
+{
+    if (excludePattern != "" && $0 ~ excludePattern) {
+	print
+	next
+    }
+    if (!seen[$0]++) {
+	print
+    }
+}
+' "$@"
