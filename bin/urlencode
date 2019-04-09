@@ -25,7 +25,7 @@ do
 	*)		break;;
     esac
 done
-[ $# -ne 1 ] && { printUsage "$0"; exit 2; }
+[ $# -ne 1 ] && { printUsage "$0" >&2; exit 2; }
 
 if [ "$1" = '-' ]; then
     string=$(< /dev/stdin)
