@@ -3,14 +3,16 @@
 printUsage()
 {
     cat <<HELPTEXT
-Encode FILESPEC for use as a filename; i.e. escape all forbidden characters
-(e.g. forward slashes) so that the result is a valid filename. Canonicalizes
-FILESPEC into an absolute path (so at least FILESPEC's directory has to exist)
-unless --as-is is given.
-Usage: "$(basename "$1")" [--as-is] -e|--encode FILESPEC [-?|-h|--help]
-Decode ENCODED into a filespec.
-Usage: "$(basename "$1")" -d|--decode ENCODED [-?|-h|--help]
+a) Encode FILESPEC for use as a filename; i.e. escape all forbidden characters
+   (e.g. forward slashes) so that the result is a valid filename. Canonicalizes
+   FILESPEC into an absolute path (so at least FILESPEC's directory has to
+   exist) unless --as-is is given.
 HELPTEXT
+    printf 'Usage: %q %s\n' "$(basename "$1")" '[--as-is] -e|--encode FILESPEC [-?|-h|--help]'
+    cat <<HELPTEXT
+b) Decode ENCODED into a filespec.
+HELPTEXT
+    printf 'Usage: %q %s\n' "$(basename "$1")" '-d|--decode ENCODED [-?|-h|--help]'
 }
 
 isAsIs=
@@ -27,7 +29,10 @@ do
 	*)		break;;
     esac
 done
-[ "$action" -a $# -eq 1 ] || { printUsage "$0" >&2; exit 2; }
+if ! [ "$action" -a $# -eq 1 ]; then
+    printUsage "$0" >&2
+    exit 2
+fi
 
 
 case "$action" in
