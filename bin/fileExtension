@@ -4,7 +4,7 @@ printShortUsage()
 {
     # Note: short followed by long option; if the user knows the short one, she can
     # skim the long one.
-    printf 'Usage: %q %s\n' "$(basename "$1")" '[-d|--strip|-s|--split|-c INSERTION|--splice INSERTION] FILENAME [DEFAULT-EXT] [-?|-h|--help]'
+    printf 'Usage: %q %s\n' "$(basename "$1")" '[-d|--strip|-b|--basename|-s|--split|-c INSERTION|--splice INSERTION] FILENAME [DEFAULT-EXT] [-?|-h|--help]'
 }
 printUsage()
 {
@@ -24,9 +24,12 @@ HELPDESCRIPTION
     echo
     printShortUsage "$1"
     cat <<HELPTEXT
-    -d|--strip	the extension is removed instead and the bare filename without
-		extension is printed
-    -s|--split	both bare filename and extension are printed on separate lines,
+    -d|--strip	the extension is removed instead and the bare (path +) name
+		without extension is printed
+    -b|--basename
+		both path and extension are removed; the bare name without path
+		and extension is printed
+    -s|--split	both (path +) name and extension are printed on separate lines,
 		e.g. for parsing via read
     -c|--splice	INSERTION is inserted at the end of the file name, before the
 		extension(s)
@@ -38,6 +41,7 @@ insertion=
 case "$1" in
     --help|-h|-\?)	shift; printLongUsage "$0"; exit 0;;
     --strip|-d)		shift; action=strip;;
+    --basename|-b)	shift; action=basename;;
     --split|-s)		shift; action=split;;
     --splice|-c)	shift; action=splice; insertion="$1"; shift;;
 esac
@@ -62,9 +66,10 @@ else
 fi
 
 case "$action" in
-    ext)    printf '%s\n' "$ext";;
-    strip)  printf '%s\n' "$name";;
-    split)  printf '%s\n%s\n' "$name" "$ext";;
-    splice) printf '%s%s%s\n' "$name" "$insertion" "${ext:+.}$ext";;
-    *)	    printf >&2 'ASSERT: Invalid action: %s\n' "$action"; exit 2;;
+    ext)	printf '%s\n' "$ext";;
+    strip)	printf '%s\n' "$name";;
+    basename)	printf '%s\n' "$(basename -- "$name")";;
+    split)	printf '%s\n%s\n' "$name" "$ext";;
+    splice) 	printf '%s%s%s\n' "$name" "$insertion" "${ext:+.}$ext";;
+    *)	    	printf >&2 'ASSERT: Invalid action: %s\n' "$action"; exit 2;;
 esac
