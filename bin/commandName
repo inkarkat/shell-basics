@@ -27,12 +27,12 @@ done
 
 
 if [ "$isEval" ]; then
-    literalReplacement=$undefined
-    literalReplacement=${literalReplacement//\\/\\\\}
-    literalReplacement=${literalReplacement//&/\\&}
+    literalReplacement="$undefined"
+    literalReplacement="${literalReplacement//\\/\\\\}"
+    literalReplacement="${literalReplacement//&/\\&}"
 
     commandFilespec="$(printf '%s\n' "${1:?}" | sed \
-	-e "s/^[[:space:]]*\\([[:alpha:]_][[:alnum:]_]\\+=\\(\\\\[[:space:]]\\|[^[:space:]\\\\]\\)*[[:space:]]\\+\\)*\\(\"\\([^\"]\\+\\)\"\\|'\\([^']\\+\\)'\\|\\([^[:space:]]\\+\\)\\)[[:space:]].*$/\4\5\6/" \
+	-e "s/^[[:space:]]*\\([[:alpha:]_][[:alnum:]_]\\+=\\(\\\\[[:space:]]\\|[^[:space:]\\\\]\\)*[[:space:]]\\+\\)*\\(\"\\([^\"]\\+\\)\"\\|'\\([^']\\+\\)'\\|\\([^[:space:]]\\+\\)\\)\([[:space:]].*\)\?$/\4\5\6/" \
 	-e t \
 	-e "s#.*#${literalReplacement//#/\\#}#" \
 	-e q
