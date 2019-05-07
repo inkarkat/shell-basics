@@ -4,7 +4,7 @@ printShortUsage()
 {
     # Note: short followed by long option; if the user knows the short one, she can
     # skim the long one.
-    printf 'Usage: %q %s\n' "$(basename "$1")" '[-d|--strip|-b|--basename|-s|--split|-c INSERTION|--splice INSERTION] FILENAME [DEFAULT-EXT] [-?|-h|--help]'
+    printf 'Usage: %q %s\n' "$(basename "$1")" '[-d|--strip|-b|--basename|-s|--split|-3|--split-all|-c INSERTION|--splice INSERTION] FILENAME [DEFAULT-EXT] [-?|-h|--help]'
 }
 printUsage()
 {
@@ -31,6 +31,9 @@ HELPDESCRIPTION
 		and extension is printed
     -s|--split	both (path +) name and extension are printed on separate lines,
 		e.g. for parsing via read
+    -3|--split-all
+		path (. if none), name, and extension are printed on separate
+		lines
     -c|--splice	INSERTION is inserted at the end of the file name, before the
 		extension(s)
 HELPTEXT
@@ -43,6 +46,7 @@ case "$1" in
     --strip|-d)		shift; action=strip;;
     --basename|-b)	shift; action=basename;;
     --split|-s)		shift; action=split;;
+    --split-all|-3)	shift; action=splitall;;
     --splice|-c)	shift; action=splice; insertion="$1"; shift;;
 esac
 if [ $# -lt 1 -o $# -gt 2 ]; then
@@ -70,6 +74,7 @@ case "$action" in
     strip)	printf '%s\n' "$name";;
     basename)	printf '%s\n' "$(basename -- "$name")";;
     split)	printf '%s\n%s\n' "$name" "$ext";;
+    splitall)	printf '%s\n%s\n%s\n' "$(dirname -- "$name")" "$(basename -- "$name")" "$ext";;
     splice) 	printf '%s%s%s\n' "$name" "$insertion" "${ext:+.}$ext";;
     *)	    	printf >&2 'ASSERT: Invalid action: %s\n' "$action"; exit 2;;
 esac
