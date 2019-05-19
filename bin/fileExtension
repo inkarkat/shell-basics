@@ -24,18 +24,18 @@ HELPDESCRIPTION
     echo
     printShortUsage "$1"
     cat <<HELPTEXT
-    -1|--single	Just parse a single .extension (instead of a maximum of three).
-    -d|--strip	the extension is removed instead and the bare (path +) name
+    --single|-1	Just parse a single .extension (instead of a maximum of three).
+    --strip|-d	the extension is removed instead and the bare (path +) name
 		without extension is printed
-    -b|--basename
+    --basename|-b
 		both path and extension are removed; the bare name without path
 		and extension is printed
-    -s|--split	both (path +) name and extension are printed on separate lines,
+    --split|-s	both (path +) name and extension are printed on separate lines,
 		e.g. for parsing via read
-    -3|--split-all
+    --split-all|-3
 		path (. if none), name, and extension are printed on separate
 		lines
-    -c|--splice	INSERTION is inserted at the end of the file name, before the
+    --splice|-c	INSERTION is inserted at the end of the file name, before the
 		extension(s)
 HELPTEXT
     printf 'Example: readarray -t fileSplit < <(%q --split "foo bar.tar.gz")\n' "$(basename "$1")"
