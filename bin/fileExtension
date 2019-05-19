@@ -4,7 +4,7 @@ printShortUsage()
 {
     # Note: short followed by long option; if the user knows the short one, she can
     # skim the long one.
-    printf 'Usage: %q %s\n' "$(basename "$1")" '[-d|--strip|-b|--basename|-s|--split|-3|--split-all|-c INSERTION|--splice INSERTION] FILENAME [DEFAULT-EXT] [-?|-h|--help]'
+    printf 'Usage: %q %s\n' "$(basename "$1")" '[-1|--single] [-d|--strip|-b|--basename|-s|--split|-3|--split-all|-c INSERTION|--splice INSERTION] FILENAME [DEFAULT-EXT] [-?|-h|--help]'
 }
 printUsage()
 {
@@ -24,6 +24,7 @@ HELPDESCRIPTION
     echo
     printShortUsage "$1"
     cat <<HELPTEXT
+    -1|--single	Just parse a single .extension (instead of a maximum of three).
     -d|--strip	the extension is removed instead and the bare (path +) name
 		without extension is printed
     -b|--basename
@@ -39,16 +40,25 @@ HELPDESCRIPTION
 HELPTEXT
     printf 'Example: readarray -t fileSplit < <(%q --split "foo bar.tar.gz")\n' "$(basename "$1")"
 }
+
+isSingle=
 action=ext
 insertion=
-case "$1" in
-    --help|-h|-\?)	shift; printLongUsage "$0"; exit 0;;
-    --strip|-d)		shift; action=strip;;
-    --basename|-b)	shift; action=basename;;
-    --split|-s)		shift; action=split;;
-    --split-all|-3)	shift; action=splitall;;
-    --splice|-c)	shift; action=splice; insertion="$1"; shift;;
-esac
+while [ $# -ne 0 ]
+do
+    case "$1" in
+	--help|-h|-\?)	shift; printLongUsage "$0"; exit 0;;
+	--single|-1)	shift; isSingle=t;;
+	--strip|-d)	shift; action=strip;;
+	--basename|-b)	shift; action=basename;;
+	--split|-s)	shift; action=split;;
+	--split-all|-3)	shift; action=splitall;;
+	--splice|-c)	shift; action=splice; insertion="$1"; shift;;
+	--)		shift; break;;
+	-*)		{ echo "ERROR: Unknown option \"$1\"!"; echo; printShortUsage "$0"; } >&2; exit 2;;
+	*)		break;;
+    esac
+done
 if [ $# -lt 1 -o $# -gt 2 ]; then
     printUsage "$0" >&2
     exit 2
@@ -59,8 +69,8 @@ defaultExtension=$1; shift
 
 # Handle at most three file extensions with each having a maximum of 10
 # characters (to avoid false positives as in "invoice Mr. Flabberwocky.txt").
-if [[ "$filename" =~ ^(.*)\.([[:alnum:]]{1,10}\.[[:alnum:]]{1,10}\.[[:alnum:]]{1,10})$ ]] ||
-    [[ "$filename" =~ ^(.*)\.([[:alnum:]]{1,10}\.[[:alnum:]]{1,10})$ ]] ||
+if [[ ! "$isSingle" && "$filename" =~ ^(.*)\.([[:alnum:]]{1,10}\.[[:alnum:]]{1,10}\.[[:alnum:]]{1,10})$ ]] ||
+    [[ ! "$isSingle" && "$filename" =~ ^(.*)\.([[:alnum:]]{1,10}\.[[:alnum:]]{1,10})$ ]] ||
     [[ "$filename" =~ ^(.*)\.([[:alnum:]]{1,10})$ ]]; then
     name="${BASH_REMATCH[1]}"
     ext="${BASH_REMATCH[2]}"
