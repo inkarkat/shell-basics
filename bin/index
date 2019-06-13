@@ -1,0 +1,11 @@
+#!/bin/bash
+
+needle=$1; shift
+for ((i = 0; i < $#; i++))
+do
+    if [ "$needle" = "${@:$((i + 1)):1}" ]; then
+	printf '%d\n' "$i"
+	exit 0
+    fi
+done
+exit 1
