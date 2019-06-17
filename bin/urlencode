@@ -25,17 +25,22 @@ HELPDESCRIPTION
     printShortUsage "$1"
     cat <<HELPTEXT
     --filespec|-f   path separators (/) are kept unencoded instead of using %2f
+    --file-url|-F   Interpret argument as a local filespec, make it absolute,
+		    and print as file:// URL.
     --newlines|-n   new lines are kept unencoded instead of using %0a
 HELPTEXT
 }
 
 isFilespec=
+isFileUrl=
+urlPrefix=
 isNewlines=
 while [ $# -ne 0 ]
 do
     case "$1" in
 	--help|-h|-\?)	shift; printLongUsage "$0"; exit 0;;
 	--filespec|-f)	shift; isFilespec=t;;
+	--file-url|-F)	shift; isFilespec=t; isFileUrl=t; urlPrefix='file://';;
 	--newlines|-n)	shift; isNewlines=t;;
 	--)		shift; break;;
 	-)		break;;
@@ -53,6 +58,7 @@ if [ "$1" = '-' ]; then
 else
     string=${1?}
 fi
+[ "$isFileUrl" ] && string="$(realpath --no-symlinks -- "$string")"
 readonly strlen=${#string}
 encoded=
 pos=
@@ -68,4 +74,4 @@ do
     esac
     encoded+="$o"
 done
-printf '%s\n' "$encoded"
+printf '%s%s\n' "$urlPrefix" "$encoded"
