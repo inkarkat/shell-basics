@@ -1,0 +1,68 @@
+#!/bin/bash
+
+printUsage()
+{
+    cat <<HELPTEXT
+Test whether the passed GLOB(s) match either the path or just the filename of
+the passed FILESPEC(s). Returns 0 if (at least one) match and 1 if no matches.
+Returns 0 if no GLOB (but FILESPEC(s)) is passed.
+HELPTEXT
+    printf 'Usage: %q %s\n' "$(basename "$1")" "[-l|--files-matching|-L|--files-not-matching] ['GLOB' ...] -- FILESPEC [...] [-?|-h|--help]"
+    printf 'Usage: %q %s\n' "$(basename "$1")" "[...] 'GLOB' FILESPEC [...] [-?|-h|--help]"
+}
+if [ $# -eq 0 ]; then
+    printUsage "$0" >&2
+    exit 2
+fi
+isPrintMatching=
+isPrintNotMatching=
+typeset -a globs=()
+while [ $# -ne 0 ]
+do
+    case "$1" in
+	--help|-h|-\?)		    shift; printUsage "$0"; exit 0;;
+	--files-matching|-l)	    shift; isPrintMatching=t;;
+	--files-not-matching|-L)    shift; isPrintNotMatching=t;;
+	--)			    shift; break;;
+	*)			    globs+=("$1"); shift;;
+    esac
+
+    if [ $# -eq 0 ]; then
+	set -- "${globs[@]:1}"
+	globs=("${globs[0]}")
+	break
+    fi
+done
+if [ ${#globs[@]} -eq 0 ]; then
+    exit 0 # No GLOBs to match.
+elif [ $# -eq 0 ]; then
+    exit 1  # No FILESPECs to match.
+fi
+
+
+for filespec
+do
+    found=
+    filename="$(basename -- "$filespec")"
+
+    for glob in "${globs[@]}"
+    do
+	case "$filename" in
+	    *${glob}*)  found=t; break;;
+	esac
+	case "$filespec" in
+	    *${glob}*)  found=t; break;;
+	esac
+    done
+
+    if [ "$found" ]; then
+	if [ "$isPrintMatching" ]; then
+	    printf '%s\n' "$filespec"
+	elif [ ! "$isPrintNotMatching" ]; then
+	    exit 0
+	fi
+    elif [ "$isPrintNotMatching" ]; then
+	printf '%s\n' "$filespec"
+    fi
+done
+exit 1
