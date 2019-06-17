@@ -24,8 +24,8 @@ HELPDESCRIPTION
     echo
     printShortUsage "$1"
     cat <<HELPTEXT
-    -f|--filespec   path separators (/) are kept unencoded instead of using %2f
-    -n|--newlines   new lines are kept unencoded instead of using %0a
+    --filespec|-f   path separators (/) are kept unencoded instead of using %2f
+    --newlines|-n   new lines are kept unencoded instead of using %0a
 HELPTEXT
 }
 
