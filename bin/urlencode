@@ -1,14 +1,32 @@
 #!/bin/bash
 # Source: http://stackoverflow.com/a/10660730/813602
 
+printShortUsage()
+{
+    # Note: short followed by long option; if the user knows the short one, she can
+    # skim the long one.
+    printf 'Usage: %q %s\n' "$(basename "$1")" '[-f|--filespec] [-n|--newlines] [--] TEXT|- [-?|-h|--help]'
+}
 printUsage()
 {
-    cat <<HELPTEXT
+    # This is the short help when launched with no or incorrect arguments.
+    # It is printed to stderr to avoid accidental processing.
+    printShortUsage "$1" >&2
+    printf >&2 'Try %q --help for more information.\n' "$(basename "$1")"
+}
+printLongUsage()
+{
+    # This is the long "man page" when launched with the help argument.
+    # It is printed to stdout to allow paging with 'more'.
+    cat <<HELPDESCRIPTION
 URL-encode TEXT (or text read from stdin via -).
-With -f|--filespec, path separators (/) are kept unencoded instead of using %2f.
-With -n|--newlines, new lines are kept unencoded instead of using %0a.
+HELPDESCRIPTION
+    echo
+    printShortUsage "$1"
+    cat <<HELPTEXT
+    -f|--filespec   path separators (/) are kept unencoded instead of using %2f
+    -n|--newlines   new lines are kept unencoded instead of using %0a
 HELPTEXT
-    printf 'Usage: %q %s\n' "$(basename "$1")" '[-f|--filespec] [-n|--newlines] [--] TEXT|- [-?|-h|--help]'
 }
 
 isFilespec=
@@ -16,7 +34,7 @@ isNewlines=
 while [ $# -ne 0 ]
 do
     case "$1" in
-	--help|-h|-\?)	shift; printUsage "$0"; exit 0;;
+	--help|-h|-\?)	shift; printLongUsage "$0"; exit 0;;
 	--filespec|-f)	shift; isFilespec=t;;
 	--newlines|-n)	shift; isNewlines=t;;
 	--)		shift; break;;
@@ -25,7 +43,10 @@ do
 	*)		break;;
     esac
 done
-[ $# -ne 1 ] && { printUsage "$0" >&2; exit 2; }
+if [ $# -ne 1 ]; then
+    printShortUsage "$0" >&2
+    exit 2
+fi
 
 if [ "$1" = '-' ]; then
     string=$(< /dev/stdin)
