@@ -5,7 +5,7 @@ printUsage()
     cat <<HELPTEXT
 Test whether the passed GLOB(s) match either the path or just the filename of
 the passed FILESPEC(s). Returns 0 if (at least one) match and 1 if no matches.
-Returns 0 if no GLOB (but FILESPEC(s)) is passed.
+Returns 0 if no GLOB (but existing FILESPEC(s)) is passed.
 HELPTEXT
     printf 'Usage: %q %s\n' "$(basename "$1")" "[-l|--files-matching|-L|--files-not-matching] ['GLOB' ...] -- FILESPEC [...] [-?|-h|--help]"
     printf 'Usage: %q %s\n' "$(basename "$1")" "[...] 'GLOB' FILESPEC [...] [-?|-h|--help]"
@@ -34,7 +34,17 @@ do
     fi
 done
 if [ ${#globs[@]} -eq 0 ]; then
-    exit 0 # No GLOBs to match.
+    # No GLOBs to match. Check that at least one FILESPEC is given and exists as
+    # a file (and isn't just an unmatched glob).
+    if [ $# -eq 0 ]; then
+	exit 2  # No FILESPECs to match.
+    fi
+
+    for filespec
+    do
+	[ -e "$filespec" ] && exit 0
+    done
+    exit 1
 elif [ $# -eq 0 ]; then
     exit 1  # No FILESPECs to match.
 fi
