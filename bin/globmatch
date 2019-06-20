@@ -4,17 +4,20 @@ shopt -qs extglob # Enable extended file pattern matching operators from ksh (?(
 printUsage()
 {
     cat <<HELPTEXT
-Test whether the passed (anchored, extended) GLOB(s) match either the path or
-just the filename of the passed FILESPEC(s). Returns 0 if (at least one) match
-and 1 if no matches. Returns 0 if no GLOB (but existing FILESPEC(s)) is passed.
+Test whether the passed (anchored, extended) GLOB(s) match either the (full
+passed, also subpaths with -s|--subpath) path or just the filename of the passed
+FILESPEC(s).
+Returns 0 if (at least one) match and 1 if no matches.
+Returns 0 if no GLOB (but existing FILESPEC(s)) is passed.
 HELPTEXT
-    printf 'Usage: %q %s\n' "$(basename "$1")" "[-l|--files-matching|-L|--files-not-matching] ['GLOB' ...] -- FILESPEC [...] [-?|-h|--help]"
+    printf 'Usage: %q %s\n' "$(basename "$1")" "[-s|--subpath] [-l|--files-matching|-L|--files-not-matching] ['GLOB' ...] -- FILESPEC [...] [-?|-h|--help]"
     printf 'Usage: %q %s\n' "$(basename "$1")" "[...] 'GLOB' FILESPEC [...] [-?|-h|--help]"
 }
 if [ $# -eq 0 ]; then
     printUsage "$0" >&2
     exit 2
 fi
+isMatchSubPaths=
 isPrintMatching=
 isPrintNotMatching=
 typeset -a globs=()
@@ -22,6 +25,7 @@ while [ $# -ne 0 ]
 do
     case "$1" in
 	--help|-h|-\?)		    shift; printUsage "$0"; exit 0;;
+	--subpath|-s)		    shift; isMatchSubPaths=t;;
 	--files-matching|-l)	    shift; isPrintMatching=t;;
 	--files-not-matching|-L)    shift; isPrintNotMatching=t;;
 	--)			    shift; break;;
@@ -64,6 +68,11 @@ do
 	case "$filespec" in
 	    $g)  found=t; break;;
 	esac
+	if [ "$isMatchSubPaths" ]; then
+	    case "$filespec" in
+		*/$g)	found=t; break;;
+	    esac
+	fi
     done
 
     if [ "$found" ]; then
