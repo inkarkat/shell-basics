@@ -1,11 +1,12 @@
 #!/bin/bash
+shopt -qs extglob # Enable extended file pattern matching operators from ksh (?(pattern-list), !(pattern-list), ...) in Bash.
 
 printUsage()
 {
     cat <<HELPTEXT
-Test whether the passed GLOB(s) match either the path or just the filename of
-the passed FILESPEC(s). Returns 0 if (at least one) match and 1 if no matches.
-Returns 0 if no GLOB (but existing FILESPEC(s)) is passed.
+Test whether the passed (anchored, extended) GLOB(s) match either the path or
+just the filename of the passed FILESPEC(s). Returns 0 if (at least one) match
+and 1 if no matches. Returns 0 if no GLOB (but existing FILESPEC(s)) is passed.
 HELPTEXT
     printf 'Usage: %q %s\n' "$(basename "$1")" "[-l|--files-matching|-L|--files-not-matching] ['GLOB' ...] -- FILESPEC [...] [-?|-h|--help]"
     printf 'Usage: %q %s\n' "$(basename "$1")" "[...] 'GLOB' FILESPEC [...] [-?|-h|--help]"
@@ -55,13 +56,13 @@ do
     found=
     filename="$(basename -- "$filespec")"
 
-    for glob in "${globs[@]}"
+    for g in "${globs[@]}"
     do
 	case "$filename" in
-	    *${glob}*)  found=t; break;;
+	    $g)  found=t; break;;
 	esac
 	case "$filespec" in
-	    *${glob}*)  found=t; break;;
+	    $g)  found=t; break;;
 	esac
     done
 
