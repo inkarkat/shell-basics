@@ -31,7 +31,12 @@ if [ "$isEval" ]; then
     literalReplacement="${literalReplacement//\\/\\\\}"
     literalReplacement="${literalReplacement//&/\\&}"
 
-    commandFilespec="$(printf '%s\n' "${1:?}" | sed \
+    # First eat individual preceding VAR=VAL arguments.
+    while [[ "$1" =~ ^[[:alpha:]_][[:alnum:]_]+=(\\[[:space:]]|[^[:space:]\\])*$ ]]; do shift; done
+
+    # Extract COMMAND from preceding VAR=VAL inside the first remaining
+    # argument.
+    commandFilespec="$(printf '%s\n' "${1:-${undefined}}" | sed \
 	-e "s/^[[:space:]]*\\([[:alpha:]_][[:alnum:]_]\\+=\\(\\\\[[:space:]]\\|[^[:space:]\\\\]\\)*[[:space:]]\\+\\)*\\(\"\\([^\"]\\+\\)\"\\|'\\([^']\\+\\)'\\|\\([^[:space:]]\\+\\)\\)\([[:space:]].*\)\?$/\4\5\6/" \
 	-e t \
 	-e "s#.*#${literalReplacement//#/\\#}#" \
