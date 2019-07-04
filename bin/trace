@@ -1,6 +1,12 @@
 #!/bin/bash
 
-program=$1
-shift
+program=$1; shift
+if [ "$program" = '.' ]; then
+    # Sourced scripts may test for an interactive shell, so set it (even if that
+    # has no effect other than modifying $- here).
+    set -i
+    program=$1; shift
+fi
+
 set -x
 . "$program" "$@"
