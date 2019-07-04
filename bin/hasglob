@@ -1,0 +1,26 @@
+#!/bin/bash
+
+printUsage()
+{
+    cat <<HELPTEXT
+Check whether the passed GLOB matches any files.
+HELPTEXT
+printf 'Usage: %q %s\n' "$(basename "$1")" "'GLOB' [-?|-h|--help]"
+}
+case "$1" in
+    --help|-h|-\?)	shift; printUsage "$0"; exit 0;;
+esac
+[ $# -eq 1 ] || { printUsage "$0" >&2; exit 2; }
+
+readonly glob="$1"
+
+shopt -qs extglob nullglob dotglob
+files=($glob)
+# If globbing didn't yield anything, we've failed.
+((${#files[@]})) || exit 1
+# Still need to check for existing files; in case a GLOB without a wildcard was
+# passed, it's not eliminated by nullglob.
+for f in "${files[@]}"
+do
+    [ -e "$f" ] || exit 1
+done
