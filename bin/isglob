@@ -1,0 +1,29 @@
+#!/bin/bash
+
+printUsage()
+{
+    cat <<HELPTEXT
+Tests whether any of the passed GLOBCANDIDATE(s) contains a glob character.
+Returns 1 if all passed GLOBCANDIDATE(s) are literal strings.
+HELPTEXT
+    printf 'Usage: %q %s\n' "$(basename "$1")" "'GLOBCANDIDATE' [...] [-?|-h|--help]"
+}
+case "$1" in
+    --help|-h|-\?)	shift; printUsage "$0"; exit 0;;
+esac
+[ $# -eq 0 ] && { printUsage "$0" >&2; exit 2; }
+
+readonly scriptDir="$([ "${BASH_SOURCE[0]}" ] && dirname -- "${BASH_SOURCE[0]}" || exit 3)"
+[ -d "$scriptDir" ] || { echo >&2 "ERROR: Cannot determine script directory!"; exit 3; }
+
+# With nullglob, if there's no glob match, there are no results, but a literal
+# string is kept.
+shopt -qs nullglob
+for glob
+do
+    # Use a subdirectory that does not exist so that any glob definitely would
+    # not yield any results.
+    typeset -a files=("${scriptDir}/doesNotExist"/$glob)
+    [ ${#files[@]} -eq 0 ] && exit 0
+done
+exit 1
