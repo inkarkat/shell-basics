@@ -1,0 +1,40 @@
+#!/bin/bash
+shopt -qs extglob
+
+printUsage()
+{
+    cat <<HELPTEXT
+Delay for a random amount of time between MAX and MIN.
+HELPTEXT
+    printf 'Usage: %q %s\n' "$(basename "$1")" '[MAX[smhd] [MIN[smhd]]] [-?|-h|--help]'
+}
+
+timeToSeconds()
+{
+    case "${1:?}" in
+	+([0-9])?(s))   time="${1%s}";;
+	+([0-9])m)	time=$((${1%m} * 60));;
+	+([0-9])h)	time=$((${1%h} * 3600));;
+	+([0-9])d)	time=$((${1%d} * 86400));;
+    esac
+    printf %s "$time"
+}
+
+min=0
+max=60
+case "$1" in
+    --help|-h|-\?)	shift; printUsage "$0"; exit 0;;
+esac
+case $# in
+    0)	;;
+    1)	max="$(timeToSeconds "$1")";;
+    2)	max="$(timeToSeconds "$1")"
+	min="$(timeToSeconds "$2")"
+	;;
+    *)	printUsage "$0" >&2
+	exit 2
+	;;
+esac
+
+delay=$((min + RANDOM % (max - min)))
+sleep "$delay"	# Don't use exec here so that we can observe this process in the process list.
