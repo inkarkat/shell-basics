@@ -1,0 +1,3 @@
+#!/bin/bash
+
+< /dev/tty read "$@" CHOICE && printf '%s\n' "$CHOICE"
