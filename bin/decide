@@ -11,11 +11,12 @@ HELPTEXT
 }
 
 default=
+timeout=
 typeset -a readArgs=()
 while [ $# -ne 0 ]
 do
     case "$1" in
-	--timeout|-t)	shift; readArgs+=(-t "$1"); shift;;
+	--timeout|-t)	shift; timeoutPlural=s; [ "$1" = 1 ] && timeoutPlural=; timeout="Within $1 second${timeoutPlural}: "; readArgs+=(-t "$1"); shift;;
 	--default|-d)	shift
 			case "$1" in
 			    y|yes)  default=0;;
@@ -38,9 +39,9 @@ readonly query=$1; shift
 
 while :
 do
-    < /dev/tty read "${readArgs[@]}" -n 1 -p "${query}? ([y]es / [n]o) " CHOICE
+    < /dev/tty read "${readArgs[@]}" -n 1 -p "${query}? (${timeout}[y]es / [n]o) " CHOICE
     status=$?
-    echo
+    echo >&2
 
     [ $status -gt 128 ] && exit ${default:-3}
     case "$CHOICE" in
