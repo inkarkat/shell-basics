@@ -35,11 +35,11 @@ if [ $# -ne 1 ]; then
     printUsage "$0" >&2
     exit 2
 fi
-readonly query=$1; shift
+readonly query="$1"; shift
 
 while :
 do
-    < /dev/tty read "${readArgs[@]}" -n 1 -p "${query}? (${timeout}[y]es / [n]o) " CHOICE
+    CHOICE="$(userquery "${readArgs[@]}" -n 1 -p "${query}? (${timeout}[y]es / [n]o) ")"
     status=$?
     echo >&2
 
