@@ -1,3 +1,16 @@
 #!/bin/bash
 
+if [ "$USERQUERY_ALERT_TIMESPAN" ]; then
+    marker()
+    {
+	XDG_CONFIG_HOME=${XDG_RUNTIME_DIR:?} executionMarker --group userquery "$@"
+    }
+
+    if marker --query "${USERQUERY_ALERT_SUBJECT:-default}" --without "$USERQUERY_ALERT_TIMESPAN"; then
+	alert --exit-status 0 --success ~/public/wave/Hallo.mp3 --success-sigil '❓' --command-name "${USERQUERY_ALERT_SUBJECT:-???}" --message "${USERQUERY_ALERT_SUBJECT:-An application} is waiting for your input again."
+    fi
+    marker --update "${USERQUERY_ALERT_SUBJECT:-default}"
+fi
+
+
 < /dev/tty read "$@" CHOICE && printf '%s\n' "$CHOICE"
