@@ -44,7 +44,7 @@ do
     echo >&2
 
     [ $status -gt 128 ] && exit ${default:-3}
-    case "$CHOICE" in
+    case "${CHOICE,,}" in
 	y)  exit 0;;
 	n)  exit 1;;
     esac
