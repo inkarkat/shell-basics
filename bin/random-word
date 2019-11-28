@@ -1,0 +1,12 @@
+#!/bin/bash
+
+for source in ~/.vim/data/fake/words_large /usr/share/dict/words
+do
+    [ -r "$source" ] && break
+done
+if [ -z "$source" ]; then
+    echo >&2 "ERROR: No source of words found."
+    exit 1
+fi
+
+exec random-line "$source"
