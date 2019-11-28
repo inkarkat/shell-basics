@@ -3,7 +3,7 @@
 if [ "$USERQUERY_ALERT_TIMESPAN" ]; then
     marker()
     {
-	XDG_CONFIG_HOME=${XDG_RUNTIME_DIR:?} executionMarker --group userquery "$@"
+	executionMarker --base-type runtime --group userquery "$@"
     }
 
     if marker --query "${USERQUERY_ALERT_SUBJECT:-default}" --without "$USERQUERY_ALERT_TIMESPAN"; then
