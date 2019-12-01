@@ -6,16 +6,24 @@ printUsage()
 Print a timestamp / prefix output from stdin with timestamps.
 HELPTEXT
 printf 'Usage: %q %s\n' "$(basename "$1")" '[--human|--short|--sortable] [-?|-h|--help]'
-printf 'Usage: cat FILE [...] | %q %s\n' "$(basename "$1")" '[...] - [-?|-h|--help]'
+printf 'Usage: cat FILE [...] | %q %s\n' "$(basename "$1")" '[...] [-s|--separator SEP] - [-?|-h|--help]'
 }
 
 dateFormat='+%d-%b-%Y_%T.%N'
-case "$1" in
-    --help|-h|-\?)	shift; printUsage "$0"; exit 0;;
-    --human)		shift; dateFormat='+%d-%b-%Y_%T';;
-    --short)		shift; dateFormat='+%Y%m%d_%H%M%S';;
-    --sortable)		shift; dateFormat='+%Y-%m-%d_%T.%N';;
-esac
+separator=' '
+while [ $# -ne 0 ]
+do
+    case "$1" in
+	--help|-h|-\?)	shift; printUsage "$0"; exit 0;;
+	--human)	shift; dateFormat='+%d-%b-%Y_%T';;
+	--short)	shift; dateFormat='+%Y%m%d_%H%M%S';;
+	--sortable)	shift; dateFormat='+%Y-%m-%d_%T.%N';;
+	--separator|-s)	shift; separator="$1"; shift;;
+	-)		break;;
+	--)		shift; break;;
+	-*)		{ echo "ERROR: Unknown option \"$1\"!"; echo; printUsage "$0"; } >&2; exit 2;;
+    esac
+done
 if [ $# -gt 1 ]; then
     printUsage "$0" >&2
     exit 2
@@ -23,7 +31,7 @@ elif [ "$1" = '-' ]; then
     isEOL=t
     while IFS=$'\n' read -r line || { isEOL=; [ -n "$line" ]; }
     do
-	printf "%s %s${isEOL:+\\n}" "$(date "$dateFormat")" "$line"
+	printf "%s%s%s${isEOL:+\\n}" "$(date "$dateFormat")" "$separator" "$line"
     done
 else
     date "$dateFormat"
