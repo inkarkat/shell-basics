@@ -28,10 +28,10 @@ Filters FILE(s) (or standard input) so that each line is contained only once (in
 its first occurrence, across all FILEs).
     -i[SUFFIX]|--in-place[=SUFFIX]  edit files in place (makes backup if SUFFIX
 				    supplied)
-    -e|--exclude PATTERN	    keeps duplicate lines matching (awk)
-				    PATTERN. For example, use '^[ \t]$' to keep
-				    all lines that are empty or contain just
-				    whitespace.
+    -e|--exclude PATTERN	    keeps duplicate lines matching PATTERN. For
+				    example, use '^[ \t]$' to keep all lines
+				    that are empty or contain just whitespace.
+All PATTERNs are AWK-style extended regular expressions.
 HELPTEXT
 }
 
