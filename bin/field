@@ -1,5 +1,4 @@
 #!/bin/bash
-
 shopt -qs extglob
 
 printUsage()
@@ -7,19 +6,23 @@ printUsage()
     cat <<HELPTEXT
 Print selected field(s) N (-N counted from behind) from stdin, separated by SEP.
 HELPTEXT
-    printf 'Usage: cat FILE | %q %s\n' "$(basename "$1")" '[-F|--field-separator FS] [-]N|SEP [...] [-?|-h|--help]'
+    printf 'Usage: cat FILE [...] | %q %s\n' "$(basename "$1")" '[-F|--field-separator FS] [-]N|SEP [...] [-?|-h|--help]'
+    printf 'Usage: %q %s\n' "$(basename "$1")" '-i|--input FILESPEC [...] [-]N|SEP [...] [-?|-h|--help]'
     cat <<HELPTEXT
 Print everything but passed field(s) N (-N counted from behind) from stdin.
 HELPTEXT
-    printf 'Usage: cat FILE | %q %s\n' "$(basename "$1")" '[-F|--field-separator FS] -v|--remove [-]N [...] [-?|-h|--help]'
+    printf 'Usage: cat FILE [...] | %q %s\n' "$(basename "$1")" '[-F|--field-separator FS] -v|--remove [-]N [...] [-?|-h|--help]'
+    printf 'Usage: %q %s\n' "$(basename "$1")" '-i|--input FILESPEC [...] -v|--remove [-]N [...] [-?|-h|--help]'
 }
 
 typeset -a fsArgs
+typeset -a awkArgs=()
 isRemoveFields=
 while [ $# -ne 0 ]
 do
     case "$1" in
 	--help|-h|-\?)		shift; printUsage "$0"; exit 0;;
+	--input|-i)		shift; awkArgs+=("$1"); shift;;
 	--remove|-v)		shift; isRemoveFields=t;;
 	--field-separator|-F)	shift; fsArgs=(-F "$1"); shift;;
 	--)			shift; break;;
@@ -48,7 +51,7 @@ BEGIN {
 	    $i (i == NF ? ORS : OFS) \
 	)
 }
-'
+' "${awkArgs[@]}"
 else
     selectors=
     for arg
@@ -59,5 +62,5 @@ else
 	    *)	    selectors="$selectors \"$arg\"";;
 	esac
     done
-    awk "${fsArgs[@]}" "{ print$selectors }"
+    awk "${fsArgs[@]}" "{ print$selectors }" "${awkArgs[@]}"
 fi
