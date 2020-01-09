@@ -1,18 +1,38 @@
 #!/bin/bash
 
+printShortUsage()
+{
+    # Note: short followed by long option; if the user knows the short one, she can
+    # skim the long one.
+    printf 'Usage: %q %s\n' "$(basename "$1")" '[-e|--exclude PATTERN] [-i[SUFFIX]|--in-place[=SUFFIX]] [FILE, ...] [-?|-h|--help]'
+}
 printUsage()
 {
-    cat <<HELPTEXT
+    # This is the short help when launched with no or incorrect arguments.
+    # It is printed to stderr to avoid accidental processing.
+    printShortUsage "$1" >&2
+    printf >&2 'Try %q --help for more information.\n' "$(basename "$1")"
+}
+printLongUsage()
+{
+    # This is the long "man page" when launched with the help argument.
+    # It is printed to stdout to allow paging with 'more'.
+    cat <<HELPDESCRIPTION
 Omit repeated (also on non-adjacent) lines while keeping the ordering of the
-original lines. Filters FILE(s) (or standard input) so that each line is
-contained only once (in its first occurrence, across all FILEs).
-With -i[SUFFIX]|--in-place[=SUFFIX], edit files in place (makes backup if SUFFIX
-supplied).
-With -e|--exclude PATTERN, keeps duplicate lines matching (awk) PATTERN. For
-example, use '^[ \t]$' to keep all lines that are empty or contain just
-whitespace.
+original lines.
+HELPDESCRIPTION
+    echo
+    printShortUsage "$1"
+    cat <<HELPTEXT
+Filters FILE(s) (or standard input) so that each line is contained only once (in
+its first occurrence, across all FILEs).
+    -i[SUFFIX]|--in-place[=SUFFIX]  edit files in place (makes backup if SUFFIX
+				    supplied)
+    -e|--exclude PATTERN	    keeps duplicate lines matching (awk)
+				    PATTERN. For example, use '^[ \t]$' to keep
+				    all lines that are empty or contain just
+				    whitespace.
 HELPTEXT
-    printf 'Usage: %q %s\n' "$(basename "$1")" '[-e|--exclude PATTERN] [-i[SUFFIX]|--in-place[=SUFFIX]] [FILE, ...] [-?|-h|--help]'
 }
 
 typeset -a awkCall=(awk)
@@ -22,13 +42,13 @@ excludePattern=
 while [ $# -ne 0 ]
 do
     case "$1" in
-	--exclude|-e)	shift; excludePattern="$1"; shift;;
+	--help|-h|-\?)		shift; printLongUsage "$0"; exit 0;;
+	--exclude|-e)		shift; excludePattern="$1"; shift;;
 	-i|--in-place)		isInPlace=t; shift;;
 	-i?*|--in-place=*)	isInPlace=t; inPlaceExtension="${1#-i}"; inPlaceExtension="${inPlaceExtension#--in-place=}"; shift;;
-	--help|-h|-\?)	shift; printUsage "$0"; exit 0;;
-	--)		shift; break;;
-	-*)		{ echo "ERROR: Unknown option \"$1\"!"; echo; printUsage "$0"; } >&2; exit 2;;
-	*)		break;;
+	--)			shift; break;;
+	-*)			{ echo "ERROR: Unknown option \"$1\"!"; echo; printUsage "$0"; } >&2; exit 2;;
+	*)			break;;
     esac
 done
 if [ "$isInPlace" ]; then
