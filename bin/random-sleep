@@ -28,7 +28,8 @@ esac
 case $# in
     0)	;;
     1)	max="$(timeToSeconds "$1")";;
-    2)	max="$(timeToSeconds "$1")"
+    2)	[ $1 -ge $2 ] || set -- "$2" "$1"
+	max="$(timeToSeconds "$1")"
 	min="$(timeToSeconds "$2")"
 	;;
     *)	printUsage "$0" >&2
