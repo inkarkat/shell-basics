@@ -36,8 +36,9 @@ if [ "$isEval" ]; then
 
     # Extract COMMAND from preceding VAR=VAL inside the first remaining
     # argument.
+    readonly COMMAND_SEPARATOR_COLLECTION=';&|[:space:]'
     commandFilespec="$(printf '%s\n' "${1:-${undefined}}" | sed \
-	-e "s/^[[:space:]]*\\([[:alpha:]_][[:alnum:]_]\\+=\\(\\\\[[:space:]]\\|[^[:space:]\\\\]\\)*[[:space:]]\\+\\)*\\(\"\\([^\"]\\+\\)\"\\|'\\([^']\\+\\)'\\|\\([^[:space:]]\\+\\)\\)\\([[:space:]].*\\)\\?$/\\4\\5\\6/" \
+	-e "s/^[[:space:]]*\\([[:alpha:]_][[:alnum:]_]\\+=\\(\\\\[[:space:]]\\|[^[:space:]\\\\]\\)*[[:space:]]\\+\\)*\\(\"\\([^\"]\\+\\)\"\\|'\\([^']\\+\\)'\\|\\([^${COMMAND_SEPARATOR_COLLECTION}]\\+\\)\\)\\([${COMMAND_SEPARATOR_COLLECTION}].*\\)\\?$/\\4\\5\\6/" \
 	-e t \
 	-e "s#.*#${literalReplacement//#/\\#}#" \
 	-e q
