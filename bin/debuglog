@@ -1,0 +1,19 @@
+#!/bin/bash
+shopt -qs extglob
+
+[ "$DEBUG" ] || exec "$@"
+
+{
+    IFS= read -r -d '' cmd
+    IFS= read -r -d '' second
+} < /proc/${PPID}/cmdline
+
+case "$cmd" in
+    */python?(3)?(.exe))	;&
+    */?(ba|k|da|a)sh?(.exe))	cmd="$second";;
+esac
+cmdName="${cmd##*/}"
+
+case ",${DEBUG:-}," in *,$cmdName,*) log >&2 "$cmdName ($PPID) $*";; esac
+
+exec "$@"
