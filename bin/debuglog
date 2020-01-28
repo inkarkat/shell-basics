@@ -22,12 +22,7 @@ esac
     IFS= read -r -d '' debuglogSecond
 } < /proc/${PPID}/cmdline
 
-case "$debuglogCmd" in
-    */python?(3)?(.exe))	;&
-    */?(ba|k|da|a)sh?(.exe))	debuglogCmd="$debuglogSecond";;
-esac
-debuglogCmdName="${debuglogCmd##*/}"
-
+debuglogCmdName="$(commandName --no-interpreter -- "$debuglogCmd" "$debuglogSecond")"
 case ",${DEBUG:-}," in *,$debuglogCmdName,*)
     case ",${DEBUG:-}," in
 	*,debuglog=*,*)	debuglogFilespec=",${DEBUG},"; debuglogFilespec="${debuglogFilespec#*,debuglog=}"; debuglogFilespec="${debuglogFilespec%%,*}"
