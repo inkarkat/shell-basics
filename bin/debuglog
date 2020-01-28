@@ -1,19 +1,42 @@
 #!/bin/bash
 shopt -qs extglob
 
+printUsage()
+{
+    cat <<HELPTEXT
+Log COMMAND (in the format TIMESTAMP (PID) COMMAND ...) to standard error if
+debugging is enabled for the caller (DEBUG=CALLER CALLER).
+With DEBUG=debuglog=FILESPEC,CALLER CALLER, will log to FILESPEC instead.
+HELPTEXT
+    printf 'Usage: %q %s\n' "$(basename "$1")" 'COMMAND [...] [-?|-h|--help]'
+}
+case "$1" in
+    --help|-h|-\?)	shift; printUsage "$0"; exit 0;;
+esac
+
+
 [ "$DEBUG" ] || exec "$@"
 
 {
-    IFS= read -r -d '' cmd
-    IFS= read -r -d '' second
+    IFS= read -r -d '' debuglogCmd
+    IFS= read -r -d '' debuglogSecond
 } < /proc/${PPID}/cmdline
 
-case "$cmd" in
+case "$debuglogCmd" in
     */python?(3)?(.exe))	;&
-    */?(ba|k|da|a)sh?(.exe))	cmd="$second";;
+    */?(ba|k|da|a)sh?(.exe))	debuglogCmd="$debuglogSecond";;
 esac
-cmdName="${cmd##*/}"
+debuglogCmdName="${debuglogCmd##*/}"
 
-case ",${DEBUG:-}," in *,$cmdName,*) log >&2 "$cmdName ($PPID) $*";; esac
+case ",${DEBUG:-}," in *,$debuglogCmdName,*)
+    case ",${DEBUG:-}," in
+	*,debuglog=*,*)	debuglogFilespec=",${DEBUG},"; debuglogFilespec="${debuglogFilespec#*,debuglog=}"; debuglogFilespec="${debuglogFilespec%%,*}"
+			log "$debuglogCmdName ($PPID) $*" >> "$debuglogFilespec"
+			;;
+	*)		log "$debuglogCmdName ($PPID) $*" >&2
+			;;
+    esac
+    ;;
+esac
 
 exec "$@"
