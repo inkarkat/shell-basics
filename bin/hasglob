@@ -15,7 +15,7 @@ esac
 readonly glob="$1"
 
 shopt -qs extglob nullglob dotglob
-files=($glob)
+typeset -a files=($glob)
 # If globbing didn't yield anything, we've failed.
 ((${#files[@]})) || exit 1
 # Still need to check for existing files; in case a GLOB without a wildcard was
