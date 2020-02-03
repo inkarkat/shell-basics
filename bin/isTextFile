@@ -1,0 +1,5 @@
+#!/bin/sh
+# Source: https://stackoverflow.com/a/41644822/813602
+# grep processes a binary file as if it did not contain matching data. An empty
+# file is not considered a text file.
+exec grep --quiet --binary-files=without-match . "$@"
