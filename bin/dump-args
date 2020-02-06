@@ -1,0 +1,10 @@
+#!/bin/bash
+echo "command-line arguments: $@"
+echo "command-line arguments \$0: \"$0\""
+let argCnt=1
+while [ $# -gt 0 ]
+do
+    echo "command-line arguments \$${argCnt}: \"$1\""
+    shift
+    let argCnt+=1
+done
