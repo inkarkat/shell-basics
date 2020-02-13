@@ -1,0 +1,17 @@
+#!/bin/bash
+
+printUsage()
+{
+    cat <<HELPTEXT
+Print all supplied command-line arguments and also execute them.
+HELPTEXT
+    printf 'Usage: %q %s\n' "$(basename "$1")" '-v|--verbose [COMMAND ARG ...] [-?|-h|--help]'
+}
+typeset -a dumpArgsArgs=()
+case "$1" in
+    --help|-h|-\?)	shift; printUsage "$0"; exit 0;;
+    --verbose|-v)	dumpArgsArgs+=("$1"); shift;;
+esac
+
+dump-args "${dumpArgsArgs[@]}" "$@"
+exec "$@"
