@@ -12,6 +12,7 @@ HELPTEXT
 expectedStatus=
 case "$1" in
     --help|-h|-\?)	shift; printUsage "$0"; exit 0;;
+    +(0))		echo >&2 'ERROR: Cannot fail with status 0.'; exit 2;;
     +([0-9]))		expectedStatus="$1"; shift;;
 esac
 if [ $# -eq 0 ]; then
@@ -20,6 +21,12 @@ if [ $# -eq 0 ]; then
     printUsage "$0" >&2
     exit 2
 fi
+
+# Integrate with command-alerting (alert, audible).
+export AUDIBLE_FAIL_COMMAND="$(basename -- "$1")"
+export ALERT_FAIL_COMMAND="$(basename -- "$1")"
+export AUDIBLE_FAIL_STATUS=$expectedStatus
+export ALERT_FAIL_STATUS=$expectedStatus
 
 "$@"
 status=$?
