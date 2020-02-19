@@ -3,7 +3,8 @@
 printUsage()
 {
     cat <<HELPTEXT
-Print all supplied command-line arguments and also execute them.
+Print all supplied command-line arguments to standard error and also execute
+them.
 HELPTEXT
     printf 'Usage: %q %s\n' "$(basename "$1")" '-v|--verbose [COMMAND ARG ...] [-?|-h|--help]'
 }
