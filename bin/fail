@@ -1,0 +1,35 @@
+#!/bin/bash
+shopt -qs extglob
+
+printUsage()
+{
+    cat <<HELPTEXT
+Expect the supplied command-line to fail [with STATUS]. Complains on standard
+error if this is not the case and returns 125 then; else returns 0.
+HELPTEXT
+    printf 'Usage: %q %s\n' "$(basename "$1")" '[STATUS] COMMAND [ARG ...] [-?|-h|--help]'
+}
+expectedStatus=
+case "$1" in
+    --help|-h|-\?)	shift; printUsage "$0"; exit 0;;
+    +([0-9]))		expectedStatus="$1"; shift;;
+esac
+if [ $# -eq 0 ]; then
+    echo >&2 'ERROR: No COMMAND passed.'
+    echo >&2
+    printUsage "$0" >&2
+    exit 2
+fi
+
+"$@"
+status=$?
+
+if [ $status -eq 0 ]; then
+    printf >&2 '%s was expected to fail, but did succeed.\n' "$1"
+    exit 125
+elif [ "$expectedStatus" ]; then
+    if [ $status -ne $expectedStatus ]; then
+	printf >&2 '%s was expected to fail with %d, but failed with %d instead.\n' "$1" "$expectedStatus" "$status"
+	exit 125
+    fi
+fi
