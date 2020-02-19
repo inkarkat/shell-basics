@@ -1,0 +1,26 @@
+#!/bin/bash
+
+printUsage()
+{
+    cat <<HELPTEXT
+Print the exit status of the supplied command-line to standard error. With
+-v|--verbose also include the full command-line arguments.
+HELPTEXT
+    printf 'Usage: %q %s\n' "$(basename "$1")" '[-v|--verbose] [COMMAND ARG ...] [-?|-h|--help]'
+}
+isVerbose=
+case "$1" in
+    --help|-h|-\?)	shift; printUsage "$0"; exit 0;;
+    --verbose|-v)	shift; isVerbose=t;;
+esac
+
+"$@"
+status=$?
+
+if [ "$isVerbose" ]; then
+    quotedArgs=; if [ $# -gt 0 ]; then printf -v quotedArgs '%q ' "$@"; quotedArgs=${quotedArgs% }; fi
+    printf >&2 '%s (%d)\n' "$quotedArgs" "$status"
+else
+    printf >&2 '%s (%d)\n' "$1" "$status"
+fi
+exit $status
