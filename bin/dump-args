@@ -3,9 +3,9 @@
 printUsage()
 {
     cat <<HELPTEXT
-Just print all supplied command-line arguments.
+Just print all supplied command-line arguments to standard error.
 HELPTEXT
-    printf 'Usage: %q %s\n' "$(basename "$1")" '-v|--verbose [ARG ...] [-?|-h|--help]'
+    printf 'Usage: %q %s\n' "$(basename "$1")" '[-v|--verbose] [ARG ...] [-?|-h|--help]'
 }
 isVerbose=
 case "$1" in
@@ -17,11 +17,11 @@ quotedArgs=; if [ $# -gt 0 ]; then printf -v quotedArgs '%q ' "$@"; quotedArgs=$
 printf '%s\n' "$quotedArgs"
 
 if [ "$isVerbose" ]; then
-    echo "command-line arguments \$0: \"$0\""
+    echo >&2 "command-line arguments \$0: \"$0\""
     let argCnt=1
     while [ $# -gt 0 ]
     do
-	echo "command-line arguments \$${argCnt}: \"$1\""
+	echo >&2 "command-line arguments \$${argCnt}: \"$1\""
 	shift
 	let argCnt+=1
     done
