@@ -14,7 +14,7 @@ case "$1" in
 esac
 
 quotedArgs=; if [ $# -gt 0 ]; then printf -v quotedArgs '%q ' "$@"; quotedArgs=${quotedArgs% }; fi
-printf '%s\n' "$quotedArgs"
+[ "$quotedArgs" ] && printf '%s\n' "$quotedArgs"
 
 if [ "$isVerbose" ]; then
     echo >&2 "command-line arguments \$0: \"$0\""
