@@ -13,9 +13,6 @@ case "$1" in
     --verbose|-v)	shift; isVerbose=t;;
 esac
 
-quotedArgs=; if [ $# -gt 0 ]; then printf -v quotedArgs '%q ' "$@"; quotedArgs=${quotedArgs% }; fi
-[ "$quotedArgs" ] && printf '%s\n' "$quotedArgs"
-
 if [ "$isVerbose" ]; then
     echo >&2 "command-line arguments \$0: \"$0\""
     let argCnt=1
@@ -25,4 +22,7 @@ if [ "$isVerbose" ]; then
 	shift
 	let argCnt+=1
     done
+else
+    quotedArgs=; if [ $# -gt 0 ]; then printf -v quotedArgs '%q ' "$@"; quotedArgs=${quotedArgs% }; fi
+    [ "$quotedArgs" ] && printf '%s\n' "$quotedArgs"
 fi
