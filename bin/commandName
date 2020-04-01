@@ -80,7 +80,21 @@ if [ "$isEval" ]; then
 	-e "s#.*#${literalReplacement//#/\\#}#" \
 	-e q
     )"
-    eval "set -- $netCommandLine"
+
+    # The eval may fail, e.g. with
+    # $ commandName --eval 'ls -t @(server|client)*.log?(.[0-9])'
+    #	-> ls -t @(server
+    # because of the incomplete glob. Therefore, error messages should be
+    # suppressed. As set -o noglob doesn't help, try removing arguments from the
+    # back for as long as possible and retry.
+    until eval "set -- $netCommandLine" 2>/dev/null
+    do
+	if [ "${netCommandLine/ //}" = "$netCommandLine" ]; then
+	    break
+	else
+	    netCommandLine="${netCommandLine% *}"
+	fi
+    done
 else
     while [[ "$1" =~ ^[[:alpha:]_][[:alnum:]_]+= ]]; do shift; done
 fi
