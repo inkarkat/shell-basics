@@ -16,7 +16,7 @@ do
     case "$1" in
 	--help|-h|-\?)	shift; printUsage "$0"; exit 0;;
 	--human)	shift; dateFormat='+%d-%b-%Y_%T';;
-	--short)	shift; dateFormat='+%Y%m%d_%H%M%S';;
+	--short)	shift; dateFormat='+%Y%m%d-%H%M%S';;
 	--sortable)	shift; dateFormat='+%Y-%m-%d_%T.%N';;
 	--separator|-s)	shift; separator="$1"; shift;;
 	-)		break;;
