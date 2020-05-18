@@ -5,12 +5,13 @@ printUsage()
     cat <<HELPTEXT
 Print a timestamp / prefix output from stdin with timestamps.
 HELPTEXT
-printf 'Usage: %q %s\n' "$(basename "$1")" '[--human|--short|--sortable] [-f|--field-separator SEP] [-?|-h|--help]'
+printf 'Usage: %q %s\n' "$(basename "$1")" '[--human|--short|--sortable] [--no-millis] [-f|--field-separator SEP] [-?|-h|--help]'
 printf 'Usage: cat FILE [...] | %q %s\n' "$(basename "$1")" '[...] [-s|--separator SEP] -'
 }
 
-dateFormat='+%d-%b-%Y${separator}%T.%N'
+dateFormat='+%d-%b-%Y${separator}%T${millis}'
 separator=' '
+millis='.%N'
 unset fieldSeparator
 while [ $# -ne 0 ]
 do
@@ -18,7 +19,8 @@ do
 	--help|-h|-\?)	shift; printUsage "$0"; exit 0;;
 	--human)	shift; dateFormat='+%d-%b-%Y${fieldSeparator-_}%T';;
 	--short)	shift; dateFormat='+%Y%m%d${fieldSeparator--}%H%M%S';;
-	--sortable)	shift; dateFormat='+%Y-%m-%d${fieldSeparator-_}%T.%N';;
+	--sortable)	shift; dateFormat='+%Y-%m-%d${fieldSeparator-_}%T${millis}';;
+	--no-millis)	shift; millis=''; shift;;
 	--field-separator|-f)
 			shift; fieldSeparator="$1"; shift;;
 	--separator|-s)	shift; separator="$1"; shift;;
