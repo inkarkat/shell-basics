@@ -33,7 +33,7 @@ do
 done
 
 if [ "$isRemoveFields" ]; then
-    awk -v nrs="$*" '
+    exec awk -v nrs="$*" '
 BEGIN {
     split(nrs, numbers, " ")
     for (n in numbers) {
@@ -62,5 +62,5 @@ else
 	    *)	    selectors="$selectors \"$arg\"";;
 	esac
     done
-    awk "${fsArgs[@]}" "{ print$selectors }" "${awkArgs[@]}"
+    exec awk "${fsArgs[@]}" "{ print$selectors }" "${awkArgs[@]}"
 fi
