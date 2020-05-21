@@ -44,6 +44,11 @@ BEGIN {
 	}
     }
 }
+1 {
+    # Use FS as output separator if it is not a regular expression.
+    firstTwoFields = $1 FS $2
+    if (substr($0, 1, length(firstTwoFields)) == firstTwoFields) OFS = FS
+}
 {
     for (i=1; i <= NF; i++)
 	printf "%s", (xor(! isRemoveFields, i in fields || (NF - i) in negfields) ? \
