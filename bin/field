@@ -33,7 +33,7 @@ do
 done
 
 if [ "$isRemoveFields" ]; then
-    exec awk -v nrs="$*" '
+    exec awk "${fsArgs[@]}" -v nrs="$*" '
 BEGIN {
     split(nrs, numbers, " ")
     for (n in numbers) {
