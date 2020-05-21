@@ -15,7 +15,7 @@ HELPTEXT
     printf 'Usage: %q %s\n' "$(basename "$1")" '-i|--input FILESPEC [...] -v|--remove [-]N [...] [-?|-h|--help]'
 }
 
-typeset -a fsArgs
+typeset -a fsArgs=()
 typeset -a awkArgs=()
 isRemoveFields=
 while [ $# -ne 0 ]
@@ -32,8 +32,8 @@ do
     esac
 done
 
-if [ "$isRemoveFields" ]; then
-    exec awk "${fsArgs[@]}" -v nrs="$*" '
+: ${isRemoveFields:=0}
+exec awk "${fsArgs[@]}" -v "isRemoveFields=${isRemoveFields//t/1}" -v nrs="$*" '
 BEGIN {
     split(nrs, numbers, " ")
     for (n in numbers) {
@@ -46,21 +46,9 @@ BEGIN {
 }
 {
     for (i=1; i <= NF; i++)
-	printf "%s", ((i in fields || (NF - i) in negfields) ? \
+	printf "%s", (xor(! isRemoveFields, i in fields || (NF - i) in negfields) ? \
 	    (i == NF ? ORS : "") : \
 	    $i (i == NF ? ORS : OFS) \
 	)
 }
 ' "${awkArgs[@]}"
-else
-    selectors=
-    for arg
-    do
-	case $arg in
-	    +([0-9]))   selectors="$selectors \$$arg";;
-	    -+([0-9]))  selectors="$selectors \$(NF-${arg#-}+1)";;
-	    *)	    selectors="$selectors \"$arg\"";;
-	esac
-    done
-    exec awk "${fsArgs[@]}" "{ print$selectors }" "${awkArgs[@]}"
-fi
