@@ -4,7 +4,7 @@ shopt -qs extglob
 printUsage()
 {
     cat <<HELPTEXT
-Print selected field(s) N (-N counted from behind) from stdin, separated by SEP.
+Print selected field(s) N (-N counted from behind) from stdin, separated by SEP (or the original FS).
 HELPTEXT
     printf 'Usage: cat FILE [...] | %q %s\n' "$(basename "$1")" '[-F|--field-separator FS] [-]N|SEP [...]'
     printf 'Usage: %q %s\n' "$(basename "$1")" '-i|--input FILESPEC [...] [-]N|SEP [...] [-?|-h|--help]'
@@ -61,17 +61,30 @@ BEGIN {
 }
 ' "${awkArgs[@]}"
 else
+    isSubsequent=
+    separator='OFS'
     selectors=
     for arg
     do
 	case $arg in
-	    +([0-9]))   selectors="$selectors \$$arg";;
-	    -+([0-9]))  selectors="$selectors \$(NF-${arg#-}+1)";;
+	    +([0-9]))   selectors="$selectors ${isSubsequent:+$separator }\$$arg"
+			separator='OFS'
+			;;
+	    -+([0-9]))  selectors="$selectors ${isSubsequent:+$separator }\$(NF-${arg#-}+1)"
+			separator='OFS'
+			;;
 	    *)		arg="${arg//\\/\\\\}"
 			arg="${arg//\"/\\\"}"
-			selectors="$selectors \"${arg}\""
+			separator="\"${arg}\""
 			;;
 	esac
+	isSubsequent=t
     done
-    exec awk "${fsArgs[@]}" "{ print$selectors }" "${awkArgs[@]}"
+    exec awk "${fsArgs[@]}" '
+1 {
+    # Use FS as output separator if it is not a regular expression.
+    firstTwoFields = $1 FS $2
+    if (substr($0, 1, length(firstTwoFields)) == firstTwoFields) OFS = FS
+}
+'"{ print$selectors }" "${awkArgs[@]}"
 fi
