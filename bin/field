@@ -32,8 +32,8 @@ do
     esac
 done
 
-: ${isRemoveFields:=0}
-exec awk "${fsArgs[@]}" -v "isRemoveFields=${isRemoveFields//t/1}" -v nrs="$*" '
+if [ "$isRemoveFields" ]; then
+    exec awk "${fsArgs[@]}" -v nrs="$*" '
 BEGIN {
     split(nrs, numbers, " ")
     for (n in numbers) {
@@ -52,7 +52,7 @@ BEGIN {
 {
     isFirst = 1
     for (i = 1; i <= NF; i++) {
-	if (! xor(! isRemoveFields, i in fields || (NF - i) in negfields)) {
+	if (! (i in fields || (NF - i) in negfields)) {
 	    printf "%s%s", (isFirst ? "" : OFS), $i
 	    isFirst = 0
 	}
@@ -60,3 +60,18 @@ BEGIN {
     printf "%s", ORS
 }
 ' "${awkArgs[@]}"
+else
+    selectors=
+    for arg
+    do
+	case $arg in
+	    +([0-9]))   selectors="$selectors \$$arg";;
+	    -+([0-9]))  selectors="$selectors \$(NF-${arg#-}+1)";;
+	    *)		arg="${arg//\\/\\\\}"
+			arg="${arg//\"/\\\"}"
+			selectors="$selectors \"${arg}\""
+			;;
+	esac
+    done
+    exec awk "${fsArgs[@]}" "{ print$selectors }" "${awkArgs[@]}"
+fi
