@@ -50,10 +50,13 @@ BEGIN {
     if (substr($0, 1, length(firstTwoFields)) == firstTwoFields) OFS = FS
 }
 {
-    for (i=1; i <= NF; i++)
-	printf "%s", (xor(! isRemoveFields, i in fields || (NF - i) in negfields) ? \
-	    (i == NF ? ORS : "") : \
-	    $i (i == NF ? ORS : OFS) \
-	)
+    isFirst = 1
+    for (i = 1; i <= NF; i++) {
+	if (! xor(! isRemoveFields, i in fields || (NF - i) in negfields)) {
+	    printf "%s%s", (isFirst ? "" : OFS), $i
+	    isFirst = 0
+	}
+    }
+    printf "%s", ORS
 }
 ' "${awkArgs[@]}"
