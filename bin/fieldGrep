@@ -54,7 +54,7 @@ awk "${fsArgs[@]}" -v "isInvertFields=${isInvertFields//t/1}" -v nrs="$*" '
 function abort(message)
 {
     print message > "/dev/stderr"
-    printf "%s%s\n", OFS, OFS   # Need to also print minimal output so that the following grep pipeline step does not fail with exit status 1, eclipsing this exit status.
+    print FS FS FS	# Need to also print minimal output so that the following grep pipeline step does not fail with exit status 1, eclipsing this exit status.
     exit 2
 }
 BEGIN {
@@ -100,6 +100,11 @@ function join(array, start, end, result, i)
 }
 BEGIN {
     OFS = FS
+    status = 1
+}
+NF == 4 {
+    status = 0
+    exit
 }
 NF == 3 {
     # Double separator signals end of line.
@@ -126,7 +131,11 @@ NF == 2 {
 }
 {
     isPicked = 1
+    status = 0
     f[++i] = $0
+}
+END {
+    exit status
 }
 '
 # TODO: Implement grep -v inversion filtering of separators
