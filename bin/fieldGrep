@@ -1,0 +1,115 @@
+#!/bin/bash
+set -o pipefail
+shopt -qs extglob
+
+printUsage()
+{
+    cat <<HELPTEXT
+Print lines where selected field(s) N (-N counted from behind), separated by SEP, match a PATTERN.
+HELPTEXT
+    printf 'Usage: cat FILE [...] | %q %s\n' "$(basename "$1")" '[-F|--field-separator FS] GREP-OPTIONS [...] [-]N|SEP [...]'
+    printf 'Usage: %q %s\n' "$(basename "$1")" '-i|--input FILESPEC [...] GREP-OPTIONS [...] [-]N|SEP [...] [-?|-h|--help]'
+    cat <<HELPTEXT
+Print lines where any but the passed field(s) N (-N counted from behind), separated by SEP, match a PATTERN.
+HELPTEXT
+    printf 'Usage: cat FILE [...] | %q %s\n' "$(basename "$1")" '[-F|--field-separator FS] -V|--invert-fields GREP-OPTIONS [...] [-]N|SEP [...]'
+    printf 'Usage: %q %s\n' "$(basename "$1")" '-i|--input FILESPEC [...] -V|--invert-fields GREP-OPTIONS [...] [-]N|SEP [...] [-?|-h|--help]'
+}
+
+typeset -a grepArgs=()
+typeset -a fsArgs=()
+fieldSeparator=' '
+typeset -a awkArgs=()
+isInvertFields=
+while [ $# -ne 0 ]
+do
+    case "$1" in
+	--help|-h|-\?)		shift; printUsage "$0"; exit 0;;
+
+	-+([EGPivwo]))		grepArgs+=("$1"); shift;;
+	--@(extended-regexp|fixed-strings|basic-regexp|perl-regexp|ignore-case|invert-match|word-regexp))
+				grepArgs+=("$1"); shift;;
+	-[ef])			grepArgs+=("$1" "$2"); shift; shift;;
+	--@(regexp|file)=*)	grepArgs+=("$1"); shift;;
+	--@(regexp|file))	grepArgs+=("$1" "$2"); shift; shift;;
+
+	--input|-i)		shift; awkArgs+=("$1"); shift;;
+	--invert-fields|-V)		shift; isInvertFields=t;;
+	--field-separator|-F)	shift; fsArgs=(-F "$1"); fieldSeparator="$1"; shift;;
+	--)			shift; break;;
+	-+([0-9]))		break;;
+	-*)			{ echo "ERROR: Unknown option \"$1\"!"; echo; printUsage "$0"; } >&2; exit 2;;
+	*)			break;;
+    esac
+done
+if [ ${#grepArgs[@]} -eq 0 ]; then
+    echo >&2 'ERROR: No GREP-OPTIONS passed.'
+    echo >&2
+    printUsage "$0" >&2
+    exit 2
+fi
+
+: ${isInvertFields:=0}
+awk "${fsArgs[@]}" -v "isInvertFields=${isInvertFields//t/1}" -v nrs="$*" '
+BEGIN {
+    split(nrs, numbers, " ")
+    for (n in numbers) {
+	if (numbers[n] >= 0) {
+	    fields[numbers[n]] = 1
+	} else {
+	    negfields[-1 * numbers[n] - 1] = 1
+	}
+    }
+}
+1 {
+    # Use FS as output separator; it cannot be a regular expression here.
+    firstTwoFields = $1 FS $2
+    if (substr($0, 1, length(firstTwoFields)) == firstTwoFields) {
+	OFS = FS
+    } else {
+	print "ERROR: The field separator has to be a literal string; it cannot be a regular expression." > "/dev/stderr"
+	exit 2
+    }
+}
+{
+    for (i = 1; i <= NF; i++) {
+	printf "%s%s\n", (xor(! isInvertFields, i in fields || (NF - i) in negfields) ? i OFS : ""), $i
+    }
+    printf "%s%s\n", OFS, OFS
+}
+' "${awkArgs[@]}" | \
+    grep -e "$fieldSeparator" "${grepArgs[@]}" | \
+awk "${fsArgs[@]}" '
+function join(array, start, end, result, i)
+{
+    if (end < start) return ""
+
+    result = array[start]
+    for (i = start + 1; i <= end; i++)
+	result = result OFS array[i]
+    return result
+}
+BEGIN {
+    OFS = FS
+}
+NF == 3 {
+    # Double separator signals end of line.
+    printf "%s\n", join(f, 1, i)
+    delete f
+    i = 0
+    isPicked = 0
+    next
+}
+NF == 2 {
+    i = $1
+    f[i] = $2
+    printf "****kept %d: %s\n", $1, $2
+    next
+}
+{
+    isPicked = 1
+    f[++i] = $0
+    printf "****filtered: %s\n", $0
+}
+'
+# TODO: Implement grep -v inversion filtering of separators
