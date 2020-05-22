@@ -5,12 +5,12 @@ shopt -qs extglob
 printUsage()
 {
     cat <<HELPTEXT
-Print lines where selected field(s) N (-N counted from behind), separated by SEP, match a PATTERN.
+Print lines where selected field(s) N (-N counted from behind), separated by FS, match a PATTERN.
 HELPTEXT
     printf 'Usage: cat FILE [...] | %q %s\n' "$(basename "$1")" '[-F|--field-separator FS] GREP-OPTIONS [...] [-]N|SEP [...]'
     printf 'Usage: %q %s\n' "$(basename "$1")" '-i|--input FILESPEC [...] GREP-OPTIONS [...] [-]N|SEP [...] [-?|-h|--help]'
     cat <<HELPTEXT
-Print lines where any but the passed field(s) N (-N counted from behind), separated by SEP, match a PATTERN.
+Print lines where any but the passed field(s) N (-N counted from behind), separated by FS, match a PATTERN.
 HELPTEXT
     printf 'Usage: cat FILE [...] | %q %s\n' "$(basename "$1")" '[-F|--field-separator FS] -V|--invert-fields GREP-OPTIONS [...] [-]N|SEP [...]'
     printf 'Usage: %q %s\n' "$(basename "$1")" '-i|--input FILESPEC [...] -V|--invert-fields GREP-OPTIONS [...] [-]N|SEP [...] [-?|-h|--help]'
@@ -34,7 +34,7 @@ do
 	--@(regexp|file))	grepArgs+=("$1" "$2"); shift; shift;;
 
 	--input|-i)		shift; awkArgs+=("$1"); shift;;
-	--invert-fields|-V)		shift; isInvertFields=t;;
+	--invert-fields|-V)	shift; isInvertFields=t;;
 	--field-separator|-F)	shift; fsArgs=(-F "$1"); fieldSeparator="$1"; shift;;
 	--)			shift; break;;
 	-+([0-9]))		break;;
@@ -51,9 +51,19 @@ fi
 
 : ${isInvertFields:=0}
 awk "${fsArgs[@]}" -v "isInvertFields=${isInvertFields//t/1}" -v nrs="$*" '
+function abort(message)
+{
+    print message > "/dev/stderr"
+    printf "%s%s\n", OFS, OFS   # Need to also print minimal output so that the following grep pipeline step does not fail with exit status 1, eclipsing this exit status.
+    exit 2
+}
 BEGIN {
     split(nrs, numbers, " ")
     for (n in numbers) {
+	if (numbers[n] !~ /^-?[[:digit:]]+$/) {
+	    abort("ERROR: Not a number: " numbers[n])
+	}
+
 	if (numbers[n] >= 0) {
 	    fields[numbers[n]] = 1
 	} else {
@@ -67,8 +77,7 @@ BEGIN {
     if (substr($0, 1, length(firstTwoFields)) == firstTwoFields) {
 	OFS = FS
     } else {
-	print "ERROR: The field separator has to be a literal string; it cannot be a regular expression." > "/dev/stderr"
-	exit 2
+	abort("ERROR: The field separator has to be a literal string; it cannot be a regular expression.")
     }
 }
 {
@@ -94,7 +103,8 @@ BEGIN {
 }
 NF == 3 {
     # Double separator signals end of line.
-    printf "%s\n", join(f, 1, i)
+    if (isPicked) printf "%s\n", join(f, 1, i)
+
     delete f
     i = 0
     isPicked = 0
@@ -102,14 +112,21 @@ NF == 3 {
 }
 NF == 2 {
     i = $1
+    if (f[i] != "") {
+	# The field is already taken, because grep -o has introduced additional
+	# filtered lines. Join those with the previous filtered field now.
+	for(j = 0; f[i + j] != ""; j++) {
+	    f[i - 1] = f[i - 1] " " f[i + j]
+	    f[i + j] = ""
+	}
+    }
+
     f[i] = $2
-    printf "****kept %d: %s\n", $1, $2
     next
 }
 {
     isPicked = 1
     f[++i] = $0
-    printf "****filtered: %s\n", $0
 }
 '
 # TODO: Implement grep -v inversion filtering of separators
