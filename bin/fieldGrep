@@ -20,7 +20,7 @@ typeset -a grepArgs=()
 typeset -a grepPatternArgs=()
 unset separatorGrepArgs
 typeset -a fsArgs=()
-fieldSeparator=' '
+fieldSeparator='[	 ]'
 typeset -a awkArgs=()
 isInvertFields=
 isOnlyMatching=
@@ -31,8 +31,9 @@ do
 	--help|-h|-\?)		shift; printUsage "$0"; exit 0;;
 
 	-+([EGi]))		grepArgs+=("$1"); shift;;
-	--@(extended-regexp|fixed-strings|basic-regexp|ignore-case))
+	--@(extended-regexp|basic-regexp|ignore-case))
 				grepArgs+=("$1"); shift;;
+	--fixed-strings)	grepArgs+=("$1"); [ "$fieldSeparator" = '[	 ]' ] && fieldSeparator=' '; shift;;
 	--perl-regexp|-P)	grepArgs+=("$1"); isPerlRegexp=t; shift;;
 	--word-regexp|-w)	grepArgs+=("$1"); separatorGrepArgs=(-e '^[0-9][0-9]*'); shift;;    # A (usually) non-word separator won't be matched; need to aim for the leading field number to include the unfiltered fields.
 	--invert-match|-v)	grepArgs+=("$1"); separatorGrepArgs=(); shift;;	# Because of the inversion, we must not match the separators now so that they get included.
@@ -99,6 +100,8 @@ NR == 1 {
     firstTwoFields = $1 FS $2
     if (substr($0, 1, length(firstTwoFields)) == firstTwoFields) {
 	OFS = FS
+    } else if (FS == " " && (substr($0, 1, length(firstTwoFields)) == $1 "\t" $2)) {
+	OFS = "\t"
     } else {
 	abort("ERROR: The field separator has to be a literal string; it cannot be a regular expression.")
     }
@@ -123,15 +126,23 @@ function join(array, start, end, result, i)
 }
 BEGIN {
     OFS = FS
-    if (FS == " ") FS=" {1}"	# Use a pattern that matches only a single space to prevent awk from treating any runs of whitespace as separator; the pipeline has normalized to single spaces, anyway, and we need to be able to count the empty field numbers to determine aborts and ends of lines.
+    if (FS == " ") FS="[	 ]"	# Use a pattern that matches only a single space to prevent AWK from treating any runs of whitespace as separator; the pipeline has normalized to single spaces, anyway, and we need to be able to count the empty field numbers to determine aborts and ends of lines.
     status = 1
 }
 NF == 4 {
-    status = 0
+    # Triple separator signals abort.
+    status = 0	# Do not affect the exit status of the pipeline; pipefail will return the one from the previous failing step.
     exit
 }
 NF == 3 {
     # Double separator signals end of line.
+
+    if (OFS == " ") {
+    	# The default AWK separator may result in either space or tab; take it
+    	# from the input to use the right one.
+    	OFS = substr($0, length($0))
+    }
+
     if (isPicked) printf "%s\n", join(f, 1, i)
 
     delete f
