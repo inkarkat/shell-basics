@@ -23,18 +23,20 @@ typeset -a fsArgs=()
 fieldSeparator=' '
 typeset -a awkArgs=()
 isInvertFields=
+isOnlyMatching=
 isPerlRegexp=
 while [ $# -ne 0 ]
 do
     case "$1" in
 	--help|-h|-\?)		shift; printUsage "$0"; exit 0;;
 
-	-+([EGio]))		grepArgs+=("$1"); shift;;
+	-+([EGi]))		grepArgs+=("$1"); shift;;
 	--@(extended-regexp|fixed-strings|basic-regexp|ignore-case))
 				grepArgs+=("$1"); shift;;
 	--perl-regexp|-P)	grepArgs+=("$1"); isPerlRegexp=t; shift;;
 	--word-regexp|-w)	grepArgs+=("$1"); separatorGrepArgs=(-e '^[0-9][0-9]*'); shift;;    # A (usually) non-word separator won't be matched; need to aim for the leading field number to include the unfiltered fields.
 	--invert-match|-v)	grepArgs+=("$1"); separatorGrepArgs=(); shift;;	# Because of the inversion, we must not match the separators now so that they get included.
+	--only-matching|-o)	grepArgs+=("$1"); isOnlyMatching=t; shift;;
 	--regexp|-e)		grepPatternArgs+=("$1" "$2"); shift; shift;;
 	--regexp=*)		grepPatternArgs+=(--regexp "${1#--regexp=}"); shift;;
 	--file|-f)		grepArgs+=("$1" "$2"); shift; shift;;
@@ -59,6 +61,11 @@ case " ${!separatorGrepArgs*} " in
     *" separatorGrepArgs "*) true;;
     *) false;;
 esac || separatorGrepArgs+=(-e "$fieldSeparator")   # Include unfiltered fields.
+if [ "$isOnlyMatching" ] && [ ${#separatorGrepArgs[@]} -gt 0 ]; then
+    # Need to make whole unfiltered fields match. Of course, this is impossible
+    # with --fixed-strings.
+    separatorGrepArgs[1]=".*${fieldSeparator}.*"
+fi
 if [ "$isPerlRegexp" ] && [ ${#separatorGrepArgs[@]} -gt 0 ]; then
     # The -P option only supports a single pattern; need to combine the separator pattern with the passed argument.
     grepPatternArgs[1]="(?:${separatorGrepArgs[1]}|${grepPatternArgs[1]})"
