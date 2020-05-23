@@ -94,7 +94,7 @@ BEGIN {
 	}
     }
 }
-1 {
+NR == 1 {
     # Use FS as output separator; it cannot be a regular expression here.
     firstTwoFields = $1 FS $2
     if (substr($0, 1, length(firstTwoFields)) == firstTwoFields) {
@@ -123,6 +123,7 @@ function join(array, start, end, result, i)
 }
 BEGIN {
     OFS = FS
+    if (FS == " ") FS=" {1}"	# Use a pattern that matches only a single space to prevent awk from treating any runs of whitespace as separator; the pipeline has normalized to single spaces, anyway, and we need to be able to count the empty field numbers to determine aborts and ends of lines.
     status = 1
 }
 NF == 4 {
