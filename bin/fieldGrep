@@ -17,20 +17,21 @@ HELPTEXT
 }
 
 typeset -a grepArgs=()
+unset separatorGrepArgs
 typeset -a fsArgs=()
 fieldSeparator=' '
 typeset -a awkArgs=()
 isInvertFields=
-isInvertMatch=
 while [ $# -ne 0 ]
 do
     case "$1" in
 	--help|-h|-\?)		shift; printUsage "$0"; exit 0;;
 
-	-+([EGPiwo]))		grepArgs+=("$1"); shift;;
-	--@(extended-regexp|fixed-strings|basic-regexp|perl-regexp|ignore-case|word-regexp))
+	-+([EGPio]))		grepArgs+=("$1"); shift;;
+	--@(extended-regexp|fixed-strings|basic-regexp|perl-regexp|ignore-case))
 				grepArgs+=("$1"); shift;;
-	--invert-match|-v)	grepArgs+=("$1"); isInvertMatch=t; shift;;
+	--word-regexp|-w)	grepArgs+=("$1"); separatorGrepArgs=(-e '^[0-9][0-9]*'); shift;;    # A (usually) non-word separator won't be matched; need to aim for the leading field number to include the unfiltered fields.
+	--invert-match|-v)	grepArgs+=("$1"); separatorGrepArgs=(); shift;;	# Because of the inversion, we must not match the separators now so that they get included.
 	-[ef])			grepArgs+=("$1" "$2"); shift; shift;;
 	--@(regexp|file)=*)	grepArgs+=("$1"); shift;;
 	--@(regexp|file))	grepArgs+=("$1" "$2"); shift; shift;;
@@ -50,7 +51,10 @@ if [ ${#grepArgs[@]} -eq 0 ]; then
     printUsage "$0" >&2
     exit 2
 fi
-[ "$isInvertMatch" ] || grepArgs+=(-e "$fieldSeparator")
+case " ${!separatorGrepArgs*} " in
+    *" separatorGrepArgs "*) true;;
+    *) false;;
+esac || separatorGrepArgs+=(-e "$fieldSeparator")   # Include unfiltered fields.
 
 : ${isInvertFields:=0}
 awk "${fsArgs[@]}" -v "isInvertFields=${isInvertFields//t/1}" -v nrs="$*" '
@@ -87,10 +91,10 @@ BEGIN {
     for (i = 1; i <= NF; i++) {
 	printf "%s%s\n", (xor(! isInvertFields, i in fields || (NF - i) in negfields) ? i OFS : ""), $i
     }
-    printf "%s%s\n", OFS, OFS
+    printf "0%s%s\n", OFS, OFS
 }
 ' "${awkArgs[@]}" | \
-    grep "${grepArgs[@]}" | \
+    grep "${separatorGrepArgs[@]}" "${grepArgs[@]}" | \
 awk "${fsArgs[@]}" '
 function join(array, start, end, result, i)
 {
