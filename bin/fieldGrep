@@ -17,24 +17,28 @@ HELPTEXT
 }
 
 typeset -a grepArgs=()
+typeset -a grepPatternArgs=()
 unset separatorGrepArgs
 typeset -a fsArgs=()
 fieldSeparator=' '
 typeset -a awkArgs=()
 isInvertFields=
+isPerlRegexp=
 while [ $# -ne 0 ]
 do
     case "$1" in
 	--help|-h|-\?)		shift; printUsage "$0"; exit 0;;
 
-	-+([EGPio]))		grepArgs+=("$1"); shift;;
-	--@(extended-regexp|fixed-strings|basic-regexp|perl-regexp|ignore-case))
+	-+([EGio]))		grepArgs+=("$1"); shift;;
+	--@(extended-regexp|fixed-strings|basic-regexp|ignore-case))
 				grepArgs+=("$1"); shift;;
+	--perl-regexp|-P)	grepArgs+=("$1"); isPerlRegexp=t; shift;;
 	--word-regexp|-w)	grepArgs+=("$1"); separatorGrepArgs=(-e '^[0-9][0-9]*'); shift;;    # A (usually) non-word separator won't be matched; need to aim for the leading field number to include the unfiltered fields.
 	--invert-match|-v)	grepArgs+=("$1"); separatorGrepArgs=(); shift;;	# Because of the inversion, we must not match the separators now so that they get included.
-	-[ef])			grepArgs+=("$1" "$2"); shift; shift;;
-	--@(regexp|file)=*)	grepArgs+=("$1"); shift;;
-	--@(regexp|file))	grepArgs+=("$1" "$2"); shift; shift;;
+	--regexp|-e)		grepPatternArgs+=("$1" "$2"); shift; shift;;
+	--regexp=*)		grepPatternArgs+=(--regexp "${1#--regexp=}"); shift;;
+	--file|-f)		grepArgs+=("$1" "$2"); shift; shift;;
+	--file=*)		grepArgs+=("$1"); shift;;
 
 	--input|-i)		shift; awkArgs+=("$1"); shift;;
 	--invert-fields|-V)	shift; isInvertFields=t;;
@@ -45,7 +49,7 @@ do
 	*)			break;;
     esac
 done
-if [ ${#grepArgs[@]} -eq 0 ]; then
+if [ ${#grepPatternArgs[@]} -eq 0 ]; then
     echo >&2 'ERROR: No GREP-OPTIONS passed.'
     echo >&2
     printUsage "$0" >&2
@@ -55,6 +59,11 @@ case " ${!separatorGrepArgs*} " in
     *" separatorGrepArgs "*) true;;
     *) false;;
 esac || separatorGrepArgs+=(-e "$fieldSeparator")   # Include unfiltered fields.
+if [ "$isPerlRegexp" ] && [ ${#separatorGrepArgs[@]} -gt 0 ]; then
+    # The -P option only supports a single pattern; need to combine the separator pattern with the passed argument.
+    grepPatternArgs[1]="(?:${separatorGrepArgs[1]}|${grepPatternArgs[1]})"
+    separatorGrepArgs=()
+fi
 
 : ${isInvertFields:=0}
 awk "${fsArgs[@]}" -v "isInvertFields=${isInvertFields//t/1}" -v nrs="$*" '
@@ -94,7 +103,7 @@ BEGIN {
     printf "0%s%s\n", OFS, OFS
 }
 ' "${awkArgs[@]}" | \
-    grep "${separatorGrepArgs[@]}" "${grepArgs[@]}" | \
+    grep "${grepArgs[@]}" "${separatorGrepArgs[@]}" "${grepPatternArgs[@]}" | \
 awk "${fsArgs[@]}" '
 function join(array, start, end, result, i)
 {
@@ -145,4 +154,3 @@ END {
     exit status
 }
 '
-# TODO: Implement grep -v inversion filtering of separators
