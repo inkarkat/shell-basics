@@ -37,6 +37,11 @@ if [ "$isRemoveFields" ]; then
 BEGIN {
     split(nrs, numbers, " ")
     for (n in numbers) {
+	if (numbers[n] !~ /^-?[[:digit:]]+$/) {
+	    print "ERROR: Not a number: " numbers[n] > "/dev/stderr"
+	    exit 2
+	}
+
 	if (numbers[n] >= 0) {
 	    fields[numbers[n]] = 1
 	} else {
