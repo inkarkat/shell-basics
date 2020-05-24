@@ -49,10 +49,14 @@ BEGIN {
 	}
     }
 }
-1 {
+NR == 1 {
     # Use FS as output separator if it is not a regular expression.
     firstTwoFields = $1 FS $2
-    if (substr($0, 1, length(firstTwoFields)) == firstTwoFields) OFS = FS
+    if (substr($0, 1, length(firstTwoFields)) == firstTwoFields) {
+	OFS = FS
+    } else if (FS == " " && (substr($0, 1, length(firstTwoFields)) == $1 "\t" $2)) {
+	OFS = "\t"
+    }
 }
 {
     isFirst = 1
@@ -80,16 +84,21 @@ else
 			;;
 	    *)		arg="${arg//\\/\\\\}"
 			arg="${arg//\"/\\\"}"
+			arg="${arg//$'\n'/\\\n}"
 			separator="\"${arg}\""
 			;;
 	esac
 	isSubsequent=t
     done
     exec awk "${fsArgs[@]}" '
-1 {
+NR == 1 {
     # Use FS as output separator if it is not a regular expression.
     firstTwoFields = $1 FS $2
-    if (substr($0, 1, length(firstTwoFields)) == firstTwoFields) OFS = FS
+    if (substr($0, 1, length(firstTwoFields)) == firstTwoFields) {
+	OFS = FS
+    } else if (FS == " " && (substr($0, 1, length(firstTwoFields)) == $1 "\t" $2)) {
+	OFS = "\t"
+    }
 }
 '"{ print$selectors }" "${awkArgs[@]}"
 fi
