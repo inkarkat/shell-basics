@@ -32,6 +32,18 @@ do
     esac
 done
 
+outputSeparatorDetermination='
+NR == 1 {
+    # Use FS as output separator if it is not a regular expression.
+    firstTwoFields = $1 FS $2
+    if (substr($0, 1, length(firstTwoFields)) == firstTwoFields) {
+	OFS = FS
+    } else if (FS == " " && (substr($0, 1, length(firstTwoFields)) == $1 "\t" $2)) {
+	OFS = "\t"
+    }
+}
+'
+
 if [ "$isRemoveFields" ]; then
     exec awk "${fsArgs[@]}" -v nrs="$*" '
 BEGIN {
@@ -49,15 +61,7 @@ BEGIN {
 	}
     }
 }
-NR == 1 {
-    # Use FS as output separator if it is not a regular expression.
-    firstTwoFields = $1 FS $2
-    if (substr($0, 1, length(firstTwoFields)) == firstTwoFields) {
-	OFS = FS
-    } else if (FS == " " && (substr($0, 1, length(firstTwoFields)) == $1 "\t" $2)) {
-	OFS = "\t"
-    }
-}
+'"$outputSeparatorDetermination"'
 {
     isFirst = 1
     for (i = 1; i <= NF; i++) {
@@ -90,15 +94,7 @@ else
 	esac
 	isSubsequent=t
     done
-    exec awk "${fsArgs[@]}" '
-NR == 1 {
-    # Use FS as output separator if it is not a regular expression.
-    firstTwoFields = $1 FS $2
-    if (substr($0, 1, length(firstTwoFields)) == firstTwoFields) {
-	OFS = FS
-    } else if (FS == " " && (substr($0, 1, length(firstTwoFields)) == $1 "\t" $2)) {
-	OFS = "\t"
-    }
-}
-'"{ print$selectors }" "${awkArgs[@]}"
+    exec awk "${fsArgs[@]}" "
+$outputSeparatorDetermination
+{ print$selectors }" "${awkArgs[@]}"
 fi
