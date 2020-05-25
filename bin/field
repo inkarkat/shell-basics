@@ -14,6 +14,13 @@ HELPTEXT
     printf 'Usage: cat FILE [...] | %q %s\n' "$(basename "$1")" '[-F|--field-separator FS] -v|--remove [-]N [...]'
     printf 'Usage: %q %s\n' "$(basename "$1")" '-i|--input FILESPEC [...] -v|--remove [-]N [...] [-?|-h|--help]'
 }
+fieldNumberError()
+{
+    echo >&2 'ERROR: No field number N passed.'
+    echo >&2
+    printUsage "$0" >&2
+    exit 2
+}
 
 typeset -a fsArgs=()
 typeset -a awkArgs=()
@@ -31,6 +38,7 @@ do
 	*)			break;;
     esac
 done
+[ $# -gt 0 ] || fieldNumberError
 
 outputSeparatorDetermination='
 NR == 1 {
@@ -74,6 +82,7 @@ BEGIN {
 }
 ' "${awkArgs[@]}"
 else
+    hasFieldNumber=
     isSubsequent=
     separator='OFS'
     selectors=
@@ -82,9 +91,11 @@ else
 	case $arg in
 	    +([0-9]))   selectors="$selectors ${isSubsequent:+$separator }\$$arg"
 			separator='OFS'
+			hasFieldNumber=t
 			;;
 	    -+([0-9]))  selectors="$selectors ${isSubsequent:+$separator }fieldFromEnd(${arg#-})"
 			separator='OFS'
+			hasFieldNumber=t
 			;;
 	    *)		arg="${arg//\\/\\\\}"
 			arg="${arg//\"/\\\"}"
@@ -94,6 +105,8 @@ else
 	esac
 	isSubsequent=t
     done
+    [ "$hasFieldNumber" ] || fieldNumberError
+
     exec awk "${fsArgs[@]}" '
 function fieldFromEnd(n)
 {
