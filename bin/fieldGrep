@@ -138,9 +138,9 @@ NF == 3 {
     # Double separator signals end of line.
 
     if (OFS == " ") {
-    	# The default AWK separator may result in either space or tab; take it
-    	# from the input to use the right one.
-    	OFS = substr($0, length($0))
+	# The default AWK separator may result in either space or tab; take it
+	# from the input to use the right one.
+	OFS = substr($0, length($0))
     }
 
     if (isPicked) printf "%s\n", join(f, 1, i)
