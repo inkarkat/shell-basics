@@ -7,13 +7,13 @@ printUsage()
     cat <<HELPTEXT
 Print lines where selected field(s) N (-N counted from behind), separated by FS, match a PATTERN.
 HELPTEXT
-    printf 'Usage: cat FILE [...] | %q %s\n' "$(basename "$1")" '[-F|--field-separator FS] GREP-OPTIONS [...] [-]N|SEP [...]'
-    printf 'Usage: %q %s\n' "$(basename "$1")" '-i|--input FILESPEC [...] GREP-OPTIONS [...] [-]N|SEP [...] [-?|-h|--help]'
+    printf 'Usage: cat FILE [...] | %q %s\n' "$(basename "$1")" '[-F|--field-separator FS] GREP-OPTIONS [...] [-]N [...]'
+    printf 'Usage: %q %s\n' "$(basename "$1")" '-i|--input FILESPEC [...] GREP-OPTIONS [...] [-]N [...] [-?|-h|--help]'
     cat <<HELPTEXT
 Print lines where any but the passed field(s) N (-N counted from behind), separated by FS, match a PATTERN.
 HELPTEXT
-    printf 'Usage: cat FILE [...] | %q %s\n' "$(basename "$1")" '[-F|--field-separator FS] -V|--invert-fields GREP-OPTIONS [...] [-]N|SEP [...]'
-    printf 'Usage: %q %s\n' "$(basename "$1")" '-i|--input FILESPEC [...] -V|--invert-fields GREP-OPTIONS [...] [-]N|SEP [...] [-?|-h|--help]'
+    printf 'Usage: cat FILE [...] | %q %s\n' "$(basename "$1")" '[-F|--field-separator FS] -V|--invert-fields GREP-OPTIONS [...] [-]N [...]'
+    printf 'Usage: %q %s\n' "$(basename "$1")" '-i|--input FILESPEC [...] -V|--invert-fields GREP-OPTIONS [...] [-]N [...] [-?|-h|--help]'
 }
 
 typeset -a grepArgs=()
@@ -54,6 +54,11 @@ do
 done
 if [ ${#grepPatternArgs[@]} -eq 0 ]; then
     echo >&2 'ERROR: No GREP-OPTIONS passed.'
+    echo >&2
+    printUsage "$0" >&2
+    exit 2
+elif [ $# -eq 0 ]; then
+    echo >&2 'ERROR: No field number N passed.'
     echo >&2
     printUsage "$0" >&2
     exit 2
