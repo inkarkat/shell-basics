@@ -83,7 +83,7 @@ else
 	    +([0-9]))   selectors="$selectors ${isSubsequent:+$separator }\$$arg"
 			separator='OFS'
 			;;
-	    -+([0-9]))  selectors="$selectors ${isSubsequent:+$separator }\$(NF-${arg#-}+1)"
+	    -+([0-9]))  selectors="$selectors ${isSubsequent:+$separator }fieldFromEnd(${arg#-})"
 			separator='OFS'
 			;;
 	    *)		arg="${arg//\\/\\\\}"
@@ -94,7 +94,12 @@ else
 	esac
 	isSubsequent=t
     done
-    exec awk "${fsArgs[@]}" "
+    exec awk "${fsArgs[@]}" '
+function fieldFromEnd(n)
+{
+    return (n < NF ? $(NF - n + 1) : "")
+}
+'"
 $outputSeparatorDetermination
 { print$selectors }" "${awkArgs[@]}"
 fi
