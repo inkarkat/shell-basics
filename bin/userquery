@@ -1,5 +1,17 @@
 #!/bin/bash
 
+printUsage()
+{
+    cat <<HELPTEXT
+Query the user with READ-ARGS (e.g. -n 1 -p 'Type letter: ') from the terminal.
+HELPTEXT
+    printf 'Usage: choice="$(%q %s)"\n' "$(basename "$1")" '[READ-ARGS ...]'
+}
+case "$1" in
+    --help|-h|-\?)	shift; printUsage "$0"; exit 0;;
+esac
+
+
 if [ "$USERQUERY_ALERT_TIMESPAN" ]; then
     marker()
     {
