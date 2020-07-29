@@ -80,7 +80,7 @@ awk "${awkArgs[@]}" \
 function getFieldNr(field)
 {
     field = 0 + field
-    return (field < 0 ? NF - field + 1 : field)
+    return (field < 0 ? maxFieldNum + field + 1 : field)
 }
 function isFieldSelected(fieldArg, field,      fieldArgs, fieldArgCnt, i, minMax)
 {
