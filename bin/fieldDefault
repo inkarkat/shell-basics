@@ -146,6 +146,7 @@ NR == 1 {
 	for (i = 1; i <= maxFieldNum; ++i) {
 	    if ($i == "" && isFieldSelected(fields[n], i)) {
 		$i = values[n]
+		break
 	    }
 	}
     }

@@ -32,8 +32,24 @@ ONE	TWO
 eof	TWO" ]
 }
 
-@test "defaulting multiple LISTs of disjunct fields with different values" {
+@test "defaulting multiple LISTs of disjunct fields with different values is only defaulting the first field of a LIST" {
     run fieldDefault --input "${BATS_TEST_DIRNAME}/tabbed.txt" -F $'\t' --value A 1,3 --value B 2,4
+
+    [ "$output" = "foo	first	100	A Here
+bar	no4	201	B
+baz	empty4	301	B
+boo	no34	A	B
+buu	empty3	A	and more
+A	empty1	606	here
+A	empty13		also
+A	B		
+bzz	B	A	last
+A	B
+eof	B	A" ]
+}
+
+@test "defaulting multiple single-element LISTs of disjunct fields can be used to default all fields" {
+    run fieldDefault --input "${BATS_TEST_DIRNAME}/tabbed.txt" -F $'\t' --value A 1 3 --value B 2 4
 
     [ "$output" = "foo	first	100	A Here
 bar	no4	201	B
@@ -57,9 +73,9 @@ baz	empty4	301	B
 boo	no34	A	B
 buu	empty3	A	and more
 A	empty1	606	here
-A	empty13	A	also
-A	A	A	B
-bzz	A	A	last
-A	A	A	B
-eof	A	A	B" ]
+A	empty13		also
+A	B		
+bzz	A		last
+A	B
+eof	A		B" ]
 }
