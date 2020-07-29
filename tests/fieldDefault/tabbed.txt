@@ -1,0 +1,11 @@
+foo	first	100	A Here
+bar	no4	201
+baz	empty4	301	
+boo	no34
+buu	empty3		and more
+	empty1	606	here
+	empty13		also
+			
+bzz			last
+
+eof

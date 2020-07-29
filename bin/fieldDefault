@@ -1,0 +1,150 @@
+#!/bin/bash
+
+printShortUsage()
+{
+    # Note: short followed by long option; if the user knows the short one, she can
+    # skim the long one.
+    printf 'Usage: cat FILE [...] | %q %s\n' "$(basename "$1")" '[-F|--field-separator FS] ] -v|--value VAL LIST [[-v|--value VAL] LIST ...]'
+    printf 'Usage: %q %s\n' "$(basename "$1")" '-i|--input FILESPEC [...] [-?|-h|--help]'
+}
+printUsage()
+{
+    # This is the short help when launched with no or incorrect arguments.
+    # It is printed to stderr to avoid accidental processing.
+    printShortUsage "$1" >&2
+    printf >&2 'Try %q --help for more information.\n' "$(basename "$1")"
+}
+printLongUsage()
+{
+    # This is the long "man page" when launched with the help argument.
+    # It is printed to stdout to allow paging with 'more'.
+    cat <<HELPDESCRIPTION
+Set empty or non-existing field(s) in LIST to a default value VAL.
+Each LIST is made up of one range in the format N (-N counted from behind), N-,
+or N-M, or many such ranges separated by commas. Each separate range is
+defaulted to a single VAL if it is completely empty or non-existing.
+HELPDESCRIPTION
+    echo
+    printShortUsage "$1"
+    cat <<HELPTEXT
+    --value|-v VAL	    Default the following ranges denoted by LIST to VAL.
+EXIT STATUS:
+    0	Complete success.
+    1	Failed to ...
+    2	Bad invocation, wrong or missing command-line arguments.
+    3	Internal error or failed assertion.
+    4	Partial success ...
+
+Example:
+HELPTEXT
+    printf '%q %s\n' "$(basename "$1")" '--foo bar /tmp/foobar'
+}
+
+typeset -a awkArgs=()
+typeset -a awkFiles=()
+typeset -a values=()
+typeset -a fields=()
+unset currentValue
+while [ $# -ne 0 ]
+do
+    case "$1" in
+	--help|-h|-\?)	shift; printLongUsage "$0"; exit 0;;
+	--input|-i)	shift; awkFiles+=("$1"); shift;;
+	--field-separator|-F)
+			shift; awkArgs=(-F "$1"); shift;;
+	--value|-v)	shift; currentValue="$1"; shift;;
+	*)		if [ -z "${currentValue+t}" ]; then
+			    echo 'ERROR: No -v|--value VAL passed.'
+			    echo
+			    printShortUsage "$0"
+			    exit 2
+			fi >&2
+			values+=("$currentValue")
+			fields+=("$1")
+			shift
+			;;
+    esac
+done
+if [ ${#fields[@]} -eq 0 ]; then
+    echo 'ERROR: No LIST passed.'
+    echo
+    printShortUsage "$0"
+    exit 2
+fi >&2
+
+IFS=$'\n'
+awk "${awkArgs[@]}" \
+    -v "fieldList=${fields[*]//\\/\\\\}" \
+    -v "valueList=${values[*]//\\/\\\\}" \
+'
+function getFieldNr(field)
+{
+    field = 0 + field
+    return (field < 0 ? NF - field + 1 : field)
+}
+function isFieldSelected(fieldArg, field,      fieldArgs, fieldArgCnt, i, minMax)
+{
+    fieldArgCnt = split(fieldArg, fieldArgs, ",")
+    for (i = 1; i <= fieldArgCnt; ++i) {
+	switch (fieldArgs[i]) {
+	    case /^-?[[:digit:]]+$/ : {
+		if (field == getFieldNr(fieldArgs[i])) return 1
+		break
+	    }
+	    case /^-?[[:digit:]]+-$/ : {
+		if (field >= getFieldNr(substr(fieldArgs[i], 1, length(fieldArgs[i]) - 1))) return 1
+		break
+	    }
+	    default: {
+		if (match(fieldArgs[i], /^(-?[[:digit:]]+)-(-?[[:digit:]]+)$/, minMax)) {
+		    if (field >= getFieldNr(minMax[1]) && field <= getFieldNr(minMax[2])) return 1
+		    break
+		} else {
+		    print "ERROR: Invalid field range specifier: " fieldArgs[i] > "/dev/stderr"
+		    exit 2
+		}
+	    }
+	}
+    }
+    return 0
+}
+function isFieldOrFieldRange(fieldArg)
+{
+    return fieldArg ~ /^-?[[:digit:]]+(-(-?[[:digit:]]+)?)?(,(-?[[:digit:]]+(-(-?[[:digit:]]+)?)?))*$/
+}
+BEGIN {
+    N = split(fieldList, fields)
+    if (split(valueList, values) != N) {
+	print "Assert: Mismatch in number of fields and values." > "/dev/stderr"
+	exit 3
+    }
+
+    for (i = 1; i <= N; i++) {
+	if (! isFieldOrFieldRange(fields[i])) {
+	    if (fields[i] ~ /^-{1,2}[a-z]/) {
+		print "ERROR: Unknown option \"" fields[i] "\"!" > "/dev/stderr"
+	    } else {
+		print "ERROR: Invalid LIST: " fields[i] > "/dev/stderr"
+	    }
+	    exit 2
+	}
+    }
+}
+NR == 1 {
+    # Use FS as output separator if it is not a regular expression.
+    firstTwoFields = $1 FS $2
+    if (substr($0, 1, length(firstTwoFields)) == firstTwoFields) {
+	OFS = FS
+    } else if (FS == " " && (substr($0, 1, length(firstTwoFields)) == $1 "\t" $2)) {
+	OFS = "\t"
+    }
+}
+{
+    field = ""
+    for (i = 1; i <= NF; ++i) {
+	if (isFieldSelected(fieldArg, i)) {
+	    field = $i
+	}
+    }
+}
+' "${awkFiles[@]}"
