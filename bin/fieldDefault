@@ -4,7 +4,7 @@ printShortUsage()
 {
     # Note: short followed by long option; if the user knows the short one, she can
     # skim the long one.
-    printf 'Usage: cat FILE [...] | %q %s\n' "$(basename "$1")" '[-F|--field-separator FS] ] -v|--value VAL LIST [[-v|--value VAL] LIST ...]'
+    printf 'Usage: cat FILE [...] | %q %s\n' "$(basename "$1")" '[-F|--field-separator FS] [-n|--field-num N] -v|--value VAL LIST [[-v|--value VAL] LIST ...]'
     printf 'Usage: %q %s\n' "$(basename "$1")" '-i|--input FILESPEC [...] [-?|-h|--help]'
 }
 printUsage()
@@ -27,6 +27,11 @@ HELPDESCRIPTION
     echo
     printShortUsage "$1"
     cat <<HELPTEXT
+    --field-num|-n N	    Use a fixed number N of fields for addressing fields
+			    from behind (instead of taking the maximum number
+			    encountered so far). When a particular line has more
+			    fields, that number is used only for addressing
+			    within that line.
     --value|-v VAL	    Default the following ranges denoted by LIST to VAL.
 EXIT STATUS:
     0	Complete success.
@@ -40,6 +45,7 @@ HELPTEXT
     printf '%q %s\n' "$(basename "$1")" '--foo bar /tmp/foobar'
 }
 
+fieldNum=
 typeset -a awkArgs=()
 typeset -a awkFiles=()
 typeset -a values=()
@@ -52,6 +58,7 @@ do
 	--input|-i)	shift; awkFiles+=("$1"); shift;;
 	--field-separator|-F)
 			shift; awkArgs=(-F "$1"); shift;;
+	--field-num|-n)	shift; fieldNum="$1"; shift;;
 	--value|-v)	shift; currentValue="$1"; shift;;
 	*)		if [ -z "${currentValue+t}" ]; then
 			    echo 'ERROR: No -v|--value VAL passed.'
@@ -74,6 +81,7 @@ fi >&2
 
 IFS=$'\n'
 awk "${awkArgs[@]}" \
+    -v "fieldNum=$fieldNum" \
     -v "fieldList=${fields[*]//\\/\\\\}" \
     -v "valueList=${values[*]//\\/\\\\}" \
 '
@@ -112,6 +120,10 @@ function isFieldOrFieldRange(fieldArg)
 {
     return fieldArg ~ /^-?[[:digit:]]+(-(-?[[:digit:]]+)?)?(,(-?[[:digit:]]+(-(-?[[:digit:]]+)?)?))*$/
 }
+function max(n1, n2)
+{
+    return n1 > n2 ? n1 : n2
+}
 BEGIN {
     N = split(fieldList, fields, "\n")
     if (split(valueList, values, "\n") != N) {
@@ -140,7 +152,10 @@ NR == 1 {
     }
 }
 {
-    maxFieldNum = (NF > maxFieldNum ? NF : maxFieldNum)
+    maxFieldNum = (fieldNum == "" ? \
+	max(NF, maxFieldNum) : \
+	max(NF, fieldNum) \
+    )
 
     for (n = 1; n <= N; ++n) {
 	for (i = 1; i <= maxFieldNum; ++i) {
