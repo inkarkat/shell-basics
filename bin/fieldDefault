@@ -113,8 +113,8 @@ function isFieldOrFieldRange(fieldArg)
     return fieldArg ~ /^-?[[:digit:]]+(-(-?[[:digit:]]+)?)?(,(-?[[:digit:]]+(-(-?[[:digit:]]+)?)?))*$/
 }
 BEGIN {
-    N = split(fieldList, fields)
-    if (split(valueList, values) != N) {
+    N = split(fieldList, fields, "\n")
+    if (split(valueList, values, "\n") != N) {
 	print "Assert: Mismatch in number of fields and values." > "/dev/stderr"
 	exit 3
     }
