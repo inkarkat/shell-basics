@@ -140,11 +140,16 @@ NR == 1 {
     }
 }
 {
-    field = ""
-    for (i = 1; i <= NF; ++i) {
-	if (isFieldSelected(fieldArg, i)) {
-	    field = $i
+    maxFieldNum = (NF > maxFieldNum ? NF : maxFieldNum)
+
+    for (n = 1; n <= N; ++n) {
+	for (i = 1; i <= maxFieldNum; ++i) {
+	    if ($i == "" && isFieldSelected(fields[n], i)) {
+		$i = values[n]
+	    }
 	}
     }
+
+    print
 }
 ' "${awkFiles[@]}"
