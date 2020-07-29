@@ -3,6 +3,7 @@
 @test "defaulting multiple LISTs of first and second fields" {
     run fieldDefault --input "${BATS_TEST_DIRNAME}/tabbed.txt" -F $'\t' --value DEFAULT 1 2
 
+    [ $status -eq 0 ]
     [ "$output" = "foo	first	100	A Here
 bar	no4	201
 baz	empty4	301	
@@ -19,6 +20,7 @@ eof	DEFAULT" ]
 @test "defaulting multiple LISTs of first and second fields with different values" {
     run fieldDefault --input "${BATS_TEST_DIRNAME}/tabbed.txt" -F $'\t' --value ONE 1 --value TWO 2
 
+    [ $status -eq 0 ]
     [ "$output" = "foo	first	100	A Here
 bar	no4	201
 baz	empty4	301	
@@ -35,6 +37,7 @@ eof	TWO" ]
 @test "defaulting multiple LISTs of disjunct fields with different values is only defaulting the first field of a LIST" {
     run fieldDefault --input "${BATS_TEST_DIRNAME}/tabbed.txt" -F $'\t' --value A 1,3 --value B 2,4
 
+    [ $status -eq 0 ]
     [ "$output" = "foo	first	100	A Here
 bar	no4	201	B
 baz	empty4	301	B
@@ -51,6 +54,7 @@ eof	B	A" ]
 @test "defaulting multiple single-element LISTs of disjunct fields can be used to default all fields" {
     run fieldDefault --input "${BATS_TEST_DIRNAME}/tabbed.txt" -F $'\t' --value A 1 3 --value B 2 4
 
+    [ $status -eq 0 ]
     [ "$output" = "foo	first	100	A Here
 bar	no4	201	B
 baz	empty4	301	B
@@ -67,6 +71,7 @@ eof	B	A	B" ]
 @test "defaulting multiple LISTs of overlapping fields with different values gives precedence to previous values" {
     run fieldDefault --input "${BATS_TEST_DIRNAME}/tabbed.txt" -F $'\t' --value A 1-3 --value B 2,4
 
+    [ $status -eq 0 ]
     [ "$output" = "foo	first	100	A Here
 bar	no4	201	B
 baz	empty4	301	B

@@ -3,6 +3,7 @@
 @test "defaulting a LIST of first, second fields" {
     run fieldDefault --input "${BATS_TEST_DIRNAME}/tabbed.txt" -F $'\t' --value DEFAULT 1,2
 
+    [ $status -eq 0 ]
     [ "$output" = "foo	first	100	A Here
 bar	no4	201
 baz	empty4	301	
@@ -19,6 +20,7 @@ eof	DEFAULT" ]
 @test "defaulting a LIST of first - second fields" {
     run fieldDefault --input "${BATS_TEST_DIRNAME}/tabbed.txt" -F $'\t' --value DEFAULT 1-2
 
+    [ $status -eq 0 ]
     [ "$output" = "foo	first	100	A Here
 bar	no4	201
 baz	empty4	301	
@@ -35,6 +37,7 @@ eof	DEFAULT" ]
 @test "defaulting a LIST of second, fourth field" {
     run fieldDefault --input "${BATS_TEST_DIRNAME}/tabbed.txt" -F $'\t' --value DEFAULT 2,4
 
+    [ $status -eq 0 ]
     [ "$output" = "foo	first	100	A Here
 bar	no4	201	DEFAULT
 baz	empty4	301	DEFAULT
@@ -51,6 +54,7 @@ eof	DEFAULT" ]
 @test "defaulting third, first field" {
     run fieldDefault --input "${BATS_TEST_DIRNAME}/tabbed.txt" -F $'\t' --value DEFAULT 3,1
 
+    [ $status -eq 0 ]
     [ "$output" = "foo	first	100	A Here
 bar	no4	201
 baz	empty4	301	
@@ -67,6 +71,7 @@ eof		DEFAULT" ]
 @test "defaulting second - fourth field" {
     run fieldDefault --input "${BATS_TEST_DIRNAME}/tabbed.txt" -F $'\t' --value DEFAULT 2-4
 
+    [ $status -eq 0 ]
     [ "$output" = "foo	first	100	A Here
 bar	no4	201	DEFAULT
 baz	empty4	301	DEFAULT
