@@ -35,14 +35,13 @@ HELPDESCRIPTION
     --value|-v VAL	    Default the following ranges denoted by LIST to VAL.
 EXIT STATUS:
     0	Complete success.
-    1	Failed to ...
+    1	AWK processing error.
     2	Bad invocation, wrong or missing command-line arguments.
     3	Internal error or failed assertion.
-    4	Partial success ...
 
 Example:
 HELPTEXT
-    printf '%q %s\n' "$(basename "$1")" '--foo bar /tmp/foobar'
+    printf 'free -h | %q %s | column -t\n' "$(basename "$1")" "-v 0B 5 6 7"
 }
 
 fieldNum=
