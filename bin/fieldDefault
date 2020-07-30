@@ -79,7 +79,7 @@ if [ ${#fields[@]} -eq 0 ]; then
 fi >&2
 
 IFS=$'\n'
-awk "${awkArgs[@]}" \
+exec awk "${awkArgs[@]}" \
     -v "fieldNum=$fieldNum" \
     -v "fieldList=${fields[*]//\\/\\\\}" \
     -v "valueList=${values[*]//\\/\\\\}" \
