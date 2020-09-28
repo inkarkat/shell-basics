@@ -14,11 +14,21 @@ case "$1" in
 esac
 
 if [ "$isVerbose" ]; then
-    echo >&2 "command-line arguments \$0: \"$0\""
+    shellquote()
+    {
+	local val="$1"
+	val="${val//\\/\\\\}"
+	val="${val//\$/\\\$}"
+	val="${val//\`/\\\`}"
+	val="${val//\"/\\\"}"
+	printf '"%s"' "$val"
+    }
+
+    echo >&2 "0: $(shellquote "$0")"
     let argCnt=1
     while [ $# -gt 0 ]
     do
-	echo >&2 "command-line arguments \$${argCnt}: \"$1\""
+	echo >&2 "${argCnt}: $(shellquote "$1")"
 	shift
 	let argCnt+=1
     done
