@@ -50,7 +50,7 @@ if [ "$isKeepPrompt" ]; then
 elif [ "$hasCharLimit" ] || [ ! "$isEcho" ]; then
     afterPromptSequence='[1G[2K' # Return cursor to the beginning of the current line and clear it.
 else
-    printf >&2 '\n%s' '[1F[s'   # Scroll if necessary for the new line created by concluding the input with Enter, go back to previous line and save the position.
+    printf >/dev/tty '\n%s' '[1F[s'   # Scroll if necessary for the new line created by concluding the input with Enter, go back to previous line and save the position.
     afterPromptSequence='[u[0J' # Restore position and clear until the end of the terminal.
 fi
 
@@ -64,8 +64,8 @@ do
     if [ "$hasCharLimit" ] || [ ! "$isEcho" ]; then
 	promptText=()
     elif [ ! "$isKeepPrompt" ]; then
-	printf >&2 %s "$afterPromptSequence"
+	printf >/dev/tty %s "$afterPromptSequence"
     fi
 done
-printf >&2 %s "$afterPromptSequence"
+printf >/dev/tty %s "$afterPromptSequence"
 exit $status

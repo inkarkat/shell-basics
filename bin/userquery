@@ -25,4 +25,4 @@ if [ "$USERQUERY_ALERT_TIMESPAN" ]; then
 fi
 
 
-< /dev/tty read "$@" CHOICE && printf '%s\n' "$CHOICE"
+< /dev/tty read "$@" CHOICE 2>/dev/tty && printf '%s\n' "$CHOICE"
