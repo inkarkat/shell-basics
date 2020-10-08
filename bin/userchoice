@@ -12,7 +12,9 @@ HELPTEXT
     printf 'Usage: choice="$(%q %s)"\n' "$(basename "$1")" '-v|--valid VALID-RESPONSE-GLOB [-k|--keep-prompt] [READ-ARGS ...]'
 }
 
-keepPromptSequence='[1G[2K' # Return cursor to the beginning of the current line and clear it.
+isKeepPrompt=
+hasCharLimit=
+isEcho=t
 validResponseGlob=
 typeset -a promptText=()
 typeset -a readArgs=()
@@ -22,10 +24,16 @@ do
 	--help|-h|-\?)	shift; printUsage "$0"; exit 0;;
 	--valid|-v)	shift; validResponseGlob="$1"; shift;;
 	--keep-prompt|-k)
-			shift; keepPromptSequence=$'\n';;
+			shift; isKeepPrompt=t;;
 
-	-+([ers]))	readArgs+=("$1"); shift;;
-	-[dinNtu])	readArgs+=("$1" "$2"); shift; shift;;
+	-+([ers]))	readArgs+=("$1")
+			case "$1" in
+			    *s*)    isEcho=;;
+			esac
+			shift
+			;;
+	-[ditu])	readArgs+=("$1" "$2"); shift; shift;;
+	-[nN])		readArgs+=("$1" "$2"); hasCharLimit=t; shift; shift;;
 	-p)		shift; promptText=("$1"); shift;;
 	*)		break;;
     esac
@@ -35,6 +43,17 @@ if [ -z "$validResponseGlob" ]; then
     exit 2
 fi
 
+if [ "$isKeepPrompt" ]; then
+    if [ "$hasCharLimit" ] || [ ! "$isEcho" ]; then
+	afterPromptSequence=$'\n'   # The user doesn't provide the newline (or it isn't echoed); we have to.
+    fi
+elif [ "$hasCharLimit" ] || [ ! "$isEcho" ]; then
+    afterPromptSequence='[1G[2K' # Return cursor to the beginning of the current line and clear it.
+else
+    printf >&2 '\n%s' '[1F[s'   # Scroll if necessary for the new line created by concluding the input with Enter, go back to previous line and save the position.
+    afterPromptSequence='[u[0J' # Restore position and clear until the end of the terminal.
+fi
+
 status=0
 while :
 do
@@ -42,7 +61,11 @@ do
 
     eval "case \"\$choice\" in $validResponseGlob) printf '%s\n' \"\$choice\"; break;; esac"
 
-    promptText=()
+    if [ "$hasCharLimit" ] || [ ! "$isEcho" ]; then
+	promptText=()
+    elif [ ! "$isKeepPrompt" ]; then
+	printf >&2 %s "$afterPromptSequence"
+    fi
 done
-printf >&2 %s "${keepPromptSequence}"
+printf >&2 %s "$afterPromptSequence"
 exit $status
