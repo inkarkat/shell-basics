@@ -39,12 +39,12 @@ readonly query="$1"; shift
 
 while :
 do
-    CHOICE="$(userquery "${readArgs[@]}" -n 1 -p "${query}? (${timeout}[y]es / [n]o) ")"
+    choice="$(userquery "${readArgs[@]}" -n 1 -p "${query}? (${timeout}[y]es / [n]o) ")"
     status=$?
     echo >&2
 
     [ $status -gt 128 ] && exit ${default:-3}
-    case "${CHOICE,,}" in
+    case "${choice,,}" in
 	y)  exit 0;;
 	n)  exit 1;;
     esac
