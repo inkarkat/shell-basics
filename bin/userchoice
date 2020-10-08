@@ -1,0 +1,48 @@
+#!/bin/bash
+shopt -qs extglob
+
+printUsage()
+{
+    cat <<HELPTEXT
+Query the user with READ-ARGS (e.g. -n 1 -p 'Type letter: ') from the terminal,
+until the pressed key matches the VALID-RESPONSE-GLOB (e.g. '[a-z]|.') or it
+times out.
+HELPTEXT
+    echo
+    printf 'Usage: choice="$(%q %s)"\n' "$(basename "$1")" '-v|--valid VALID-RESPONSE-GLOB [-k|--keep-prompt] [READ-ARGS ...]'
+}
+
+keepPromptSequence='[1G[2K' # Return cursor to the beginning of the current line and clear it.
+validResponseGlob=
+typeset -a promptText=()
+typeset -a readArgs=()
+while [ $# -ne 0 ]
+do
+    case "$1" in
+	--help|-h|-\?)	shift; printUsage "$0"; exit 0;;
+	--valid|-v)	shift; validResponseGlob="$1"; shift;;
+	--keep-prompt|-k)
+			shift; keepPromptSequence=$'\n';;
+
+	-+([ers]))	readArgs+=("$1"); shift;;
+	-[dinNtu])	readArgs+=("$1" "$2"); shift; shift;;
+	-p)		shift; promptText=("$1"); shift;;
+	*)		break;;
+    esac
+done
+if [ -z "$validResponseGlob" ]; then
+    printUsage "$0" >&2
+    exit 2
+fi
+
+status=0
+while :
+do
+    choice="$(userquery "${readArgs[@]}" ${promptText:+-p} "${promptText[@]}" "$@")" || { status=$?; break; }
+
+    eval "case \"\$choice\" in $validResponseGlob) printf '%s\n' \"\$choice\"; break;; esac"
+
+    promptText=()
+done
+printf >&2 %s "${keepPromptSequence}"
+exit $status
