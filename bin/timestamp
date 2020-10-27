@@ -34,7 +34,7 @@ if [ $# -eq 1 ] && [ "$1" = '-' ]; then
     isEOL=t
     while IFS=$'\n' read -r line || { isEOL=; [ -n "$line" ]; }
     do
-	printf "%s%s%s${isEOL:+\\n}" "$(date "$dateFormat")" "$separator" "$line"
+	printf "%s%s%s${isEOL:+\\n}" "$(eval "date \"$dateFormat\"")" "$separator" "$line"
     done
 elif [ $# -gt 0 ]; then
     printf '%s%s%s\n' "$(eval "date \"$dateFormat\"")" "$separator" "$*"
