@@ -5,7 +5,7 @@ printUsage()
     cat <<HELPTEXT
 Print a timestamp / prefix output from stdin with timestamps.
 HELPTEXT
-printf 'Usage: %q %s\n' "$(basename "$1")" '[--human|--short|--sortable] [--no-millis] [-f|--field-separator SEP] [-?|-h|--help]'
+printf 'Usage: %q %s\n' "$(basename "$1")" '[--human|--short|--sortable] [--no-millis] [-f|--field-separator SEP] [MESSAGE [...]] [-?|-h|--help]'
 printf 'Usage: cat FILE [...] | %q %s\n' "$(basename "$1")" '[...] [-s|--separator SEP] -'
 }
 
@@ -27,17 +27,17 @@ do
 	-)		break;;
 	--)		shift; break;;
 	-*)		{ echo "ERROR: Unknown option \"$1\"!"; echo; printUsage "$0"; } >&2; exit 2;;
+	*)		break;;
     esac
 done
-if [ $# -gt 1 ]; then
-    printUsage "$0" >&2
-    exit 2
-elif [ "$1" = '-' ]; then
+if [ $# -eq 1 ] && [ "$1" = '-' ]; then
     isEOL=t
     while IFS=$'\n' read -r line || { isEOL=; [ -n "$line" ]; }
     do
 	printf "%s%s%s${isEOL:+\\n}" "$(date "$dateFormat")" "$separator" "$line"
     done
+elif [ $# -gt 0 ]; then
+    printf '%s%s%s\n' "$(eval "date \"$dateFormat\"")" "$separator" "$*"
 else
     eval "date \"$dateFormat\""
 fi
