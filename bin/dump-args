@@ -16,12 +16,11 @@ esac
 if [ "$isVerbose" ]; then
     shellquote()
     {
-	local val="$1"
-	val="${val//\\/\\\\}"
-	val="${val//\$/\\\$}"
-	val="${val//\`/\\\`}"
-	val="${val//\"/\\\"}"
-	printf '"%s"' "$val"
+	case "$1" in
+	    *[$'\n\r\t\v']*)	    printf %q "$1";;
+	    *[$'\\ `\'\"?*[]!+']*)  printf %s "'${1//\'/\'\\\'\'}'";;
+	    *)			    printf %s "$1";;
+	esac
     }
 
     echo >&2 "0: $(shellquote "$0")"
