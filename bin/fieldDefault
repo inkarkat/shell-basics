@@ -5,6 +5,7 @@ printShortUsage()
     # Note: short followed by long option; if the user knows the short one, she can
     # skim the long one.
     printf 'Usage: cat FILE [...] | %q %s\n' "$(basename "$1")" '[-F|--field-separator FS] [-n|--field-num N] -v|--value VAL LIST [[-v|--value VAL] LIST ...]'
+    echo
     printf 'Usage: %q %s\n' "$(basename "$1")" '-i|--input FILESPEC [...] [-?|-h|--help]'
 }
 printUsage()
@@ -12,7 +13,7 @@ printUsage()
     # This is the short help when launched with no or incorrect arguments.
     # It is printed to stderr to avoid accidental processing.
     printShortUsage "$1" >&2
-    printf >&2 'Try %q --help for more information.\n' "$(basename "$1")"
+    printf >&2 '\nTry %q --help for more information.\n' "$(basename "$1")"
 }
 printLongUsage()
 {
@@ -62,7 +63,7 @@ do
 	*)		if [ -z "${currentValue+t}" ]; then
 			    echo 'ERROR: No -v|--value VAL passed.'
 			    echo
-			    printShortUsage "$0"
+			    printUsage "$0"
 			    exit 2
 			fi >&2
 			values+=("$currentValue")
@@ -74,7 +75,7 @@ done
 if [ ${#fields[@]} -eq 0 ]; then
     echo 'ERROR: No LIST passed.'
     echo
-    printShortUsage "$0"
+    printUsage "$0"
     exit 2
 fi >&2
 
