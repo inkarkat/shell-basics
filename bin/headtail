@@ -1,0 +1,59 @@
+#!/bin/bash
+
+printUsage()
+{
+    cat <<HELPTEXT
+Print the first and last 10 lines of each FILE to standard output. With more
+than one FILE, precede each with a header giving the file name.
+HELPTEXT
+    echo
+    printf 'Usage: %q %s\n' "$(basename "$1")" '[-n|--lines=NUM] [-q|--quiet|--silent|-v|--verbose] [FILE ...] [-?|-h|--help]'
+}
+
+lines=10
+header=auto
+case "$1" in
+    --help|-h|-\?)	shift; printUsage "$0"; exit 0;;
+    --lines|-n)		shift; lines="$1"; shift;;
+    --lines=*)		lines="${1#--lines=}"; shift;;
+    --silent|--quiet|-q)
+			shift; header=no;;
+    --verbose|-v)	shift; header=yes;;
+esac
+
+exec awk \
+    -v "lines=$lines" \
+    -v "header=$header" \
+'
+function printHeadTail(      start, i)
+{
+    start = (bufCnt < lines ? lines - bufCnt + 1 : 1)
+
+    for (i = start; i <= lines; i++)
+	print buf[((lastNr + i - 1) % lines) + 1]
+
+    delete buf
+    bufCnt = 0
+    lastNr = 1
+}
+FNR == 1 {
+    if (ARGIND > 1)
+	printHeadTail()
+
+    if (header == "yes" || header == "auto" && ARGC > 2) {
+	printf (ARGIND > 1 ? "\n" : "") "==> %s <==\n", (FILENAME == "-" ? "standard input" : FILENAME)
+    }
+}
+FNR <= lines {
+    print
+    next
+}
+{
+    buf[((FNR - 1) % lines) + 1] = $0
+    bufCnt++
+    lastNr = FNR
+}
+END {
+    printHeadTail()
+}
+' "$@"
