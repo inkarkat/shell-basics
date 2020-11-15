@@ -30,6 +30,7 @@ do
 	--silent|--quiet|-q)
 			shift; header=no;;
 	--verbose|-v)	shift; header=yes;;
+	-)		break;;
 	-*)		{ echo "ERROR: Unknown option \"$1\"!"; echo; printUsage "$0"; } >&2; exit 2;;
 	*)		break;;
     esac
