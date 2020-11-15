@@ -1,17 +1,20 @@
 #!/bin/bash
 shopt -qs extglob
 
+DEFAULT_LINES=5
+
 printUsage()
 {
     cat <<HELPTEXT
-Print the first and last 10 lines of each FILE to standard output. With more
-than one FILE, precede each with a header giving the file name.
+Print the first $DEFAULT_LINES and last $DEFAULT_LINES lines of each FILE to standard output (handling
+overlaps). With more than one FILE, precede each with a header giving the file
+name.
 HELPTEXT
     echo
     printf 'Usage: %q %s\n' "$(basename "$1")" '[-n|--lines=NUM] [-q|--quiet|--silent|-v|--verbose] [FILE ...] [-?|-h|--help]'
 }
 
-lines=10
+lines=$DEFAULT_LINES
 header=auto
 case "$1" in
     --help|-h|-\?)	shift; printUsage "$0"; exit 0;;
