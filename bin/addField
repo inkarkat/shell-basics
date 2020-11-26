@@ -1,0 +1,127 @@
+#!/bin/bash
+shopt -qs extglob
+
+printShortUsage()
+{
+    # Note: short followed by long option; if the user knows the short one, she can
+    # skim the long one.
+    printf 'Usage: cat FILE [...] | %q %s\n' "$(basename "$1")" '[-F|--field-separator FS] [-]N AWK-EXPR [...]'
+    echo
+    printf 'Usage: %q %s\n' "$(basename "$1")" '... [-i[SUFFIX]|--in-place[=SUFFIX]] [-]N AWK-EXPR [...] [--] [FILE ...] [-?|-h|--help]'
+}
+printUsage()
+{
+    # This is the short help when launched with no or incorrect arguments.
+    # It is printed to stderr to avoid accidental processing.
+    printShortUsage "$1" >&2
+    printf >&2 '\nTry %q --help for more information.\n' "$(basename "$1")"
+}
+printLongUsage()
+{
+    # This is the long "man page" when launched with the help argument.
+    # It is printed to stdout to allow paging with 'more'.
+    cat <<HELPDESCRIPTION
+Add a field with AWK-EXPR after every field N (-N counted from behind).
+Non-existing fields are created.
+HELPDESCRIPTION
+    echo
+    printShortUsage "$1"
+    echo
+    cat <<HELPTEXT
+    --field-separator|-F FS Use FS as the input field separator (as with AWK).
+    --in-place[=SUFFIX]|-i[SUFFIX]
+			    Edit FILE(s) in place (makes backup if SUFFIX
+			    supplied).
+EXIT STATUS:
+    0	Complete success.
+    1	AWK processing error.
+    2	Bad invocation, wrong or missing command-line arguments.
+    3	Internal error or failed assertion.
+
+Example:
+HELPTEXT
+    printf '%q %s\n' "$(basename "$1")" '--foo bar /tmp/foobar'
+}
+
+
+typeset -a awkCall=(awk)
+typeset -a awkArgs=()
+typeset -a fields=()
+typeset -a expressions=()
+isInPlace=
+inPlaceExtension=
+while [ $# -ne 0 ]
+do
+    case "$1" in
+	--help|-h|-\?)		shift; printLongUsage "$0"; exit 0;;
+	--field-separator|-F)	awkArgs+=("$1" "$2"); shift; shift;;
+	-i|--in-place)		isInPlace=t; shift;;
+	-i?*|--in-place=*)	isInPlace=t; inPlaceExtension="${1#-i}"; inPlaceExtension="${inPlaceExtension#--in-place=}"; shift;;
+	?(-)+([0-9]))		fields+=("$1"); expressions+=("$2"); shift; shift;;
+	--)			shift; break;;
+	-*)			{ echo "ERROR: Unknown option \"$1\"!"; echo; printUsage "$0"; } >&2; exit 2;;
+	*)			break;;
+    esac
+done
+if [ ${#fields[@]} -eq 0 ]; then
+    echo 'ERROR: No [-]N AWK-EXPR passed.'
+    echo
+    printUsage "$0"
+    exit 2
+fi >&2
+if [ "$isInPlace" ]; then
+    awkCall=(gawk -i inplace -v "INPLACE_SUFFIX=$inPlaceExtension")
+fi
+
+
+IFS=$'\n'
+exec "${awkCall[@]}" "${awkArgs[@]}" \
+    -v "fieldList=${fields[*]//\\/\\\\}" \
+    -v "expressionList=${expressions[*]//\\/\\\\}" \
+'
+function getFieldNr(field)
+{
+    field = 0 + field
+    return (field < 0 ? NF + field + 1 : field)
+}
+function insert(fieldNr, expression,      i)
+{
+    for (i = NF; i > fieldNr; --i) {
+	$(i + 1) = $i
+    }
+    $(fieldNr + 1) = expression
+}
+BEGIN {
+    N = split(fieldList, fields, "\n")
+    if (split(expressionList, expressions, "\n") != N) {
+	print "Assert: Mismatch in number of fields and expressions." > "/dev/stderr"
+	exit 3
+    }
+
+    PROCINFO["sorted_in"] = "@ind_num_desc"
+}
+NR == 1 {
+    # Use FS as output separator; it cannot be a regular expression here.
+    firstTwoFields = $1 FS $2
+    if (NF < 2 || substr($0, 1, length(firstTwoFields)) == firstTwoFields) {
+	OFS = FS
+    } else if (FS == " " && (substr($0, 1, length(firstTwoFields)) == $1 "\t" $2)) {
+	OFS = "\t"
+    } else {
+	print "ERROR: The field separator has to be a literal string; it cannot be a regular expression." > "/dev/stderr"
+	exit 2
+    }
+}
+{
+    delete fieldToExpression
+    for (n = 1; n <= N; ++n) {
+	fieldToExpression[getFieldNr(fields[n])] = expressions[n]
+    }
+
+    for (field in fieldToExpression) {
+	insert(field, fieldToExpression[field])
+    }
+
+    print
+}
+' "$@"
