@@ -6,7 +6,7 @@ printShortUsage()
     # skim the long one.
     printf 'Usage: cat FILE [...] | %q %s\n' "$(basename "$1")" '[-F|--field-separator FS] [-n|--field-num N] -v|--value VAL LIST [...] [[-v|--value VAL] LIST ...]'
     echo
-    printf 'Usage: %q %s\n' "$(basename "$1")" '-i|--input FILESPEC [...] [-?|-h|--help]'
+    printf 'Usage: %q %s\n' "$(basename "$1")" '-i|--input FILESPEC [...] [-i[SUFFIX]|--in-place[=SUFFIX]] [-?|-h|--help]'
 }
 printUsage()
 {
@@ -34,6 +34,9 @@ HELPDESCRIPTION
 			    fields, that number is used only for addressing
 			    within that line.
     --value|-v VAL	    Default the following ranges denoted by LIST to VAL.
+    --in-place[=SUFFIX]|-i[SUFFIX]
+			    Edit FILESPEC(s) in place (makes backup if SUFFIX
+			    supplied).
 EXIT STATUS:
     0	Complete success.
     1	AWK processing error.
@@ -46,11 +49,14 @@ HELPTEXT
 }
 
 fieldNum=
+typeset -a awkCall=(awk)
 typeset -a awkArgs=()
 typeset -a awkFiles=()
 typeset -a values=()
 typeset -a fields=()
 unset currentValue
+isInPlace=
+inPlaceExtension=
 while [ $# -ne 0 ]
 do
     case "$1" in
@@ -58,6 +64,9 @@ do
 	--input|-i)	shift; awkFiles+=("$1"); shift;;
 	--field-separator|-F)
 			shift; awkArgs=(-F "$1"); shift;;
+	-i|--in-place)	isInPlace=t; shift;;
+	-i?*|--in-place=*)
+			isInPlace=t; inPlaceExtension="${1#-i}"; inPlaceExtension="${inPlaceExtension#--in-place=}"; shift;;
 	--field-num|-n)	shift; fieldNum="$1"; shift;;
 	--value|-v)	shift; currentValue="$1"; shift;;
 	*)		if [ -z "${currentValue+t}" ]; then
@@ -78,9 +87,12 @@ if [ ${#fields[@]} -eq 0 ]; then
     printUsage "$0"
     exit 2
 fi >&2
+if [ "$isInPlace" ]; then
+    awkCall=(gawk -i inplace -v "INPLACE_SUFFIX=$inPlaceExtension")
+fi
 
 IFS=$'\n'
-exec awk "${awkArgs[@]}" \
+exec "${awkCall[@]}" "${awkArgs[@]}" \
     -v "fieldNum=$fieldNum" \
     -v "fieldList=${fields[*]//\\/\\\\}" \
     -v "valueList=${values[*]//\\/\\\\}" \
