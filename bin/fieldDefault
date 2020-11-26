@@ -4,7 +4,7 @@ printShortUsage()
 {
     # Note: short followed by long option; if the user knows the short one, she can
     # skim the long one.
-    printf 'Usage: cat FILE [...] | %q %s\n' "$(basename "$1")" '[-F|--field-separator FS] [-n|--field-num N] -v|--value VAL LIST [[-v|--value VAL] LIST ...]'
+    printf 'Usage: cat FILE [...] | %q %s\n' "$(basename "$1")" '[-F|--field-separator FS] [-n|--field-num N] -v|--value VAL LIST [...] [[-v|--value VAL] LIST ...]'
     echo
     printf 'Usage: %q %s\n' "$(basename "$1")" '-i|--input FILESPEC [...] [-?|-h|--help]'
 }
@@ -22,8 +22,8 @@ printLongUsage()
     cat <<HELPDESCRIPTION
 Set empty or non-existing field(s) in LIST to a default value VAL.
 Each LIST is made up of one range in the format N (-N counted from behind), N-,
-or N-M, or many such ranges separated by commas. Each separate range is
-defaulted to a single VAL if it is completely empty or non-existing.
+or N-M, or many such ranges separated by commas or whitespace. Each separate
+range is defaulted to a single VAL if it is completely empty or non-existing.
 HELPDESCRIPTION
     echo
     printShortUsage "$1"
