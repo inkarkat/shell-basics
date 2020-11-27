@@ -47,7 +47,7 @@ HELPTEXT
 typeset -a awkCall=(awk)
 typeset -a awkArgs=()
 typeset -a fields=()
-typeset -a expressions=()
+typeset -a expressionCode=()
 isInPlace=
 inPlaceExtension=
 while [ $# -ne 0 ]
@@ -57,7 +57,13 @@ do
 	--field-separator|-F)	awkArgs+=("$1" "$2"); shift; shift;;
 	-i|--in-place)		isInPlace=t; shift;;
 	-i?*|--in-place=*)	isInPlace=t; inPlaceExtension="${1#-i}"; inPlaceExtension="${inPlaceExtension#--in-place=}"; shift;;
-	?(-)+([0-9]))		fields+=("$1"); expressions+=("$2"); shift; shift;;
+	?(-)+([0-9]))		fields+=("$1")
+				case "$1" in
+				    -*)	expressionCode+=("if (fieldNr == NF - $1) return $2");;
+				    *)	expressionCode+=("if (fieldNr == $1) return $2");;
+				esac
+				shift; shift
+				;;
 	--)			shift; break;;
 	-*)			{ echo "ERROR: Unknown option \"$1\"!"; echo; printUsage "$0"; } >&2; exit 2;;
 	*)			break;;
@@ -73,12 +79,16 @@ if [ "$isInPlace" ]; then
     awkCall=(gawk -i inplace -v "INPLACE_SUFFIX=$inPlaceExtension")
 fi
 
-
 IFS=$'\n'
 exec "${awkCall[@]}" "${awkArgs[@]}" \
     -v "fieldList=${fields[*]//\\/\\\\}" \
-    -v "expressionList=${expressions[*]//\\/\\\\}" \
 '
+function getExpression(fieldNr)
+{
+'"${expressionCode[*]}"'
+    printf "ASSERT: Expression for field %d did not match.", fieldNr > "/dev/stderr"
+    exit(3)
+}
 function getFieldNr(field)
 {
     field = 0 + field
@@ -92,13 +102,10 @@ function insert(fieldNr, expression,      i)
     $(fieldNr + 1) = expression
 }
 BEGIN {
-    N = split(fieldList, fields, "\n")
-    if (split(expressionList, expressions, "\n") != N) {
-	print "Assert: Mismatch in number of fields and expressions." > "/dev/stderr"
-	exit 3
-    }
-
+    # Return dict sorted by fieldNumbers, from right to left.
     PROCINFO["sorted_in"] = "@ind_num_desc"
+
+    N = split(fieldList, fields, "\n")
 }
 NR == 1 {
     # Use FS as output separator; it cannot be a regular expression here.
@@ -115,7 +122,8 @@ NR == 1 {
 {
     delete fieldToExpression
     for (n = 1; n <= N; ++n) {
-	fieldToExpression[getFieldNr(fields[n])] = expressions[n]
+	fieldNr = getFieldNr(fields[n])
+	fieldToExpression[fieldNr] = getExpression(fieldNr)
     }
 
     for (field in fieldToExpression) {
