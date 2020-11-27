@@ -59,7 +59,7 @@ do
 	-i?*|--in-place=*)	isInPlace=t; inPlaceExtension="${1#-i}"; inPlaceExtension="${inPlaceExtension#--in-place=}"; shift;;
 	?(-)+([0-9]))		fields+=("$1")
 				case "$1" in
-				    -*)	expressionCode+=("if (fieldNr == NF - $1) return $2");;
+				    -*)	expressionCode+=("if (fieldNr == NF - ${1#-} + 1) return $2");;
 				    *)	expressionCode+=("if (fieldNr == $1) return $2");;
 				esac
 				shift; shift

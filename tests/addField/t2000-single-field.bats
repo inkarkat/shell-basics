@@ -24,6 +24,18 @@ bzz		fox		last
 eof		fox" ]
 }
 
+@test "adding empty field after second field" {
+    run addField -F $'\t' 2 '""' "${BATS_TEST_DIRNAME}/tabbed.txt"
+
+    [ $status -eq 0 ]
+    [ "$output" = "foo	first		100	A Here
+bar	no4		201
+				
+bzz				last
+		
+eof		" ]
+}
+
 @test "adding fox before first field" {
     run addField -F $'\t' 0 '"fox"' "${BATS_TEST_DIRNAME}/tabbed.txt"
 
