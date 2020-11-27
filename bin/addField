@@ -123,7 +123,9 @@ NR == 1 {
     delete fieldToExpression
     for (n = 1; n <= N; ++n) {
 	fieldNr = getFieldNr(fields[n])
-	fieldToExpression[fieldNr] = getExpression(fieldNr)
+	if (fieldNr >= 0) {
+	    fieldToExpression[fieldNr] = getExpression(fieldNr)
+	}
     }
 
     for (field in fieldToExpression) {

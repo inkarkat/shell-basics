@@ -21,7 +21,18 @@ eof	42" ]
 bar	no4	X	201
 			X	
 bzz			X	last
-X
+
 X	eof" ]
 }
 
+@test "adding X after third-to-last field" {
+    run addField -F $'\t' -3 '"X"' "${BATS_TEST_DIRNAME}/tabbed.txt"
+
+    [ $status -eq 0 ]
+    [ "$output" = "foo	first	X	100	A Here
+bar	X	no4	201
+		X		
+bzz		X		last
+
+eof" ]
+}
