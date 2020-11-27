@@ -21,8 +21,10 @@ printLongUsage()
     # This is the long "man page" when launched with the help argument.
     # It is printed to stdout to allow paging with 'more'.
     cat <<HELPDESCRIPTION
-Add a field with AWK-EXPR after every field N (-N counted from behind).
-Non-existing fields are created.
+Add a field with AWK-EXPR (e.g. 42, '"foo"', or '\$1 "(" length(\$1) ")"') after
+every field N (-N counted from behind), counting as they originally existed.
+Non-existing fields at the end are created; field 0 means appending at the
+front; negative field numbers are ignored.
 HELPDESCRIPTION
     echo
     printShortUsage "$1"
@@ -40,7 +42,7 @@ EXIT STATUS:
 
 Example:
 HELPTEXT
-    printf '%q %s\n' "$(basename "$1")" '--foo bar /tmp/foobar'
+    printf '%q %s\n' "$(basename "$1")" "-1 '\"(\" NF \")\"' -- /tmp/foobar"
 }
 
 
