@@ -5,7 +5,7 @@ printShortUsage()
 {
     # Note: short followed by long option; if the user knows the short one, she can
     # skim the long one.
-    printf 'Usage: cat FILE [...] | %q %s\n' "$(basename "$1")" '[-F|--field-separator FS] [-]N AWK-EXPR [...]'
+    printf 'Usage: cat FILE [...] | %q %s\n' "$(basename "$1")" '[-F|--field-separator FS] [-s|--skip-value VAL] [-]N AWK-EXPR [...]'
     echo
     printf 'Usage: %q %s\n' "$(basename "$1")" '... [-i[SUFFIX]|--in-place[=SUFFIX]] [-]N AWK-EXPR [...] [--] [FILE ...] [-?|-h|--help]'
 }
@@ -31,6 +31,7 @@ HELPDESCRIPTION
     echo
     cat <<HELPTEXT
     --field-separator|-F FS Use FS as the input field separator (as with AWK).
+    --skip-value|-s VAL	    Do not add the field when AWK-EXPR returns VAL.
     --in-place[=SUFFIX]|-i[SUFFIX]
 			    Edit FILE(s) in place (makes backup if SUFFIX
 			    supplied).
@@ -50,6 +51,7 @@ typeset -a awkCall=(awk)
 typeset -a awkArgs=()
 typeset -a fields=()
 typeset -a expressionCode=()
+unset skipValue
 isInPlace=
 inPlaceExtension=
 while [ $# -ne 0 ]
@@ -57,6 +59,7 @@ do
     case "$1" in
 	--help|-h|-\?)		shift; printLongUsage "$0"; exit 0;;
 	--field-separator|-F)	awkArgs+=("$1" "$2"); shift; shift;;
+	--skip-value|-s)	shift; skipValue="$1"; shift;;
 	-i|--in-place)		isInPlace=t; shift;;
 	-i?*|--in-place=*)	isInPlace=t; inPlaceExtension="${1#-i}"; inPlaceExtension="${inPlaceExtension#--in-place=}"; shift;;
 	?(-)+([0-9]))		fields+=("$1")
@@ -84,8 +87,10 @@ fi
 IFS=$'\n'
 exec "${awkCall[@]}" "${awkArgs[@]}" \
     -v "fieldList=${fields[*]//\\/\\\\}" \
+    -v "hasSkipValue=${skipValue+t}" \
+    -v "skipValue=${skipValue//\\/\\\\}" \
 '
-function getExpression(fieldNr)
+function evaluateExpression(fieldNr)
 {
 '"${expressionCode[*]}"'
     printf "ASSERT: Expression for field %d did not match.", fieldNr > "/dev/stderr"
@@ -126,7 +131,10 @@ NR == 1 {
     for (n = 1; n <= N; ++n) {
 	fieldNr = getFieldNr(fields[n])
 	if (fieldNr >= 0) {
-	    fieldToExpression[fieldNr] = getExpression(fieldNr)
+	    value = evaluateExpression(fieldNr)
+	    if (! hasSkipValue || value != skipValue) {
+		fieldToExpression[fieldNr] = value
+	    }
 	}
     }
 
