@@ -21,15 +21,18 @@ printLongUsage()
     # This is the long "man page" when launched with the help argument.
     # It is printed to stdout to allow paging with 'more'.
     cat <<HELPDESCRIPTION
-Add a field with AWK-EXPR (e.g. 42, '"foo"', or '\$1 "(" length(\$1) ")"') after
-every field N (-N counted from behind), counting as they originally existed.
-Non-existing fields at the end are created; field 0 means appending at the
-front; negative field numbers are ignored.
+Add a field with AWK-EXPR after every field N (-N counted from behind), counting
+as they originally existed. Non-existing fields at the end are created; field 0
+means appending at the front; negative field numbers are ignored.
 HELPDESCRIPTION
     echo
     printShortUsage "$1"
     echo
     cat <<HELPTEXT
+    AWK-EXPR		    Any valid expression in AWK, for example 42,
+			    '"foo"', '\$fieldNr' (fieldNr refers to N; this can
+			    used to duplicate the original field), or
+			    '\$1 "(" length(\$1) ")"')
     --field-separator|-F FS Use FS as the input field separator (as with AWK).
     --skip-value|-s VAL	    Do not add the field when AWK-EXPR returns VAL.
     --in-place[=SUFFIX]|-i[SUFFIX]
