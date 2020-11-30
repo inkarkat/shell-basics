@@ -1,6 +1,0 @@
-foo	first	100	A Here
-bar	no4	201
-			
-bzz			last
-
-eof

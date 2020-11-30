@@ -1,3 +1,0 @@
-foo	first	100	A Here
-bar	second	201	B There
-baz	third	333	C U
