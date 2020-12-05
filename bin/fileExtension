@@ -76,6 +76,12 @@ if [ -z "$defaultExtension" ]; then
     defaultExtension="$1"
     shift
 fi
+if [[ "$defaultExtension" = */* ]]; then
+    echo 'ERROR: EXT must not contain /.'
+    echo
+    printUsage "$0"
+    exit 2
+fi >&2
 if [ $# -ne 0 ]; then
     printUsage "$0" >&2
     exit 2
