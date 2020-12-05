@@ -4,7 +4,7 @@ printShortUsage()
 {
     # Note: short followed by long option; if the user knows the short one, she can
     # skim the long one.
-    printf 'Usage: %q %s\n' "$(basename "$1")" '[-1|--single] [-d|--strip|-b|--basename|-s|--split|-3|--split-all|-c INSERTION|--splice INSERTION|-f|--default] FILENAME [DEFAULT-EXT] [-?|-h|--help]'
+    printf 'Usage: %q %s\n' "$(basename "$1")" '[-1|--single] [-d|--strip|-b|--basename|-s|--split|-3|--split-all|-c INSERTION|--splice INSERTION|-f EXT|--default EXT] FILENAME [DEFAULT-EXT] [-?|-h|--help]'
 }
 printUsage()
 {
@@ -37,9 +37,8 @@ HELPDESCRIPTION
 		lines
     --splice|-c	INSERTION is inserted at the end of the file name, before the
 		extension(s)
-    --default|-f
-		Just append a DEFAULT-EXT to FILENAME if it doesn't have one
-		yet.
+    --default|-f EXT
+		Just append EXT to FILENAME if it doesn't have one yet.
 HELPTEXT
     printf 'Example: readarray -t fileSplit < <(%q --split "foo bar.tar.gz")\n' "$(basename "$1")"
 }
@@ -47,6 +46,7 @@ HELPTEXT
 isSingle=
 action=ext
 insertion=
+defaultExtension=
 while [ $# -ne 0 ]
 do
     case "$1" in
@@ -57,7 +57,7 @@ do
 	--split|-s)	shift; action=split;;
 	--split-all|-3)	shift; action=splitall;;
 	--splice|-c)	shift; action=splice; insertion="$1"; shift;;
-	--default|-f)	shift; action=default;;
+	--default|-f)	shift; action=default; defaultExtension="${1:?}"; shift;;
 	--)		shift; break;;
 	-*)		{ echo "ERROR: Unknown option \"$1\"!"; echo; printUsage "$0"; } >&2; exit 2;;
 	*)		break;;
@@ -68,8 +68,15 @@ if [ $# -lt 1 -o $# -gt 2 ]; then
     exit 2
 fi
 
-filename=$1; shift
-defaultExtension=$1; shift
+filename="$1"; shift
+if [ -z "$defaultExtension" ]; then
+    defaultExtension="$1"
+    shift
+fi
+if [ $# -ne 0 ]; then
+    printUsage "$0" >&2
+    exit 2
+fi
 
 # Handle at most three file extensions with each having a maximum of 10
 # characters (to avoid false positives as in "invoice Mr. Flabberwocky.txt").
@@ -79,12 +86,12 @@ if [[ ! "$isSingle" && "$filename" =~ ^(.*)\.([[:alnum:]]{1,10}\.[[:alnum:]]{1,1
     name="${BASH_REMATCH[1]}"
     ext="${BASH_REMATCH[2]}"
 else
-    name="$filename"
+    name="${filename%.}"
     ext="$defaultExtension"
 fi
 
 case "$action" in
-    default)	printf '%s%s\n' "$name" "${ext:+.}$ext";;
+    default)	printf '%s.%s\n' "$name" "$ext";;
     ext)	printf '%s\n' "$ext";;
     strip)	printf '%s\n' "$name";;
     basename)	printf '%s\n' "$(basename -- "$name")";;
