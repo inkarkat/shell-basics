@@ -4,7 +4,7 @@ printShortUsage()
 {
     # Note: short followed by long option; if the user knows the short one, she can
     # skim the long one.
-    printf 'Usage: %q %s\n' "$(basename "$1")" '[-1|--single] [-d|--strip|-b|--basename|-s|--split|-3|--split-all|-c INSERTION|--splice INSERTION] FILENAME [DEFAULT-EXT] [-?|-h|--help]'
+    printf 'Usage: %q %s\n' "$(basename "$1")" '[-1|--single] [-d|--strip|-b|--basename|-s|--split|-3|--split-all|-c INSERTION|--splice INSERTION|-f|--default] FILENAME [DEFAULT-EXT] [-?|-h|--help]'
 }
 printUsage()
 {
@@ -37,6 +37,9 @@ HELPDESCRIPTION
 		lines
     --splice|-c	INSERTION is inserted at the end of the file name, before the
 		extension(s)
+    --default|-f
+		Just append a DEFAULT-EXT to FILENAME if it doesn't have one
+		yet.
 HELPTEXT
     printf 'Example: readarray -t fileSplit < <(%q --split "foo bar.tar.gz")\n' "$(basename "$1")"
 }
@@ -54,6 +57,7 @@ do
 	--split|-s)	shift; action=split;;
 	--split-all|-3)	shift; action=splitall;;
 	--splice|-c)	shift; action=splice; insertion="$1"; shift;;
+	--default|-f)	shift; action=default;;
 	--)		shift; break;;
 	-*)		{ echo "ERROR: Unknown option \"$1\"!"; echo; printUsage "$0"; } >&2; exit 2;;
 	*)		break;;
@@ -80,11 +84,12 @@ else
 fi
 
 case "$action" in
+    default)	printf '%s%s\n' "$name" "${ext:+.}$ext";;
     ext)	printf '%s\n' "$ext";;
     strip)	printf '%s\n' "$name";;
     basename)	printf '%s\n' "$(basename -- "$name")";;
     split)	printf '%s\n%s\n' "$name" "$ext";;
     splitall)	printf '%s\n%s\n%s\n' "$(dirname -- "$name")" "$(basename -- "$name")" "$ext";;
-    splice) 	printf '%s%s%s\n' "$name" "$insertion" "${ext:+.}$ext";;
-    *)	    	printf >&2 'ASSERT: Invalid action: %s\n' "$action"; exit 2;;
+    splice)	printf '%s%s%s\n' "$name" "$insertion" "${ext:+.}$ext";;
+    *)          printf >&2 'ASSERT: Invalid action: %s\n' "$action"; exit 2;;
 esac
