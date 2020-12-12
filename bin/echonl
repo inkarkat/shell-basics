@@ -1,10 +1,11 @@
-#!/bin/sh
+#!/bin/bash
 
 printUsage()
 {
     cat <<HELPTEXT
 Write arguments to the standard input, each on a separate line.
 HELPTEXT
+    echo
     printf 'Usage: %q %s\n' "$(basename "$1")" '[arg ...] [-?|-h|--help]'
 }
 case "$1" in
