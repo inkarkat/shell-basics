@@ -3,7 +3,8 @@
 printUsage()
 {
     cat <<HELPTEXT
-Print a timestamp / prefix output from stdin with timestamps.
+Print a timestamp / prefix output from stdin with timestamps, by default as two
+space-separated fields in a human-readable format that includes milliseconds.
 HELPTEXT
 printf 'Usage: %q %s\n' "$(basename "$1")" '[--human|--short|--sortable] [--no-millis] [-f|--field-separator SEP] [MESSAGE [...]] [-?|-h|--help]'
 printf 'Usage: cat FILE [...] | %q %s\n' "$(basename "$1")" '[...] [-s|--separator SEP] -'
