@@ -23,7 +23,6 @@ if [ "$isVerbose" ]; then
 	esac
     }
 
-    echo >&2 "0: $(shellquote "$0")"
     let argCnt=1
     while [ $# -gt 0 ]
     do
