@@ -12,6 +12,7 @@ HELPTEXT
     printf 'Usage: choice="$(%q %s)"\n' "$(basename "$1")" '-v|--valid VALID-RESPONSE-GLOB [-k|--keep-prompt] [READ-ARGS ...]'
 }
 
+: ${POS1_AND_ERASE_LINE=[1G[2K}
 isKeepPrompt=
 hasCharLimit=
 isEcho=t
@@ -48,7 +49,7 @@ if [ "$isKeepPrompt" ]; then
 	afterPromptSequence=$'\n'   # The user doesn't provide the newline (or it isn't echoed); we have to.
     fi
 elif [ "$hasCharLimit" ] || [ ! "$isEcho" ]; then
-    afterPromptSequence='[1G[2K' # Return cursor to the beginning of the current line and clear it.
+    afterPromptSequence="$POS1_AND_ERASE_LINE"	# Return cursor to the beginning of the current line and clear it.
 else
     printf >/dev/tty '\n%s' '[1F[s'   # Scroll if necessary for the new line created by concluding the input with Enter, go back to previous line and save the position.
     afterPromptSequence='[u[0J' # Restore position and clear until the end of the terminal.
