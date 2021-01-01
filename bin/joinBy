@@ -5,6 +5,9 @@ printUsage()
 {
     cat <<HELPTEXT
 Join all ARGs with SEPARATOR in between each.
+
+See also: collapseToSingleLine takes lines from files / standard input and can
+do wrapping and elaborate line breaking.
 HELPTEXT
     printf 'Usage: %q %s\n' "$(basename "$1")" '[--prefix PREFIX] [--suffix SUFFIX] SEPARATOR [ARG ...] [-?|-h|--help]'
 }
