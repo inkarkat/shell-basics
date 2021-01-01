@@ -9,8 +9,12 @@ Join all ARGs with SEPARATOR in between each.
 See also: collapseToSingleLine takes lines from files / standard input and can
 do wrapping and elaborate line breaking.
 HELPTEXT
-    printf 'Usage: %q %s\n' "$(basename "$1")" '[--prefix PREFIX] [--suffix SUFFIX] SEPARATOR [ARG ...] [-?|-h|--help]'
+    echo
+    printf 'Usage: %q %s\n' "$(basename "$1")" '[--prefix PREFIX] [--suffix SUFFIX] SEPARATOR [--] [ARG ...] [-?|-h|--help]'
+    echo
+    printf 'Usage: cat FILE [...] | %q %s\n' "$(basename "$1")" '[--prefix PREFIX] [--suffix SUFFIX] - SEPARATOR [-?|-h|--help]'
 }
+unset delimiter
 prefix=
 suffix=
 while [ $# -ne 0 ]
@@ -20,15 +24,28 @@ do
 	--prefix)	shift; prefix="$1"; shift;;
 	--suffix)	shift; suffix="$1"; shift;;
 	--)		shift; break;;
+	-)		shift
+			if [ $# -ne 1 ]; then
+			    printUsage "$0" >&2
+			    exit 2
+			fi
+			delimiter="${1?}"; shift
+			readarray -t args
+			set -- "${args[@]}"
+			break
+			;;
 	*)		break;;
     esac
 done
-if [ $# -eq 0 ]; then
-    printUsage "$0" >&2
-    exit 2
+
+if [ -z "${delimiter+t}" ]; then
+    if [ $# -eq 0 ]; then
+	printUsage "$0" >&2
+	exit 2
+    fi
+    delimiter="${1?}"; shift
 fi
 
-delimiter=${1?}; shift
 [ $# -eq 0 ] && exit
 printf '%s%s' "$prefix" "$1"; shift
 printf "%s" "${@/#/$delimiter}"
