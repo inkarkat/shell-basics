@@ -1,0 +1,62 @@
+#!/bin/bash
+
+printShortUsage()
+{
+    # Note: short followed by long option; if the user knows the short one, she can
+    # skim the long one.
+    printf 'Usage: %q %s\n' "$(basename "$1")" '[-k|--keep-prompt] [-t|--timeout|--for TIMEOUT] [--] [PROMPT] [-?|-h|--help]'
+}
+printUsage()
+{
+    # This is the short help when launched with no or incorrect arguments.
+    # It is printed to stderr to avoid accidental processing.
+    printShortUsage "$1" >&2
+    printf >&2 '\nTry %q --help for more information.\n' "$(basename "$1")"
+}
+printLongUsage()
+{
+    # This is the long "man page" when launched with the help argument.
+    # It is printed to stdout to allow paging with 'more'.
+    cat <<HELPDESCRIPTION
+Show PROMPT and wait for acknowledgement.
+HELPDESCRIPTION
+    echo
+    printShortUsage "$1"
+    echo
+    cat <<HELPTEXT
+    --keep-prompt|-k	Keep the prompt on the screen instead of clearing it
+			after it has been acknowledged / after the timeout.
+    --timeout|-t|--for SECONDS
+			Wait only for SECONDS instead of indefinitely, then
+			return 1.
+Example:
+HELPTEXT
+    printf '%q %s\n' "$(basename "$1")" '--foo bar /tmp/foobar'
+}
+
+: ${POS1_AND_ERASE_LINE=[1G[2K}
+clearPromptSequence="$POS1_AND_ERASE_LINE" # Return cursor to the beginning of the current line and clear it.
+typeset readArgs=()
+timeoutValue=
+while [ $# -ne 0 ]
+do
+    case "$1" in
+	--help|-h|-\?)	shift; printLongUsage "$0"; exit 0;;
+	--keep-prompt|-k)	shift; clearPromptSequence=$'\n';;
+	--timeout|-t|--for)	shift; readArgs+=(-t "$1"); timeoutPlural=s; [ "$1" = 1 ] && timeoutPlural=; timeoutValue="${1} second$timeoutPlural"; shift;;
+	--)		shift; break;;
+	*)		break;;
+    esac
+done
+if [ $# -gt 1 ]; then
+    printUsage "$0" >&2
+    exit 2
+fi
+promptText="${1-Press any key to continue${timeoutValue:+ (or wait $timeoutValue)}...}"
+readArgs+=(-p "$promptText")
+
+status=0
+< /dev/tty read -r -s -N 1 "${readArgs[@]}"
+[ $? -gt 128 ] && status=1
+printf >/dev/tty %s "$clearPromptSequence"
+exit $status
