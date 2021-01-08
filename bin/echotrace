@@ -18,4 +18,15 @@ if [ $SHLVL -gt 3 ]; then
     printf -v nestingPrefix "%$((SHLVL - 3))s" "${PS4:0:1}"; printf -v nestingPrefix %s "${nestingPrefix// /${PS4:0:1}}"
 fi
 
-echo "${nestingPrefix}${PS4}$*" >&2
+# Duplicated to ../../verbose/bin/verbose
+quotedArgs=
+for arg
+do
+    case "$arg" in
+	*[$'\n\r\t\v']*) printf -v arg %q "$arg";;
+	*[$'\\ `\'\"?*[]!+']*) printf -v arg %s "'${arg//\'/\'\\\'\'}'";;
+    esac
+    quotedArgs="${quotedArgs}${quotedArgs:+ }${arg}"
+done
+
+printf >&2 '%s%s\n' "${nestingPrefix}${PS4:-\$ }" "$quotedArgs"
