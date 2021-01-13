@@ -1,11 +1,14 @@
 #!/bin/bash
 shopt -qs extglob
 
+: ${SUCCESS_STATUS:=125}
+
 printUsage()
 {
     cat <<HELPTEXT
 Accept exit status(es) STATUS [...] from the supplied COMMAND and succeed then.
-Any other exit status is returned as-is.
+Any other exit status is returned as-is; unless passed itself (allowing the
+COMMAND to succeed), exit status 0 is returned as ${SUCCESS_STATUS}.
 Useful for applications that indicate special (but benign) situations with
 particular exit statuses in a cron job that otherwise would indiscriminately
 send an email on any application failure.
@@ -13,7 +16,7 @@ See also: fail prints a message if the expectation isn't met and integrates with
 command-alerting, so is meant for interactive use.
 HELPTEXT
     echo
-    printf 'Usage: %q %s\n' "$(basename "$1")" 'STATUS [...] COMMAND [ARG ...] [-?|-h|--help]'
+    printf "Usage: [SUCCESS_STATUS=${SUCCESS_STATUS}] %q %s\\n" "$(basename "$1")" 'STATUS [...] COMMAND [ARG ...] [-?|-h|--help]'
 }
 
 typeset -A acceptedStatuses=()
@@ -44,6 +47,8 @@ status=$?
 
 if [ "${acceptedStatuses[$status]}" ]; then
     exit 0
+elif [ $status -eq 0 ]; then
+    exit $SUCCESS_STATUS
 else
     exit $status
 fi
