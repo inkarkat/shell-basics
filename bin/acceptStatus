@@ -9,6 +9,8 @@ Any other exit status is returned as-is.
 Useful for applications that indicate special (but benign) situations with
 particular exit statuses in a cron job that otherwise would indiscriminately
 send an email on any application failure.
+See also: fail prints a message if the expectation isn't met and integrates with
+command-alerting, so is meant for interactive use.
 HELPTEXT
     echo
     printf 'Usage: %q %s\n' "$(basename "$1")" 'STATUS [...] COMMAND [ARG ...] [-?|-h|--help]'

@@ -6,6 +6,8 @@ printUsage()
     cat <<HELPTEXT
 Expect the supplied COMMAND to fail [with STATUS]. Complains on standard error
 if this is not the case and returns 125 then; else returns 0.
+See also: acceptStatus can take multiple statuses, is silent and meant for
+scripting.
 HELPTEXT
     printf 'Usage: %q %s\n' "$(basename "$1")" '[STATUS] COMMAND [ARG ...] [-?|-h|--help]'
 }
