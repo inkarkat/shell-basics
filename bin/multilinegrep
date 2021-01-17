@@ -65,12 +65,13 @@ do
     fi
 
     typeset -a lines=($escapedPattern)
-    sedProgram+=(-e "/${lines[0]}/{")
+    sedProgram+=(-e "/${isEntireLine:+^}${lines[0]}/{")
     lines=("${lines[@]:1}")
 
     for line in "${lines[@]}"
     do
-	sedProgram+=(-e "N; /\\n${line}[^\\n]*$/!D")
+	toEndOfLineAsssertion='[^\n]*'; [ "$isEntireLine" ] && toEndOfLineAsssertion=''
+	sedProgram+=(-e "N; /\\n${line}${toEndOfLineAsssertion}$/!D")
     done
 
     sedProgram+=(-e 'h; p; b }')    # Non-empty hold space signals we've found a match.
