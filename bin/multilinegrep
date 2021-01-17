@@ -1,0 +1,79 @@
+#!/bin/bash
+set -o noglob
+IFS=$'\n'
+
+printUsage()
+{
+    cat <<HELPTEXT
+Searches the named input FILEs / standard input for lines containing a match to
+the given PATTERN, which can go over multiple lines, and print the matching
+lines.
+HELPTEXT
+    echo
+    printf 'Usage: %q %s\n' "$(basename "$1")" '[-E|--extended-regexp] [-F|--fixed-strings] [-G|--basic-regexp] [-e|--regexp] PATTERN [-e ...] [-x|--line-regexp] [-q|--quiet|--silent] [--line-buffered] [--] [FILE ...] [-?|-h|--help]'
+}
+
+hasMatchMode=
+assertSingleMatchMode()
+{
+    if [ "$hasMatchMode" ]; then
+	echo 'ERROR: Only one of -E|--extended-regexp, -F|--fixed-strings, -G|--basic-regexp can be passed.'
+	echo
+	printUsage "$1"
+	exit 2
+    fi >&2
+}
+
+isLiteral=
+isEntireLine=
+isQuiet=
+typeset -a patterns=()
+typeset -a sedArgs=()
+while [ $# -ne 0 ]
+do
+    case "$1" in
+	--help|-h|-\?)		shift; printUsage "$0"; exit 0;;
+	--extended-regexp|-E)	shift; assertSingleMatchMode "$0"; hasMatchMode=t; sedArgs+=(--regexp-extended);;
+	--fixed-strings|-F)	shift; assertSingleMatchMode "$0"; hasMatchMode=t; isLiteral=t;;
+	--basic-regexp|-G)	shift; assertSingleMatchMode "$0"; hasMatchMode=t;;
+	--regexp|-e)		shift; patterns+=("${1:?}"); shift;;
+	--line-regexp|-x)	shift; isEntireLine=t;;
+	--quiet|--silent|-q)	shift; isQuiet=t;;
+	--line-buffered)	shift; sedArgs+=(--unbuffered);;
+	--)			sedArgs+=("$1"); shift; break;;
+	-*)			{ echo "ERROR: Unknown option \"$1\"!"; echo; printUsage "$0"; } >&2; exit 2;;
+	*)			if [ ${#patterns[@]} -eq 0 ]; then
+				    patterns+=("${1:?}")
+				    shift
+				fi
+				break
+				;;
+    esac
+done
+if [ ${#patterns[@]} -eq 0 ]; then
+    printUsage "$0" >&2
+    exit 2
+fi
+
+typeset -a sedProgram=()
+for pattern in "${patterns[@]}"
+do
+    if [ "$isLiteral" ]; then
+	escapedPattern="$(printf %s "$pattern" | sed -e 's/[][\$*.^/]/\\&/g')"
+    else
+	escapedPattern="${pattern//\//\\/}"
+    fi
+
+    typeset -a lines=($escapedPattern)
+    sedProgram+=(-e "/${lines[0]}/{")
+    lines=("${lines[@]:1}")
+
+    for line in "${lines[@]}"
+    do
+	sedProgram+=(-e "N; /\\n${line}[^\\n]*$/!D")
+    done
+
+    sedProgram+=(-e 'h; p; b }')    # Non-empty hold space signals we've found a match.
+done
+
+exec sed -n "${sedArgs[@]}" "${sedProgram[@]}" -e '${ g; /^$/q 1 }' "$@"
