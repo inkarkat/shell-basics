@@ -26,6 +26,7 @@ assertSingleMatchMode()
 
 isLiteral=
 isEntireLine=
+startOfLineAssertion=''
 isQuiet=
 typeset -a patterns=()
 typeset -a sedArgs=()
@@ -37,7 +38,7 @@ do
 	--fixed-strings|-F)	shift; assertSingleMatchMode "$0"; hasMatchMode=t; isLiteral=t;;
 	--basic-regexp|-G)	shift; assertSingleMatchMode "$0"; hasMatchMode=t;;
 	--regexp|-e)		shift; patterns+=("${1:?}"); shift;;
-	--line-regexp|-x)	shift; isEntireLine=t;;
+	--line-regexp|-x)	shift; isEntireLine=t; startOfLineAssertion='^';;
 	--quiet|--silent|-q)	shift; isQuiet=t;;
 	--line-buffered)	shift; sedArgs+=(--unbuffered);;
 	--)			sedArgs+=("$1"); shift; break;;
@@ -65,13 +66,18 @@ do
     fi
 
     typeset -a lines=($escapedPattern)
-    sedProgram+=(-e "/${isEntireLine:+^}${lines[0]}/{")
+    endOfFirstLineAssertion=''; [ "$isEntireLine" ] && [ ${#lines[@]} -eq 1 ] && endOfFirstLineAssertion='$'
+    sedProgram+=(-e "/${startOfLineAssertion}${lines[0]}${endOfFirstLineAssertion}/{")
     lines=("${lines[@]:1}")
 
-    for line in "${lines[@]}"
+    while [ ${#lines[@]} -gt 0 ]
     do
-	toEndOfLineAsssertion='[^\n]*'; [ "$isEntireLine" ] && toEndOfLineAsssertion=''
-	sedProgram+=(-e "N; /\\n${line}${toEndOfLineAsssertion}$/!D")
+	endOfLastLineAssertion=''
+	if [ ${#lines[@]} -eq 1 ]; then
+	    [ "$isEntireLine" ] || endOfLastLineAssertion='[^\n]*'
+	fi
+	line="${lines[0]}"; lines=("${lines[@]:1}")
+	sedProgram+=(-e "N; /\\n${line}${endOfLastLineAssertion}$/!D")
     done
 
     sedProgram+=(-e 'h; p; b }')    # Non-empty hold space signals we've found a match.
