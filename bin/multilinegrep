@@ -1,6 +1,4 @@
 #!/bin/bash
-set -o noglob
-IFS=$'\n'
 
 printShortUsage()
 {
@@ -22,7 +20,8 @@ printLongUsage()
     cat <<HELPDESCRIPTION
 Searches the named input FILEs / standard input for lines containing a match to
 the given PATTERN, which can go over multiple lines, and print the matching
-lines.
+lines. Note that empty lines in PATTERN can lead to unexpected results and are
+best avoided.
 HELPDESCRIPTION
     echo
     printShortUsage "$1"
@@ -94,7 +93,7 @@ do
 	escapedPattern="${pattern//\//\\/}"
     fi
 
-    typeset -a lines=($escapedPattern)
+    readarray -t lines <<<"$escapedPattern"
     endOfFirstLineAssertion="$endOfSubsequentLinesAssertion"; [ ${#lines[@]} -eq 1 ] && endOfFirstLineAssertion="$endOfLastLineAssertion"
     endOfLineAssertion="$endOfSubsequentLinesAssertion"
     sedProgram+=(-e "/${startOfFirstLineAssertion}${groupingBegin}${lines[0]}${groupingEnd}${endOfFirstLineAssertion}\$/{")
