@@ -28,13 +28,13 @@ one-two" ]
 }
 
 @test "search for entire three-line regexp as plain argument" {
-    run multilinegrep --line-regexp $'just one-l..e here\ntwo/l..es\nthree l..es' "$INPUT"
+    run multilinegrep --line-regexp $'just one-l..e here\ntwo/l..es\nthre\+ l..es' "$INPUT"
     [ $status -eq 0 ]
     [ "$output" = $'just one-line here\ntwo/lines\nthree l..es' ]
 }
 
 @test "search for entire three-line regexp as --regexp argument" {
-    run multilinegrep --line-regexp --regexp $'just one-l..e here\ntwo/l..es\nthree l..es' "$INPUT"
+    run multilinegrep --line-regexp --regexp $'just one-l..e here\ntwo/l..es\nthre\+ l..es' "$INPUT"
     [ $status -eq 0 ]
     [ "$output" = $'just one-line here\ntwo/lines\nthree l..es' ]
 }
@@ -51,13 +51,13 @@ the last" ]
 }
 
 @test "search for entire three-line regexp with no matches returns 1" {
-    run multilinegrep --line-regexp $'one-line.*\ntwo/lines\nthree' "$INPUT"
+    run multilinegrep --line-regexp $'one-line.*\ntwo/lines\nthre\+' "$INPUT"
     [ $status -eq 1 ]
     [ "$output" = "" ]
 }
 
 @test "search for entire three-line regexp with second line not matching returns 1" {
-    run multilinegrep --line-regexp $'just one-l..e.*\nthree.*\nfour' "$INPUT"
+    run multilinegrep --line-regexp $'just one-l..e.*\nthre\+.*\nfour' "$INPUT"
     [ $status -eq 1 ]
     [ "$output" = "" ]
 }
