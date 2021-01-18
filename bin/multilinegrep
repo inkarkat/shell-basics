@@ -2,15 +2,34 @@
 set -o noglob
 IFS=$'\n'
 
+printShortUsage()
+{
+    # Note: short followed by long option; if the user knows the short one, she can
+    # skim the long one.
+    printf 'Usage: %q %s\n' "$(basename "$1")" '[-E|--extended-regexp] [-F|--fixed-strings] [-G|--basic-regexp] [-e|--regexp] PATTERN [-e ...] [-x|--line-regexp] [-q|--quiet|--silent] [--line-buffered] [--] [FILE ...] [-?|-h|--help]'
+}
 printUsage()
 {
-    cat <<HELPTEXT
+    # This is the short help when launched with no or incorrect arguments.
+    # It is printed to stderr to avoid accidental processing.
+    printShortUsage "$1" >&2
+    printf >&2 '\nTry %q --help for more information.\n' "$(basename "$1")"
+}
+printLongUsage()
+{
+    # This is the long "man page" when launched with the help argument.
+    # It is printed to stdout to allow paging with 'more'.
+    cat <<HELPDESCRIPTION
 Searches the named input FILEs / standard input for lines containing a match to
 the given PATTERN, which can go over multiple lines, and print the matching
 lines.
-HELPTEXT
+HELPDESCRIPTION
     echo
-    printf 'Usage: %q %s\n' "$(basename "$1")" '[-E|--extended-regexp] [-F|--fixed-strings] [-G|--basic-regexp] [-e|--regexp] PATTERN [-e ...] [-x|--line-regexp] [-q|--quiet|--silent] [--line-buffered] [--] [FILE ...] [-?|-h|--help]'
+    printShortUsage "$1"
+    echo
+    cat <<HELPTEXT
+
+HELPTEXT
 }
 
 hasMatchMode=
@@ -33,7 +52,7 @@ typeset -a sedArgs=()
 while [ $# -ne 0 ]
 do
     case "$1" in
-	--help|-h|-\?)		shift; printUsage "$0"; exit 0;;
+	--help|-h|-\?)		shift; printLongUsage "$0"; exit 0;;
 	--extended-regexp|-E)	shift; assertSingleMatchMode "$0"; hasMatchMode=t; sedArgs+=(--regexp-extended);;
 	--fixed-strings|-F)	shift; assertSingleMatchMode "$0"; hasMatchMode=t; isLiteral=t;;
 	--basic-regexp|-G)	shift; assertSingleMatchMode "$0"; hasMatchMode=t;;
