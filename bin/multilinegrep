@@ -33,6 +33,15 @@ HELPDESCRIPTION
 			breaks of PATTERN must match exactly at the end / start
 			of lines but the begin and end of the entire PATTERN can
 			start / end anywhere in the line.
+
+See also: pcregrep and pcre2grep -M|--multiline can match (like --block-regexp)
+with a Perl-compatible regexp syntax.
+
+EXIT STATUS:
+    0	Line(s) are selected.
+    1	No line(s) have been selected.
+    2	Bad invocation, wrong or missing command-line arguments, or an error
+	occurred.
 HELPTEXT
 }
 
