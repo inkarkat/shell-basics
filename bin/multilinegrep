@@ -6,7 +6,7 @@ printShortUsage()
 {
     # Note: short followed by long option; if the user knows the short one, she can
     # skim the long one.
-    printf 'Usage: %q %s\n' "$(basename "$1")" '[-E|--extended-regexp] [-F|--fixed-strings] [-G|--basic-regexp] [-e|--regexp] PATTERN [-e ...] [-x|--line-regexp] [-q|--quiet|--silent] [--line-buffered] [--] [FILE ...] [-?|-h|--help]'
+    printf 'Usage: %q %s\n' "$(basename "$1")" "[-E|--extended-regexp] [-F|--fixed-strings] [-G|--basic-regexp] [-e|--regexp] \$'PATTERN\\nPATTERN' [-e ...] [-x|--line-regexp] [-y|--block-regexp] [-q|--quiet|--silent] [--line-buffered] [--] [FILE ...] [-?|-h|--help]"
 }
 printUsage()
 {
@@ -28,7 +28,12 @@ HELPDESCRIPTION
     printShortUsage "$1"
     echo
     cat <<HELPTEXT
-
+    --line-regexp|-x	Select only those matches where each line matches
+			exactly match that whole line.
+    --block-regexp|-y	Select only those matches where inner contained line
+			breaks of PATTERN must match exactly at the end / start
+			of lines but the begin and end of the entire PATTERN can
+			start / end anywhere in the line.
 HELPTEXT
 }
 
@@ -44,8 +49,12 @@ assertSingleMatchMode()
 }
 
 isLiteral=
-isEntireLine=
-startOfLineAssertion=''
+groupingBegin='\('
+groupingEnd='\)'
+startOfFirstLineAssertion=''
+startOfSubsequentLinesAssertion='[^\n]*'
+endOfSubsequentLinesAssertion='[^\n]*'
+endOfLastLineAssertion='[^\n]*'
 isQuiet=
 typeset -a patterns=()
 typeset -a sedArgs=()
@@ -53,11 +62,12 @@ while [ $# -ne 0 ]
 do
     case "$1" in
 	--help|-h|-\?)		shift; printLongUsage "$0"; exit 0;;
-	--extended-regexp|-E)	shift; assertSingleMatchMode "$0"; hasMatchMode=t; sedArgs+=(--regexp-extended);;
+	--extended-regexp|-E)	shift; assertSingleMatchMode "$0"; hasMatchMode=t; groupingBegin='('; groupingEnd=')'; sedArgs+=(--regexp-extended);;
 	--fixed-strings|-F)	shift; assertSingleMatchMode "$0"; hasMatchMode=t; isLiteral=t;;
 	--basic-regexp|-G)	shift; assertSingleMatchMode "$0"; hasMatchMode=t;;
 	--regexp|-e)		shift; patterns+=("${1:?}"); shift;;
-	--line-regexp|-x)	shift; isEntireLine=t; startOfLineAssertion='^';;
+	--line-regexp|-x)	shift; startOfFirstLineAssertion='^'; startOfSubsequentLinesAssertion=''; endOfSubsequentLinesAssertion=''; endOfLastLineAssertion='';;
+	--block-regexp|-y)	shift; startOfSubsequentLinesAssertion=''; endOfSubsequentLinesAssertion='';;
 	--quiet|--silent|-q)	shift; isQuiet=t;;
 	--line-buffered)	shift; sedArgs+=(--unbuffered);;
 	--)			sedArgs+=("$1"); shift; break;;
@@ -85,18 +95,16 @@ do
     fi
 
     typeset -a lines=($escapedPattern)
-    endOfFirstLineAssertion=''; [ "$isEntireLine" ] && [ ${#lines[@]} -eq 1 ] && endOfFirstLineAssertion='$'
-    sedProgram+=(-e "/${startOfLineAssertion}${lines[0]}${endOfFirstLineAssertion}/{")
+    endOfFirstLineAssertion="$endOfSubsequentLinesAssertion"; [ ${#lines[@]} -eq 1 ] && endOfFirstLineAssertion="$endOfLastLineAssertion"
+    endOfLineAssertion="$endOfSubsequentLinesAssertion"
+    sedProgram+=(-e "/${startOfFirstLineAssertion}${groupingBegin}${lines[0]}${groupingEnd}${endOfFirstLineAssertion}\$/{")
     lines=("${lines[@]:1}")
 
     while [ ${#lines[@]} -gt 0 ]
     do
-	endOfLastLineAssertion=''
-	if [ ${#lines[@]} -eq 1 ]; then
-	    [ "$isEntireLine" ] || endOfLastLineAssertion='[^\n]*'
-	fi
+	[ ${#lines[@]} -eq 1 ] && endOfLineAssertion="$endOfLastLineAssertion"
 	line="${lines[0]}"; lines=("${lines[@]:1}")
-	sedProgram+=(-e "N; /\\n${line}${endOfLastLineAssertion}$/!D")
+	sedProgram+=(-e "N; /\\n${startOfSubsequentLinesAssertion}${groupingBegin}${line}${groupingEnd}${endOfLineAssertion}\$/!D")
     done
 
     sedProgram+=(-e 'h; p; b }')    # Non-empty hold space signals we've found a match.

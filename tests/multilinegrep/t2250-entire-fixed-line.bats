@@ -48,6 +48,24 @@ two
 else" ]
 }
 
+@test "search for three-line literal string with inner matches" {
+    run multilinegrep --line-regexp --fixed-strings $'one-line here\no/line\nthree' "$INPUT"
+    [ $status -eq 1 ]
+    [ "$output" = "" ]
+}
+
+@test "search for three-line literal string as block match" {
+    run multilinegrep --line-regexp --fixed-strings --regexp $'one-line here\ntwo/lines\nthree' "$INPUT"
+    [ $status -eq 1 ]
+    [ "$output" = "" ]
+}
+
+@test "search for three-line literal string that matches the entire line" {
+    run multilinegrep --line-regexp --fixed-strings $'just one-line here\ntwo/lines\nthree l..es' "$INPUT"
+    [ $status -eq 0 ]
+    [ "$output" = $'just one-line here\ntwo/lines\nthree l..es' ]
+}
+
 @test "search for entire three-line literal string with no matches returns 1" {
     run multilinegrep --line-regexp --fixed-strings $'does\nNot\nMatch' "$INPUT"
     [ $status -eq 1 ]

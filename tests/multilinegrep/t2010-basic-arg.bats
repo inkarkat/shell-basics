@@ -28,14 +28,33 @@ one-two" ]
     [ "$output" = "" ]
 }
 
-@test "search for explicitly passed three-line regexp as plain argument" {
-    run multilinegrep --basic-regexp $'one-l..e here\ntwo/l..es\nthre\+' "$INPUT"
+@test "search for explicitly passed two-line regexp with branches" {
+    run multilinegrep --basic-regexp $'two\|three\n.*l' "$INPUT"
+    [ $status -eq 0 ]
+    [ "$output" = "two/lines
+three l..es
+two
+else
+two
+else
+three
+the last" ]
+}
+
+@test "search for explicitly passed three-line regexp with inner matches" {
+    run multilinegrep --basic-regexp $'one-l..e here\no/l..e\nthre\+' "$INPUT"
     [ $status -eq 0 ]
     [ "$output" = $'just one-line here\ntwo/lines\nthree l..es' ]
 }
 
-@test "search for explicitly passed three-line regexp as --regexp argument" {
+@test "search for explicitly passed three-line regexp as block match" {
     run multilinegrep --basic-regexp --regexp $'one-l..e here\ntwo/l..es\nthre\+' "$INPUT"
+    [ $status -eq 0 ]
+    [ "$output" = $'just one-line here\ntwo/lines\nthree l..es' ]
+}
+
+@test "search for explicitly passed three-line regexp that matches the entire line" {
+    run multilinegrep --basic-regexp $'just one-l..e here\ntwo/l..es\nthre\+ l\.\.es' "$INPUT"
     [ $status -eq 0 ]
     [ "$output" = $'just one-line here\ntwo/lines\nthree l..es' ]
 }

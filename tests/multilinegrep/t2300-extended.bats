@@ -28,6 +28,37 @@ one-two" ]
     [ "$output" = "" ]
 }
 
+@test "search for two-line extended regexp with branches" {
+    run multilinegrep --extended-regexp $'two|three\n.*l' "$INPUT"
+    [ $status -eq 0 ]
+    [ "$output" = "two/lines
+three l..es
+two
+else
+two
+else
+three
+the last" ]
+}
+
+@test "search for three-line extended regexp with inner matches" {
+    run multilinegrep --extended-regexp $'one-l..e here\no/l..e\nthre+' "$INPUT"
+    [ $status -eq 0 ]
+    [ "$output" = $'just one-line here\ntwo/lines\nthree l..es' ]
+}
+
+@test "search for three-line extended regexp as block match" {
+    run multilinegrep --extended-regexp --regexp $'one-l..e here\ntwo/l..es\nthre+' "$INPUT"
+    [ $status -eq 0 ]
+    [ "$output" = $'just one-line here\ntwo/lines\nthree l..es' ]
+}
+
+@test "search for three-line extended regexp that matches the entire line" {
+    run multilinegrep --extended-regexp $'just one-l..e here\ntwo/l..es\nthre+ l\.\.es' "$INPUT"
+    [ $status -eq 0 ]
+    [ "$output" = $'just one-line here\ntwo/lines\nthree l..es' ]
+}
+
 @test "search for three-line extended regexp as plain argument" {
     run multilinegrep --extended-regexp $'one-l..e here\ntwo/l..es\nthre+' "$INPUT"
     [ $status -eq 0 ]
