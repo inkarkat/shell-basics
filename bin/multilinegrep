@@ -78,7 +78,7 @@ do
 	--block-regexp|-y)	shift; startOfSubsequentLinesAssertion=''; endOfSubsequentLinesAssertion='';;
 	--quiet|--silent|-q)	shift; sedPrint='';;
 	--line-buffered)	shift; sedArgs+=(--unbuffered);;
-	--)			sedArgs+=("$1"); shift; break;;
+	--)			break;;
 	-*)			{ echo "ERROR: Unknown option \"$1\"!"; echo; printUsage "$0"; } >&2; exit 2;;
 	*)			if [ ${#patterns[@]} -eq 0 ]; then
 				    patterns+=("${1:?}")

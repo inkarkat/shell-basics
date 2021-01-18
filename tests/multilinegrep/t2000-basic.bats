@@ -9,8 +9,22 @@ load fixture
     [ "$(grep 'one-l..e' "$INPUT")" = "$output" ]
 }
 
+@test "search for single line regexp as plain argument and file separated with --" {
+    run multilinegrep 'one-l..e' -- "$INPUT"
+    [ $status -eq 0 ]
+    [ "$output" = "just one-line here" ]
+    [ "$(grep 'one-l..e' "$INPUT")" = "$output" ]
+}
+
 @test "search for single line regexp as --regexp argument" {
     run multilinegrep --regexp 'one-l..e' "$INPUT"
+    [ $status -eq 0 ]
+    [ "$output" = "just one-line here" ]
+    [ "$(grep --regexp 'one-l..e' "$INPUT")" = "$output" ]
+}
+
+@test "search for single line regexp as --regexp argument and file separated with --" {
+    run multilinegrep --regexp 'one-l..e' -- "$INPUT"
     [ $status -eq 0 ]
     [ "$output" = "just one-line here" ]
     [ "$(grep --regexp 'one-l..e' "$INPUT")" = "$output" ]
