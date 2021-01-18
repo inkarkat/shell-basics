@@ -55,7 +55,7 @@ startOfFirstLineAssertion=''
 startOfSubsequentLinesAssertion='[^\n]*'
 endOfSubsequentLinesAssertion='[^\n]*'
 endOfLastLineAssertion='[^\n]*'
-isQuiet=
+sedPrint=p
 typeset -a patterns=()
 typeset -a sedArgs=()
 while [ $# -ne 0 ]
@@ -68,7 +68,7 @@ do
 	--regexp|-e)		shift; patterns+=("${1:?}"); shift;;
 	--line-regexp|-x)	shift; startOfFirstLineAssertion='^'; startOfSubsequentLinesAssertion=''; endOfSubsequentLinesAssertion=''; endOfLastLineAssertion='';;
 	--block-regexp|-y)	shift; startOfSubsequentLinesAssertion=''; endOfSubsequentLinesAssertion='';;
-	--quiet|--silent|-q)	shift; isQuiet=t;;
+	--quiet|--silent|-q)	shift; sedPrint='';;
 	--line-buffered)	shift; sedArgs+=(--unbuffered);;
 	--)			sedArgs+=("$1"); shift; break;;
 	-*)			{ echo "ERROR: Unknown option \"$1\"!"; echo; printUsage "$0"; } >&2; exit 2;;
@@ -107,7 +107,7 @@ do
 	sedProgram+=(-e "N; /\\n${startOfSubsequentLinesAssertion}${groupingBegin}${line}${groupingEnd}${endOfLineAssertion}\$/!D")
     done
 
-    sedProgram+=(-e 'h; p; b }')    # Non-empty hold space signals we've found a match.
+    sedProgram+=(-e "h; ${sedPrint}${sedPrint:+; }b }")    # Non-empty hold space signals we've found a match.
 done
 
 exec sed -n "${sedArgs[@]}" "${sedProgram[@]}" -e '${ g; /^$/q 1 }' "$@"
