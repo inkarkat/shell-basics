@@ -6,12 +6,14 @@ load fixture
     run multilinegrep --basic-regexp 'one-l..e' "$INPUT"
     [ $status -eq 0 ]
     [ "$output" = "just one-line here" ]
+    [ "$(grep --basic-regexp 'one-l..e' "$INPUT")" = "$output" ]
 }
 
 @test "search for explicitly passed single line regexp as --regexp argument" {
     run multilinegrep --basic-regexp --regexp 'one-l..e' "$INPUT"
     [ $status -eq 0 ]
     [ "$output" = "just one-line here" ]
+    [ "$(grep --basic-regexp --regexp 'one-l..e' "$INPUT")" = "$output" ]
 }
 
 @test "search for explicitly passed single line regexp with multiple matches" {
@@ -20,12 +22,14 @@ load fixture
     [ "$output" = "just one-line here
 Ones here
 one-two" ]
+    [ "$(grep --basic-regexp '[Oo]ne' "$INPUT")" = "$output" ]
 }
 
 @test "search for explicitly passed single line regexp with no matches returns 1" {
     run multilinegrep --basic-regexp 'doesN.tMatch' "$INPUT"
     [ $status -eq 1 ]
     [ "$output" = "" ]
+    [ "$(grep --basic-regexp 'doesN.tMatch' "$INPUT")" = "$output" ]
 }
 
 @test "search for explicitly passed two-line regexp with branches" {

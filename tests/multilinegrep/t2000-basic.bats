@@ -6,12 +6,14 @@ load fixture
     run multilinegrep 'one-l..e' "$INPUT"
     [ $status -eq 0 ]
     [ "$output" = "just one-line here" ]
+    [ "$(grep 'one-l..e' "$INPUT")" = "$output" ]
 }
 
 @test "search for single line regexp as --regexp argument" {
     run multilinegrep --regexp 'one-l..e' "$INPUT"
     [ $status -eq 0 ]
     [ "$output" = "just one-line here" ]
+    [ "$(grep --regexp 'one-l..e' "$INPUT")" = "$output" ]
 }
 
 @test "search for single line regexp with multiple matches" {
@@ -20,18 +22,21 @@ load fixture
     [ "$output" = "just one-line here
 Ones here
 one-two" ]
+    [ "$(grep '[Oo]ne' "$INPUT")" = "$output" ]
 }
 
 @test "search for single line regexp with no matches returns 1" {
     run multilinegrep 'doesN.tMatch' "$INPUT"
     [ $status -eq 1 ]
     [ "$output" = "" ]
+    [ "$(grep 'doesN.tMatch' "$INPUT")" = "$output" ]
 }
 
 @test "search for single line regexp that matches the entire line" {
     run multilinegrep 'just one-l..e here' "$INPUT"
     [ $status -eq 0 ]
     [ "$output" = "just one-line here" ]
+    [ "$(grep 'just one-l..e here' "$INPUT")" = "$output" ]
 }
 
 @test "search for two-line regexp with branches" {

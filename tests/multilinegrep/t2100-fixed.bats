@@ -6,12 +6,14 @@ load fixture
     run multilinegrep --fixed-strings 'one-line' "$INPUT"
     [ $status -eq 0 ]
     [ "$output" = "just one-line here" ]
+    [ "$(grep --fixed-strings 'one-line' "$INPUT")" = "$output" ]
 }
 
 @test "search for single line literal string as --regexp argument" {
     run multilinegrep --fixed-strings --regexp 'one-line' "$INPUT"
     [ $status -eq 0 ]
     [ "$output" = "just one-line here" ]
+    [ "$(grep --fixed-strings --regexp 'one-line' "$INPUT")" = "$output" ]
 }
 
 @test "search for single line literal string with multiple matches" {
@@ -19,12 +21,14 @@ load fixture
     [ $status -eq 0 ]
     [ "$output" = "just one-line here
 one-two" ]
+    [ "$(grep --fixed-strings 'one' "$INPUT")" = "$output" ]
 }
 
 @test "search for single line literal string with no matches returns 1" {
     run multilinegrep --fixed-strings 'doesNotMatch' "$INPUT"
     [ $status -eq 1 ]
     [ "$output" = "" ]
+    [ "$(grep --fixed-strings 'doesNotMatch' "$INPUT")" = "$output" ]
 }
 
 @test "search for three-line literal string as plain argument" {

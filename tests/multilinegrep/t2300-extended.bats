@@ -6,12 +6,14 @@ load fixture
     run multilinegrep --extended-regexp 'one-l..e' "$INPUT"
     [ $status -eq 0 ]
     [ "$output" = "just one-line here" ]
+    [ "$(grep --extended-regexp 'one-l..e' "$INPUT")" = "$output" ]
 }
 
 @test "search for single line extended regexp as --regexp argument" {
     run multilinegrep --extended-regexp --regexp 'one-l..e' "$INPUT"
     [ $status -eq 0 ]
     [ "$output" = "just one-line here" ]
+    [ "$(grep --extended-regexp --regexp 'one-l..e' "$INPUT")" = "$output" ]
 }
 
 @test "search for single line extended regexp with multiple matches" {
@@ -20,12 +22,14 @@ load fixture
     [ "$output" = "just one-line here
 Ones here
 one-two" ]
+    [ "$(grep --extended-regexp '[Oo]ne' "$INPUT")" = "$output" ]
 }
 
 @test "search for single line extended regexp with no matches returns 1" {
     run multilinegrep --extended-regexp 'doesN.tMatch' "$INPUT"
     [ $status -eq 1 ]
     [ "$output" = "" ]
+    [ "$(grep --extended-regexp 'doesN.tMatch' "$INPUT")" = "$output" ]
 }
 
 @test "search for two-line extended regexp with branches" {

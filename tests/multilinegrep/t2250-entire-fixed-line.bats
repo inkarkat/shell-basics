@@ -6,12 +6,14 @@ load fixture
     run multilinegrep --line-regexp --fixed-strings 'just one-line here' "$INPUT"
     [ $status -eq 0 ]
     [ "$output" = "just one-line here" ]
+    [ "$(grep --line-regexp --fixed-strings 'just one-line here' "$INPUT")" = "$output" ]
 }
 
 @test "search for single entire line literal string as --regexp argument" {
     run multilinegrep --line-regexp --fixed-strings --regexp 'just one-line here' "$INPUT"
     [ $status -eq 0 ]
     [ "$output" = "just one-line here" ]
+    [ "$(grep --line-regexp --fixed-strings --regexp 'just one-line here' "$INPUT")" = "$output" ]
 }
 
 @test "search for single entire line literal string with multiple matches" {
@@ -19,12 +21,14 @@ load fixture
     [ $status -eq 0 ]
     [ "$output" = "three
 three" ]
+    [ "$(grep --line-regexp --fixed-strings 'three' "$INPUT")" = "$output" ]
 }
 
 @test "search for single entire line literal string with no matches returns 1" {
     run multilinegrep --line-regexp --fixed-strings 'doesNotMatch' "$INPUT"
     [ $status -eq 1 ]
     [ "$output" = "" ]
+    [ "$(grep --line-regexp --fixed-strings 'doesNotMatch' "$INPUT")" = "$output" ]
 }
 
 @test "search for entire three-line literal string as plain argument" {
