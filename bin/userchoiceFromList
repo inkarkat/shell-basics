@@ -10,7 +10,7 @@ HELPTEXT
     printf 'Usage: %q %s\n' "$(basename "$1")" '[-q|--question QUESTION] [-k|--keep-prompt] [-t TIMEOUT] [-u FD] [--] ENTRIES [...] [-?|-h|--help]'
 }
 
-question=
+question='Choose one:'
 typeset -a userchoiceArgs=()
 while [ $# -ne 0 ]
 do
@@ -75,6 +75,6 @@ do
     fi
 done
 
-chosenAccelerator="$(userchoice --valid "[${accelerators}]" -n 1 -p "How often: (${acceleratedEntryEnumeration})?" "${userchoiceArgs[@]}")" || exit $?
+chosenAccelerator="$(userchoice --valid "[${accelerators}]" -n 1 -p "${question}${question:+ (}${acceleratedEntryEnumeration}${question:+)}?" "${userchoiceArgs[@]}")" || exit $?
 chosenEntry="${acceleratorToEntry["$chosenAccelerator"]}"
 [ -n "$chosenEntry" ] && printf '%s\n' "$chosenEntry"
