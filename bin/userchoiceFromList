@@ -1,5 +1,6 @@
 #!/bin/bash
 
+: ${USERCHOICEFROMLIST_ENTRY_SEPARATOR:= / }
 printUsage()
 {
     cat <<HELPTEXT
@@ -49,7 +50,7 @@ do
 	    accelerators="${accelerators}${BASH_REMATCH[2]}"
 	    acceleratorToEntry["${BASH_REMATCH[2]}"]="${BASH_REMATCH[1]}${BASH_REMATCH[2]}${BASH_REMATCH[3]}"
 	    acceleratorToOriginalEntry["${BASH_REMATCH[2]}"]="$entry"
-	    acceleratedEntryEnumeration="${acceleratedEntryEnumeration}${acceleratedEntryEnumeration:+ / }${entry}"
+	    acceleratedEntryEnumeration="${acceleratedEntryEnumeration}${acceleratedEntryEnumeration:+"$USERCHOICEFROMLIST_ENTRY_SEPARATOR"}${entry}"
 	else
 	    printf >&2 'ERROR: Duplicate accelerator in %s; already exists in %s.\n' "$entry" "${acceleratorToOriginalEntry["${BASH_REMATCH[2]}"]}"
 	    exit 3
@@ -63,7 +64,7 @@ do
 		accelerators="${accelerators}$a"
 		acceleratorToEntry["$a"]="$entry"
 		acceleratorToOriginalEntry["$a"]="$entry"
-		acceleratedEntryEnumeration="${acceleratedEntryEnumeration}${acceleratedEntryEnumeration:+ / }${entry:0:$i}[${a}]${entry:$((i+1))}"
+		acceleratedEntryEnumeration="${acceleratedEntryEnumeration}${acceleratedEntryEnumeration:+"$USERCHOICEFROMLIST_ENTRY_SEPARATOR"}${entry:0:$i}[${a}]${entry:$((i+1))}"
 		gotAccelerator=t
 		break
 	    fi
