@@ -30,6 +30,14 @@ if [ $# -eq 0 ]; then
     exit 2
 fi
 
+
+typeset -A reservedAccelerators=()
+for entry
+do
+    [[ "$entry" =~ ^(.*)\[([a-zA-Z0-9])\](.*)$ ]] && \
+	reservedAccelerators["${BASH_REMATCH[2]}"]=t
+done
+
 accelerators=
 typeset -A acceleratorToEntry=()
 typeset -A acceleratorToOriginalEntry=()
@@ -51,7 +59,7 @@ do
 	for ((i = 0; i < ${#entry}; i++))
 	do
 	    a="${entry:$i:1}"
-	    if [[ "$a" =~ ^[a-zA-Z0-9]$ ]] && [ -z "${acceleratorToEntry["$a"]}" ]; then
+	    if [[ "$a" =~ ^[a-zA-Z0-9]$ ]] && [ -z "${acceleratorToEntry["$a"]}" ] && [ -z "${reservedAccelerators["$a"]}" ]; then
 		accelerators="${accelerators}$a"
 		acceleratorToEntry["$a"]="$entry"
 		acceleratorToOriginalEntry["$a"]="$entry"
