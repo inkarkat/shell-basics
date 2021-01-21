@@ -1,0 +1,72 @@
+#!/bin/bash
+
+printUsage()
+{
+    cat <<HELPTEXT
+Query the user for a single selection from ENTRIES to be selected by a unique
+accelerator that is either pre-set (like "[t]his") or automatically chosen.
+HELPTEXT
+    echo
+    printf 'Usage: %q %s\n' "$(basename "$1")" '[-q|--question QUESTION] [-k|--keep-prompt] [-t TIMEOUT] [-u FD] [--] ENTRIES [...] [-?|-h|--help]'
+}
+
+question=
+typeset -a userchoiceArgs=()
+while [ $# -ne 0 ]
+do
+    case "$1" in
+	--help|-h|-\?)	shift; printUsage "$0"; exit 0;;
+	--question|-q)	shift; question="$1"; shift;;
+	--keep-prompt|-k)
+			userchoiceArgs+=("$1"); shift;;
+	-[tu])		userchoiceArgs+=("$1" "$2"); shift; shift;;
+	--)		shift; break;;
+	-*)		{ echo "ERROR: Unknown option \"$1\"!"; echo; printUsage "$0"; } >&2; exit 2;;
+	*)		break;;
+    esac
+done
+if [ $# -eq 0 ]; then
+    printUsage "$0" >&2
+    exit 2
+fi
+
+accelerators=
+typeset -A acceleratorToEntry=()
+typeset -A acceleratorToOriginalEntry=()
+acceleratedEntryEnumeration=
+for entry
+do
+    if [[ "$entry" =~ ^(.*)\[([a-zA-Z0-9])\](.*)$ ]]; then
+	if [ -z "${acceleratorToEntry["${BASH_REMATCH[2]}"]}" ]; then
+	    accelerators="${accelerators}${BASH_REMATCH[2]}"
+	    acceleratorToEntry["${BASH_REMATCH[2]}"]="${BASH_REMATCH[1]}${BASH_REMATCH[2]}${BASH_REMATCH[3]}"
+	    acceleratorToOriginalEntry["${BASH_REMATCH[2]}"]="$entry"
+	    acceleratedEntryEnumeration="${acceleratedEntryEnumeration}${acceleratedEntryEnumeration:+ / }${entry}"
+	else
+	    printf >&2 'ERROR: Duplicate accelerator in %s; already exists in %s.\n' "$entry" "${acceleratorToOriginalEntry["${BASH_REMATCH[2]}"]}"
+	    exit 3
+	fi
+    else
+	gotAccelerator=
+	for ((i = 0; i < ${#entry}; i++))
+	do
+	    a="${entry:$i:1}"
+	    if [[ "$a" =~ ^[a-zA-Z0-9]$ ]] && [ -z "${acceleratorToEntry["$a"]}" ]; then
+		accelerators="${accelerators}$a"
+		acceleratorToEntry["$a"]="$entry"
+		acceleratorToOriginalEntry["$a"]="$entry"
+		acceleratedEntryEnumeration="${acceleratedEntryEnumeration}${acceleratedEntryEnumeration:+ / }${entry:0:$i}[${a}]${entry:$((i+1))}"
+		gotAccelerator=t
+		break
+	    fi
+	done
+	if [ ! "$gotAccelerator" ]; then
+	    printf >&2 'ERROR: Could not find unique accelerator for %s.\n' "$entry"
+	    exit 3
+	fi
+    fi
+done
+
+chosenAccelerator="$(userchoice --valid "[${accelerators}]" -n 1 -p "How often: (${acceleratedEntryEnumeration})?" "${userchoiceArgs[@]}")" || exit $?
+chosenEntry="${acceleratorToEntry["$chosenAccelerator"]}"
+[ -n "$chosenEntry" ] && printf '%s\n' "$chosenEntry"
