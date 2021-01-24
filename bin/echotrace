@@ -18,10 +18,18 @@ if [ $SHLVL -gt 3 ]; then
     printf -v nestingPrefix "%$((SHLVL - 3))s" "${PS4:0:1}"; printf -v nestingPrefix %s "${nestingPrefix// /${PS4:0:1}}"
 fi
 
+isSkipFirst=
+[ "$1" = eval ] && isSkipFirst=t
+
 # Duplicated to ../../verbose/bin/verbose
 quotedArgs=
 for arg
 do
+    if [ "$isSkipFirst" ] && [ -z "$quotedArgs" ]; then
+	isSkipFirst=
+	continue
+    fi
+
     case "$arg" in
 	*[$'\n\r\t\v']*) printf -v arg %q "$arg";;
 	*[$'\\ `\'\"?*[]!+']*) printf -v arg %s "'${arg//\'/\'\\\'\'}'";;
