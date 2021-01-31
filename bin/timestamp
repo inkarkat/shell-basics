@@ -5,10 +5,12 @@ printUsage()
     cat <<HELPTEXT
 Print a timestamp / prefix output from stdin with timestamps, by default as two
 space-separated fields in a human-readable format that includes milliseconds.
+With --quoted, each argument of MESSAGE is individually quoted (e.g. to preserve
+a passed command with arguments in reusable form).
 See also: ts (provided by GNU moreutils)
 HELPTEXT
     echo
-    printf 'Usage: %q %s\n' "$(basename "$1")" '[--human|--short|--sortable] [--no-millis] [-f|--field-separator SEP] [-d|--date DATE] [MESSAGE [...]] [-?|-h|--help]'
+    printf 'Usage: %q %s\n' "$(basename "$1")" '[--human|--short|--sortable] [--no-millis] [-f|--field-separator SEP] [-d|--date DATE] [[--quoted] [--] MESSAGE [...]] [-?|-h|--help]'
     printf 'Usage: cat FILE [...] | %q %s\n' "$(basename "$1")" '[...] [-s|--separator SEP] -'
 }
 
@@ -17,6 +19,7 @@ dateFormat='+%d-%b-%Y${separator}%T${millis}'
 separator=' '
 millis='.%N'
 unset fieldSeparator
+isQuoted=
 while [ $# -ne 0 ]
 do
     case "$1" in
@@ -29,6 +32,7 @@ do
 			shift; fieldSeparator="$1"; shift;;
 	--separator|-s)	shift; separator="$1"; shift;;
 	--date|-d)	shift; dateArgs+=(--date "${1:?}"); shift;;
+	--quoted)	shift; isQuoted=t;;
 	-)		break;;
 	--)		shift; break;;
 	-*)		{ echo "ERROR: Unknown option \"$1\"!"; echo; printUsage "$0"; } >&2; exit 2;;
@@ -42,6 +46,26 @@ if [ $# -eq 1 ] && [ "$1" = '-' ]; then
 	printf "%s%s%s${isEOL:+\\n}" "$(eval "date \"\${dateArgs[@]}\" \"$dateFormat\"")" "$separator" "$line"
     done
 elif [ $# -gt 0 ]; then
+    if [ "$isQuoted" ]; then
+	# Duplicated to echotrace
+	# Duplicated to ../../verbose/bin/verbose
+	quotedArgs=
+	for arg
+	do
+	    if [ "$isSkipFirst" ] && [ -z "$quotedArgs" ]; then
+		isSkipFirst=
+		continue
+	    fi
+
+	    case "$arg" in
+		*[$'\n\r\t\v']*) printf -v arg %q "$arg";;
+		*[$'\\ `\'\"?*[]!+']*) printf -v arg %s "'${arg//\'/\'\\\'\'}'";;
+	    esac
+	    quotedArgs="${quotedArgs}${quotedArgs:+ }${arg}"
+	done
+	set -- "$quotedArgs"
+    fi
+
     printf '%s%s%s\n' "$(eval "date \"\${dateArgs[@]}\" \"$dateFormat\"")" "$separator" "$*"
 else
     eval "date \"\${dateArgs[@]}\" \"$dateFormat\""

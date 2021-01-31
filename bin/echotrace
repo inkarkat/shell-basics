@@ -21,6 +21,7 @@ fi
 isSkipFirst=
 [ "$1" = eval ] && isSkipFirst=t
 
+# Duplicated to +/\$isQuoted timestamp
 # Duplicated to ../../verbose/bin/verbose
 quotedArgs=
 for arg
