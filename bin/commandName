@@ -74,6 +74,9 @@ dropInterpreter()
 	    allArgsIdx=$(indexGlob '*"$@"' "$@") && [ $((allArgsIdx + 3)) -le $# ] && case "${@:$((allArgsIdx + 2)):1}" in
 		@(${COMMANDNAME_SHELLS})${COMMANDNAME_EXTENSIONS})
 		    commandFilespec="$(basename -- "${@:$((allArgsIdx + 3)):1}")"
+		    # Recursive removal of another interpreter inside the
+		    # COMMAND, e.g. bash -c "$@" bash perl script.pl
+		    dropInterpreter "${@:$((allArgsIdx + 3))}"
 		    ;;
 	    esac
 	    ;;
