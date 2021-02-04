@@ -102,7 +102,9 @@ commandFilespec="$(basename -- "${1:-${undefined}}")"
 
 if [ "$isDropInterpreter" ]; then
     case "${commandFilespec,,}" in
-	@(${COMMANDNAME_INTERPRETERS})${COMMANDNAME_EXTENSIONS}) ;&
+	@(${COMMANDNAME_INTERPRETERS})${COMMANDNAME_EXTENSIONS})
+	    commandFilespec="$(basename -- "${2:-$1}")"
+	    ;;
 	@(${COMMANDNAME_SHELLS})${COMMANDNAME_EXTENSIONS})
 	    commandFilespec="$(basename -- "${2:-$1}")"
 	    ;;
