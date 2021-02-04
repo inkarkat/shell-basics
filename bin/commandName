@@ -62,6 +62,23 @@ do
     esac
 done
 
+dropInterpreter()
+{
+    case "${commandFilespec,,}" in
+	@(${COMMANDNAME_INTERPRETERS})${COMMANDNAME_EXTENSIONS})
+	    commandFilespec="$(basename -- "${2:-$1}")"
+	    ;;
+	@(${COMMANDNAME_SHELLS})${COMMANDNAME_EXTENSIONS})
+	    commandFilespec="$(basename -- "${2:-$1}")"
+
+	    allArgsIdx=$(indexGlob '*"$@"' "$@") && [ $((allArgsIdx + 3)) -le $# ] && case "${@:$((allArgsIdx + 2)):1}" in
+		@(${COMMANDNAME_SHELLS})${COMMANDNAME_EXTENSIONS})
+		    commandFilespec="$(basename -- "${@:$((allArgsIdx + 3)):1}")"
+		    ;;
+	    esac
+	    ;;
+    esac
+}
 
 if [ "$isEval" ]; then
     literalReplacement="$undefined"
@@ -100,22 +117,6 @@ else
     while [[ "$1" =~ ^[[:alpha:]_][[:alnum:]_]+= ]]; do shift; done
 fi
 commandFilespec="$(basename -- "${1:-${undefined}}")"
-
-if [ "$isDropInterpreter" ]; then
-    case "${commandFilespec,,}" in
-	@(${COMMANDNAME_INTERPRETERS})${COMMANDNAME_EXTENSIONS})
-	    commandFilespec="$(basename -- "${2:-$1}")"
-	    ;;
-	@(${COMMANDNAME_SHELLS})${COMMANDNAME_EXTENSIONS})
-	    commandFilespec="$(basename -- "${2:-$1}")"
-
-	    allArgsIdx=$(indexGlob '*"$@"' "$@") && [ $((allArgsIdx + 3)) -le $# ] && case "${@:$((allArgsIdx + 2)):1}" in
-		@(${COMMANDNAME_SHELLS})${COMMANDNAME_EXTENSIONS})
-		    commandFilespec="$(basename -- "${@:$((allArgsIdx + 3)):1}")"
-		    ;;
-	    esac
-	    ;;
-    esac
-fi
+[ "$isDropInterpreter" ] && dropInterpreter "$@"
 
 printf '%s\n' "$commandFilespec"
