@@ -1,14 +1,42 @@
 #!/bin/bash
 
 : ${USERCHOICEFROMLIST_ENTRY_SEPARATOR:= / }
+printShortUsage()
+{
+    # Note: short followed by long option; if the user knows the short one, she can
+    # skim the long one.
+    printf 'Usage: %q %s\n' "$(basename "$1")" '[-q|--question QUESTION] [--accept-single [--auto-selected-entry-message MSG]] [-k|--keep-prompt] [-t TIMEOUT] [-u FD] [--] ENTRIES [...] [-?|-h|--help]'
+}
 printUsage()
 {
-    cat <<HELPTEXT
+    # This is the short help when launched with no or incorrect arguments.
+    # It is printed to stderr to avoid accidental processing.
+    printShortUsage "$1" >&2
+    printf >&2 '\nTry %q --help for more information.\n' "$(basename "$1")"
+}
+printLongUsage()
+{
+    # This is the long "man page" when launched with the help argument.
+    # It is printed to stdout to allow paging with 'more'.
+    cat <<HELPDESCRIPTION
 Query the user for a single selection from ENTRIES to be selected by a unique
 accelerator that is either pre-set (like "[t]his") or automatically chosen.
-HELPTEXT
+HELPDESCRIPTION
     echo
-    printf 'Usage: %q %s\n' "$(basename "$1")" '[-q|--question QUESTION] [--accept-single [--auto-selected-entry-message MSG]] [-k|--keep-prompt] [-t TIMEOUT] [-u FD] [--] ENTRIES [...] [-?|-h|--help]'
+    printShortUsage "$1"
+    echo
+    cat <<HELPTEXT
+    --question|-q QUESTION
+			Print QUESTION before the choices.
+    --accept-single	Accept a single available ENTRY without prompting the
+			user.
+    --auto-selected-entry-message MSG
+			Print MSG to stderr if a single entry has been
+			automatically chosen; the entry itself is referenced by
+			%s in MSG.
+    --keep-prompt|-k	Keep the prompt and chosen answer on the screen instead
+			of clearing it.
+HELPTEXT
 }
 
 question='Choose one:'
@@ -18,11 +46,12 @@ typeset -a userchoiceArgs=()
 while [ $# -ne 0 ]
 do
     case "$1" in
-	--help|-h|-\?)	shift; printUsage "$0"; exit 0;;
+	--help|-h|-\?)	shift; printLongUsage "$0"; exit 0;;
 	--question|-q)	shift; question="$1"; shift;;
-	--accept-single)    shift; isAcceptSingle=t;;
+	--accept-single)
+			shift; isAcceptSingle=t;;
 	--auto-selected-entry-message)
-			    shift; autoSelectedEntryMessage="$1"; shift;;
+			shift; autoSelectedEntryMessage="$1"; shift;;
 	--keep-prompt|-k)
 			userchoiceArgs+=("$1"); shift;;
 	-[tu])		userchoiceArgs+=("$1" "$2"); shift; shift;;
