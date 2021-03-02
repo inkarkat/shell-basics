@@ -1,9 +1,12 @@
 #!/bin/bash
 
+: ${USERQUERY_EXIT_STATUS_NO_TERM:=99}
+
 printUsage()
 {
     cat <<HELPTEXT
 Query the user with READ-ARGS (e.g. -n 1 -p 'Type letter: ') from the terminal.
+Returns $USERQUERY_EXIT_STATUS_NO_TERM if input cannot be read from the terminal.
 HELPTEXT
     printf 'Usage: choice="$(%q %s)"\n' "$(basename "$1")" '[READ-ARGS ...]'
 }
@@ -11,6 +14,7 @@ case "$1" in
     --help|-h|-\?)	shift; printUsage "$0"; exit 0;;
 esac
 
+[ -t 0 ] || exit $USERQUERY_EXIT_STATUS_NO_TERM
 
 if [ "$USERQUERY_ALERT_TIMESPAN" ]; then
     marker()
@@ -23,6 +27,5 @@ if [ "$USERQUERY_ALERT_TIMESPAN" ]; then
     fi
     marker --update "${USERQUERY_ALERT_SUBJECT:-default}"
 fi
-
 
 < /dev/tty read "$@" CHOICE 2>/dev/tty && printf '%s\n' "$CHOICE"
