@@ -28,4 +28,4 @@ if [ "$USERQUERY_ALERT_TIMESPAN" ]; then
     marker --update "${USERQUERY_ALERT_SUBJECT:-default}"
 fi
 
-< /dev/tty read "$@" CHOICE 2>/dev/tty && printf '%s\n' "$CHOICE"
+</dev/tty read "$@" CHOICE 2>/dev/tty && printf '%s\n' "$CHOICE"

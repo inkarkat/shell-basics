@@ -56,7 +56,7 @@ promptText="${1-Press any key to continue${timeoutValue:+ (or wait $timeoutValue
 readArgs+=(-p "$promptText")
 
 status=0
-< /dev/tty read -r -s -N 1 "${readArgs[@]}"
+</dev/tty read -r -s -N 1 "${readArgs[@]}"
 [ $? -gt 128 ] && status=1
 printf >/dev/tty %s "$clearPromptSequence"
 exit $status
