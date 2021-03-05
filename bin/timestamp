@@ -52,11 +52,6 @@ elif [ $# -gt 0 ]; then
 	quotedArgs=
 	for arg
 	do
-	    if [ "$isSkipFirst" ] && [ -z "$quotedArgs" ]; then
-		isSkipFirst=
-		continue
-	    fi
-
 	    case "$arg" in
 		*[$'\n\r\t\v']*) printf -v arg %q "$arg";;
 		*[$'\\ `\'\"?*[]!+']*) printf -v arg %s "'${arg//\'/\'\\\'\'}'";;
