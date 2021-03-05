@@ -4,34 +4,38 @@ printUsage()
 {
     cat <<HELPTEXT
 Write arguments as an execution trace (i.e. with \$PS4 prepended and indicating
-the nesting level) to standard error, like "set -x" would do..
+the nesting level) to standard error, like "set -x" would do (but without the
+execution).
+With --eval, the evaluation result will be printed instead of the (quoted) eval.
 HELPTEXT
-    printf 'Usage: %q %s\n' "$(basename "$1")" '[ARG ...] [-?|-h|--help]'
+    printf 'Usage: %q %s\n' "$(basename "$1")" '[--eval] [ARG ...] [-?|-h|--help]'
 }
+isEval=
 case "$1" in
     --help|-h|-\?)	shift; printUsage "$0"; exit 0;;
+    --eval)		shift; [ "$1" = eval ] && isEval=t;;
 esac
 [ $# -eq 0 ] && exit
 
+# Duplicated to ../../verbose/bin/verbose
 nestingPrefix=
 if [ $SHLVL -gt 3 ]; then
     nesting="${PS4:0:1}"
     printf -v nestingPrefix "%$((SHLVL - 3))s" "${PS4:0:1}"; printf -v nestingPrefix %s "${nestingPrefix// /${PS4:0:1}}"
 fi
 
-isSkipFirst=
-[ "$1" = eval ] && isSkipFirst=t
+if [ "$isEval" ]; then
+    shift
+    allargs="$*"
+    printf '%s\n' "${allargs%$'\n'}" | prefix -- "${nestingPrefix}${PS4:-\$ }"
+    exit
+fi
 
 # Duplicated to +/\$isQuoted timestamp
 # Duplicated to ../../verbose/bin/verbose
 quotedArgs=
 for arg
 do
-    if [ "$isSkipFirst" ] && [ -z "$quotedArgs" ]; then
-	isSkipFirst=
-	continue
-    fi
-
     case "$arg" in
 	*[$'\n\r\t\v']*) printf -v arg %q "$arg";;
 	*[$'\\ `\'\"?*[]!+']*) printf -v arg %s "'${arg//\'/\'\\\'\'}'";;
