@@ -5,7 +5,7 @@ printShortUsage()
 {
     # Note: short followed by long option; if the user knows the short one, she can
     # skim the long one.
-    printf 'Usage: %q %s\n' "$(basename "$1")" '[-q|--question QUESTION] [--accept-single [--auto-selected-entry-message MSG]] [-s|--select SELECTION] [-k|--keep-prompt] [-t TIMEOUT] [-u FD] [--] ENTRIES [...] [-?|-h|--help]'
+    printf 'Usage: %q %s\n' "$(basename "$1")" '[-q|--question QUESTION] [--accept-single [--auto-selected-entry-message MSG]] [--selection-message MSG] [--interactive-selection-message MSG] [-s|--select SELECTION] [-k|--keep-prompt] [-t TIMEOUT] [-u FD] [--] ENTRIES [...] [-?|-h|--help]'
 }
 printUsage()
 {
@@ -34,6 +34,15 @@ HELPDESCRIPTION
 			Print MSG to stderr if a single entry has been
 			automatically chosen; the entry itself is referenced by
 			%s in MSG.
+    --selection-message MSG
+			Print MSG to stderr if entries have been chosen (either
+			interactively or through SELECTION, but not when a
+			single entry is automatically chosen); the entry itself
+			is referenced by %s in MSG.
+    --interactive-selection-message MSG
+			Print MSG to stderr if entries have been chosen
+			interactively, but not through SELECTION); the entry
+			itself is referenced by %s in MSG.
     --select|-s SELECTION
 			Automatically use SELECTION if that is identical to one
 			of the passed ENTRIES. An invalid or empty SELECTION is
@@ -46,6 +55,8 @@ HELPTEXT
 question='Choose one:'
 isAcceptSingle=
 autoSelectedEntryMessage=
+selectionMessage=
+interactiveSelectionMessage=
 selection=
 typeset -a userchoiceArgs=()
 while [ $# -ne 0 ]
@@ -57,6 +68,10 @@ do
 			shift; isAcceptSingle=t;;
 	--auto-selected-entry-message)
 			shift; autoSelectedEntryMessage="$1"; shift;;
+	--selection-message)
+			    shift; selectionMessage="$1"; shift;;
+	--interactive-selection-message)
+			    shift; interactiveSelectionMessage="$1"; shift;;
 	--select|-s)	shift; selection="$1"; shift;;
 	--keep-prompt|-k)
 			userchoiceArgs+=("$1"); shift;;
@@ -84,6 +99,7 @@ if [ $# -eq 1 ] && [ "$isAcceptSingle" ]; then
     printf '%s\n' "$1"
     exit 0
 elif [ -n "$selection" ] && contains "$selection" "$@"; then
+    printIfDefined "$selectionMessage" "$selection"
     printf '%s\n' "$selection"
     exit 0
 fi
@@ -134,4 +150,9 @@ done
 
 chosenAccelerator="$(userchoice --valid "[${accelerators}]" -n 1 -p "${question}${question:+ (}${acceleratedEntryEnumeration}${question:+)}?" "${userchoiceArgs[@]}")" || exit $?
 chosenEntry="${acceleratorToEntry["$chosenAccelerator"]}"
-[ -n "$chosenEntry" ] && printf '%s\n' "$chosenEntry"
+
+[ -n "$chosenEntry" ] || exit 1
+printIfDefined "$interactiveSelectionMessage" "$chosenEntry" || \
+    printIfDefined "$selectionMessage" "$chosenEntry"
+
+printf '%s\n' "$chosenEntry"
