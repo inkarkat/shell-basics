@@ -5,7 +5,7 @@ printShortUsage()
 {
     # Note: short followed by long option; if the user knows the short one, she can
     # skim the long one.
-    printf 'Usage: %q %s\n' "$(basename "$1")" '[-q|--question QUESTION] [--accept-single [--auto-selected-entry-message MSG]] [--selection-message MSG] [--interactive-selection-message MSG] [-s|--select SELECTION] [-k|--keep-prompt] [-t TIMEOUT] [-u FD] [--] ENTRIES [...] [-?|-h|--help]'
+    printf 'Usage: %q %s\n' "$(basename "$1")" '[-q|--question QUESTION] [--accept-single [--auto-selected-entry-message MSG]] [--no-entries-message MSG] [--selection-message MSG] [--interactive-selection-message MSG] [-s|--select SELECTION] [-k|--keep-prompt] [-t TIMEOUT] [-u FD] [--] ENTRIES [...] [-?|-h|--help]'
 }
 printUsage()
 {
@@ -30,6 +30,9 @@ HELPDESCRIPTION
 			Print QUESTION before the choices.
     --accept-single	Accept a single available ENTRY without prompting the
 			user.
+    --no-entries-message MSG
+			Print MSG to stderr if there are no entries to choose
+			from.
     --auto-selected-entry-message MSG
 			Print MSG to stderr if a single entry has been
 			automatically chosen; the entry itself is referenced by
@@ -49,11 +52,22 @@ HELPDESCRIPTION
 			silently ignored, and the user is prompted instead.
     --keep-prompt|-k	Keep the prompt and chosen answer on the screen instead
 			of clearing it.
+EXIT STATUS
+Exits with 124 if there are no entries available and --no-entries-message is
+given, 125 if (somehow) no entries were selected.
 HELPTEXT
+}
+
+printIfDefined()
+{
+    local message="$1"; shift
+    [ -z "$message" ] && return 1
+    printf >&2 "${message}\\n" "$@"
 }
 
 question='Choose one:'
 isAcceptSingle=
+noEntriesMessage=
 autoSelectedEntryMessage=
 selectionMessage=
 interactiveSelectionMessage=
@@ -66,6 +80,8 @@ do
 	--question|-q)	shift; question="$1"; shift;;
 	--accept-single)
 			shift; isAcceptSingle=t;;
+	--no-entries-message)
+			shift; noEntriesMessage="$1"; shift;;
 	--auto-selected-entry-message)
 			shift; autoSelectedEntryMessage="$1"; shift;;
 	--selection-message)
@@ -82,19 +98,13 @@ do
     esac
 done
 if [ $# -eq 0 ]; then
-    printUsage "$0" >&2
-    exit 2
-fi
-
-
-printIfDefined()
-{
-    local message="$1"; shift
-    [ -z "$message" ] && return 1
-    printf >&2 "${message}\\n" "$@"
-}
-
-if [ $# -eq 1 ] && [ "$isAcceptSingle" ]; then
+    if printIfDefined "$noEntriesMessage"; then
+	exit 124
+    else
+	printUsage "$0" >&2
+	exit 2
+    fi
+elif [ $# -eq 1 ] && [ "$isAcceptSingle" ]; then
     printIfDefined "$autoSelectedEntryMessage" "$1"
     printf '%s\n' "$1"
     exit 0
@@ -151,7 +161,7 @@ done
 chosenAccelerator="$(userchoice --valid "[${accelerators}]" -n 1 -p "${question}${question:+ (}${acceleratedEntryEnumeration}${question:+)}?" "${userchoiceArgs[@]}")" || exit $?
 chosenEntry="${acceleratorToEntry["$chosenAccelerator"]}"
 
-[ -n "$chosenEntry" ] || exit 1
+[ -n "$chosenEntry" ] || exit 125
 printIfDefined "$interactiveSelectionMessage" "$chosenEntry" || \
     printIfDefined "$selectionMessage" "$chosenEntry"
 
