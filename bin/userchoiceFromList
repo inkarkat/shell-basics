@@ -5,7 +5,7 @@ printShortUsage()
 {
     # Note: short followed by long option; if the user knows the short one, she can
     # skim the long one.
-    printf 'Usage: %q %s\n' "$(basename "$1")" '[-q|--question QUESTION] [--accept-single [--auto-selected-entry-message MSG]] [-k|--keep-prompt] [-t TIMEOUT] [-u FD] [--] ENTRIES [...] [-?|-h|--help]'
+    printf 'Usage: %q %s\n' "$(basename "$1")" '[-q|--question QUESTION] [--accept-single [--auto-selected-entry-message MSG]] [-s|--select SELECTION] [-k|--keep-prompt] [-t TIMEOUT] [-u FD] [--] ENTRIES [...] [-?|-h|--help]'
 }
 printUsage()
 {
@@ -34,6 +34,10 @@ HELPDESCRIPTION
 			Print MSG to stderr if a single entry has been
 			automatically chosen; the entry itself is referenced by
 			%s in MSG.
+    --select|-s SELECTION
+			Automatically use SELECTION if that is identical to one
+			of the passed ENTRIES. An invalid or empty SELECTION is
+			silently ignored, and the user is prompted instead.
     --keep-prompt|-k	Keep the prompt and chosen answer on the screen instead
 			of clearing it.
 HELPTEXT
@@ -42,6 +46,7 @@ HELPTEXT
 question='Choose one:'
 isAcceptSingle=
 autoSelectedEntryMessage=
+selection=
 typeset -a userchoiceArgs=()
 while [ $# -ne 0 ]
 do
@@ -52,6 +57,7 @@ do
 			shift; isAcceptSingle=t;;
 	--auto-selected-entry-message)
 			shift; autoSelectedEntryMessage="$1"; shift;;
+	--select|-s)	shift; selection="$1"; shift;;
 	--keep-prompt|-k)
 			userchoiceArgs+=("$1"); shift;;
 	-[tu])		userchoiceArgs+=("$1" "$2"); shift; shift;;
@@ -76,6 +82,9 @@ printIfDefined()
 if [ $# -eq 1 ] && [ "$isAcceptSingle" ]; then
     printIfDefined "$autoSelectedEntryMessage" "$1"
     printf '%s\n' "$1"
+    exit 0
+elif [ -n "$selection" ] && contains "$selection" "$@"; then
+    printf '%s\n' "$selection"
     exit 0
 fi
 
