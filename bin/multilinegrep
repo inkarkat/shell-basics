@@ -131,6 +131,6 @@ do
 
     sedProgram+=(-e "h; ${sedPrint}${sedPrint:+; }b }")    # Non-empty hold space signals we've found a match.
 done
+sedProgram+=(-e ':end' -e '${ g; /^$/q 1 }')
 
-
-exec sed -n "${sedArgs[@]}" "${sedProgram[@]}" -e ':end' -e '${ g; /^$/q 1 }' "$@"
+exec sed -n "${sedArgs[@]}" "${sedProgram[@]}" "$@"
