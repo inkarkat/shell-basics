@@ -13,8 +13,14 @@ setup() {
     [ "$output" = "" ]
 }
 
+@test "search for single line regexp with no matches in null device returns 1" {
+    run multilinegrep --basic-regexp '.' /dev/null
+    [ $status -eq 1 ]
+    [ "$output" = "" ]
+}
+
 @test "search for single line regexp with no matches in empty inputs returns 1" {
-    run multilinegrep --basic-regexp '.' "$EMPTY" "$EMPTY" "$EMPTY"
+    run multilinegrep --basic-regexp '.' "$EMPTY" /dev/null "$EMPTY" /dev/null
     [ $status -eq 1 ]
     [ "$output" = "" ]
 }
@@ -27,6 +33,12 @@ setup() {
 
 @test "search for single line regexp in existing and empty file returns matched line" {
     run multilinegrep --basic-regexp 'Start' "$EMPTY" "$INPUT"
+    [ $status -eq 0 ]
+    [ "$output" = "Start" ]
+}
+
+@test "search for single line regexp in existing and null device returns matched line" {
+    run multilinegrep --basic-regexp 'Start' /dev/null "$INPUT"
     [ $status -eq 0 ]
     [ "$output" = "Start" ]
 }

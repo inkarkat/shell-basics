@@ -1,4 +1,5 @@
 #!/bin/bash
+set -o pipefail
 
 printShortUsage()
 {
@@ -93,7 +94,7 @@ if [ ${#patterns[@]} -eq 0 ]; then
     exit 2
 fi
 
-emptyCheck()
+emptyFileArgCheck()
 {
     local isAllEmpty=t filespec
     for filespec
@@ -105,7 +106,11 @@ emptyCheck()
     done
     [ $# -gt 0 ] && [ "$isAllEmpty" ] && exit 1
 }
-emptyCheck "$@"
+
+hasNonEmptyFileArg()
+{
+    return 1
+}
 
 typeset -a sedProgram=()
 for pattern in "${patterns[@]}"
@@ -133,4 +138,28 @@ do
 done
 sedProgram+=(-e ':end' -e '${ g; /^$/q 1 }')
 
-exec sed -n "${sedArgs[@]}" "${sedProgram[@]}" "$@"
+
+if ! exists ifne; then
+    # Without ifne, we can only handle empty physical files, not empty special
+    # files or stdin.
+    emptyFileArgCheck "$@"
+
+    exec sed -n "${sedArgs[@]}" "${sedProgram[@]}" "$@"
+elif [ $# -eq 0 ]; then
+    ifne -n false | sed -n "${sedArgs[@]}" "${sedProgram[@]}"
+elif ! hasNonEmptyFileArg "$@"; then
+    cat "$@" | ifne -n false | sed -n "${sedArgs[@]}" "${sedProgram[@]}"
+    typeset -a results=("${PIPESTATUS[@]}")
+    if [ ${results[0]} -ne 0 ]; then
+	exit 2
+    elif [ ${results[1]} -ne 0 ]; then
+	exit 1
+    else
+	exit ${results[2]}
+    fi
+else
+    # Optimization: When it's been determined that there's at least one
+    # non-empty file argument, we can skip the ifne pipeline, as sed can handle
+    # non-empty input just fine.
+    exec sed -n "${sedArgs[@]}" "${sedProgram[@]}" "$@"
+fi
