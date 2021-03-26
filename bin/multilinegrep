@@ -109,6 +109,10 @@ emptyFileArgCheck()
 
 hasNonEmptyFileArg()
 {
+    local filespec; for filespec
+    do
+	[ -f "$filespec" ] && [ -s "$filespec" ] && return 0
+    done
     return 1
 }
 
