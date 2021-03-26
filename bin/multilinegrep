@@ -112,10 +112,10 @@ do
     do
 	[ ${#lines[@]} -eq 1 ] && endOfLineAssertion="$endOfLastLineAssertion"
 	line="${lines[0]}"; lines=("${lines[@]:1}")
-	sedProgram+=(-e "N; /\\n${startOfSubsequentLinesAssertion}${groupingBegin}${line}${groupingEnd}${endOfLineAssertion}\$/!D")
+	sedProgram+=(-e '$b end' -e "N; /\\n${startOfSubsequentLinesAssertion}${groupingBegin}${line}${groupingEnd}${endOfLineAssertion}\$/!D")
     done
 
     sedProgram+=(-e "h; ${sedPrint}${sedPrint:+; }b }")    # Non-empty hold space signals we've found a match.
 done
 
-exec sed -n "${sedArgs[@]}" "${sedProgram[@]}" -e '${ g; /^$/q 1 }' "$@"
+exec sed -n "${sedArgs[@]}" "${sedProgram[@]}" -e ':end' -e '${ g; /^$/q 1 }' "$@"
