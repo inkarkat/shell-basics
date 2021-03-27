@@ -1,7 +1,19 @@
 #!/bin/bash
 shopt -qs extglob # Enable extended file pattern matching operators from ksh (?(pattern-list), !(pattern-list), ...) in Bash.
 
-glob=$1; shift
+printUsage()
+{
+    cat <<HELPTEXT
+Count the number of ARG(s) that match GLOB.
+HELPTEXT
+    echo
+    printf 'Usage: count=$(%q %s)\n' "$(basename "$1")" "'GLOB' [ARG ...] [-?|-h|--help]"
+}
+case "$1" in
+    --help|-h|-\?)	shift; printUsage "$0"; exit 0;;
+esac
+
+glob="$1"; shift
 let count=0
 for elem
 do
