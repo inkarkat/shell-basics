@@ -1,0 +1,12 @@
+#!/bin/bash
+shopt -qs extglob # Enable extended file pattern matching operators from ksh (?(pattern-list), !(pattern-list), ...) in Bash.
+
+glob=$1; shift
+let count=0
+for elem
+do
+    case "$elem" in
+	$glob) let count+=1;;
+    esac
+done
+printf '%d\n' "$count"
