@@ -1,0 +1,37 @@
+#!/bin/bash
+set -o noglob
+
+printUsage()
+{
+    cat <<HELPTEXT
+Change / canonicalize the quoting of ARGS to single quotes where necessary /
+$'...' for special whitespace.
+HELPTEXT
+    printf 'Usage: printf %%q ARGS [...] | %q %s\n' "$(basename "$1")" '[-s|--separator SEP] [-?|-h|--help]'
+}
+separator=' '
+case "$1" in
+    --help|-h|-\?)	shift; printUsage "$0"; exit 0;;
+    --separator|-s)	shift; separator="$1"; shift;;
+esac
+
+shellquote()
+{
+    case "$1" in
+	*[$'\n\r\t\v']*)	printf %q "$1";;
+	*[$'\\ `\'\"?*[]!+']*)  printf %s "'${1//\'/\'\\\'\'}'";;
+	*)			printf %s "$1";;
+    esac
+}
+
+
+read -r line
+eval "set -- $line"
+isFirst=t
+for arg
+do
+    [ "$isFirst" ] || printf %s "$separator"
+    shellquote "$arg"
+    isFirst=
+done
+[ "$isFirst" ] || printf '\n'
