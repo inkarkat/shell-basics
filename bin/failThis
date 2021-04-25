@@ -6,13 +6,14 @@ printUsage()
     cat <<HELPTEXT
 Fail the supplied command [with STATUS], regardless of its actual exit status.
 HELPTEXT
-    printf 'Usage: %q %s\n' "$(basename "$1")" '[STATUS] COMMAND [ARG ...] [-?|-h|--help]'
+    printf 'Usage: %q %s\n' "$(basename "$1")" '[--|STATUS] COMMAND [ARG ...] [-?|-h|--help]'
 }
 expectedStatus=1
 case "$1" in
     --help|-h|-\?)	shift; printUsage "$0"; exit 0;;
     +(0))		echo >&2 'ERROR: Cannot fail with status 0.'; exit 2;;
     +([0-9]))		expectedStatus="$1"; shift;;
+    --)			shift;;
 esac
 if [ $# -eq 0 ]; then
     echo >&2 'ERROR: No COMMAND passed.'

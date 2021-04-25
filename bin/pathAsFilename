@@ -8,11 +8,11 @@ a) Encode FILESPEC for use as a filename; i.e. escape all forbidden characters
    FILESPEC into an absolute path (so at least FILESPEC's directory has to
    exist) unless --as-is is given.
 HELPTEXT
-    printf 'Usage: %q %s\n' "$(basename "$1")" '[--as-is] -e|--encode FILESPEC [-?|-h|--help]'
+    printf 'Usage: %q %s\n' "$(basename "$1")" '[--as-is] -e|--encode [--] FILESPEC [-?|-h|--help]'
     cat <<HELPTEXT
 b) Decode ENCODED into a filespec.
 HELPTEXT
-    printf 'Usage: %q %s\n' "$(basename "$1")" '-d|--decode ENCODED [-?|-h|--help]'
+    printf 'Usage: %q %s\n' "$(basename "$1")" '-d|--decode [--] ENCODED [-?|-h|--help]'
 }
 
 isAsIs=

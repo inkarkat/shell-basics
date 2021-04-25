@@ -6,10 +6,11 @@ printUsage()
 Check whether the passed dirspec contains any subdirectories. Returns 0 only if
 it is a directory and contains at least one subdirectory.
 HELPTEXT
-printf 'Usage: %q %s\n' "$(basename "$1")" 'DIR [-?|-h|--help]'
+printf 'Usage: %q %s\n' "$(basename "$1")" '[--] DIR [-?|-h|--help]'
 }
 case "$1" in
     --help|-h|-\?)	shift; printUsage "$0"; exit 0;;
+    --)			shift;;
 esac
 [ $# -eq 1 ] || { printUsage "$0" >&2; exit 2; }
 

@@ -7,10 +7,11 @@ printUsage()
 Count the number of ARG(s) that match GLOB.
 HELPTEXT
     echo
-    printf 'Usage: count=$(%q %s)\n' "$(basename "$1")" "'GLOB' [ARG ...] [-?|-h|--help]"
+    printf 'Usage: count=$(%q %s)\n' "$(basename "$1")" "[--] 'GLOB' [ARG ...] [-?|-h|--help]"
 }
 case "$1" in
     --help|-h|-\?)	shift; printUsage "$0"; exit 0;;
+    --)			shift;;
 esac
 
 glob="$1"; shift

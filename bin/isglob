@@ -6,10 +6,11 @@ printUsage()
 Tests whether any of the passed GLOBCANDIDATE(s) contains a glob character.
 Returns 1 if all passed GLOBCANDIDATE(s) are literal strings.
 HELPTEXT
-    printf 'Usage: %q %s\n' "$(basename "$1")" "'GLOBCANDIDATE' [...] [-?|-h|--help]"
+    printf 'Usage: %q %s\n' "$(basename "$1")" "[--] 'GLOBCANDIDATE' [...] [-?|-h|--help]"
 }
 case "$1" in
     --help|-h|-\?)	shift; printUsage "$0"; exit 0;;
+    --)			shift;;
 esac
 [ $# -eq 0 ] && { printUsage "$0" >&2; exit 2; }
 

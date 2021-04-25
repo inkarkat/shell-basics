@@ -7,7 +7,7 @@ Query the user for QUERY.
 Returns 0 if the user confirmed, 1 if not, 3 if the query times out without a
 given --default.
 HELPTEXT
-    printf 'Usage: %q %s\n' "$(basename "$1")" '[-t|--timeout SECONDS] [-d|--default y[es]|n[o]] QUERY [-?|-h|--help]'
+    printf 'Usage: %q %s\n' "$(basename "$1")" '[-t|--timeout SECONDS] [-d|--default y[es]|n[o]] [--] QUERY [-?|-h|--help]'
 }
 
 default=

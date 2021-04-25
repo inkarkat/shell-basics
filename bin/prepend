@@ -7,10 +7,11 @@ Put each LINE at the beginning of existing text in FILE; i.e. at the opposite
 end of what >> does in the shell.
 HELPTEXT
     echo
-    printf 'Usage: %q %s\n' "$(basename "$1")" 'LINE [...] FILE [-?|-h|--help]'
+    printf 'Usage: %q %s\n' "$(basename "$1")" '[--] LINE [...] FILE [-?|-h|--help]'
 }
 case "$1" in
     --help|-h|-\?)	shift; printUsage "$0"; exit 0;;
+    --)			shift;;
 esac
 if [ $# -lt 2 ]; then
     printUsage "$0" >&2

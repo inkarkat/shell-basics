@@ -8,10 +8,11 @@ Log COMMAND (in the format TIMESTAMP (PID) COMMAND ...) to standard error if
 debugging is enabled for the caller (DEBUG=CALLER CALLER).
 With DEBUG=debuglog=FILESPEC,CALLER CALLER, will log to FILESPEC instead.
 HELPTEXT
-    printf 'Usage: %q %s\n' "$(basename "$1")" 'COMMAND [...] [-?|-h|--help]'
+    printf 'Usage: %q %s\n' "$(basename "$1")" '[--] COMMAND [...] [-?|-h|--help]'
 }
 case "$1" in
     --help|-h|-\?)	shift; printUsage "$0"; exit 0;;
+    --)			shift;;
 esac
 
 

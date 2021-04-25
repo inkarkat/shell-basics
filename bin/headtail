@@ -11,7 +11,7 @@ overlaps). With more than one FILE, precede each with a header giving the file
 name.
 HELPTEXT
     echo
-    printf 'Usage: %q %s\n' "$(basename "$1")" '[-n|--lines=NUM] [-q|--quiet|--silent|-v|--verbose] [FILE ...] [-?|-h|--help]'
+    printf 'Usage: %q %s\n' "$(basename "$1")" '[-n|--lines=NUM] [-q|--quiet|--silent|-v|--verbose] [--] [FILE ...] [-?|-h|--help]'
 }
 
 lines=$DEFAULT_LINES
@@ -30,6 +30,7 @@ do
 	--silent|--quiet|-q)
 			shift; header=no;;
 	--verbose|-v)	shift; header=yes;;
+	--)		shift; break;;
 	-)		break;;
 	-*)		{ echo "ERROR: Unknown option \"$1\"!"; echo; printUsage "$0"; } >&2; exit 2;;
 	*)		break;;
