@@ -158,7 +158,7 @@ do
     fi
 done
 
-chosenAccelerator="$(userchoice --valid "[${accelerators}]" -n 1 -p "${question}${question:+ (}${acceleratedEntryEnumeration}${question:+)}?" "${userchoiceArgs[@]}")" || exit $?
+chosenAccelerator="$(userchoice --valid "[${accelerators}]" -n 1 -p "${question}${question:+ (}${acceleratedEntryEnumeration}${question:+)}? " "${userchoiceArgs[@]}")" || exit $?
 chosenEntry="${acceleratorToEntry["$chosenAccelerator"]}"
 
 [ -n "$chosenEntry" ] || exit 125
