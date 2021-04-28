@@ -12,6 +12,11 @@ HELPTEXT
     printf 'Usage: choice="$(%q %s)"\n' "$(basename "$1")" '-v|--valid VALID-RESPONSE-GLOB [-k|--keep-prompt] [READ-ARGS ...]'
 }
 
+printfToTerm()
+{
+    { printf >/dev/tty "$@"; } 2>/dev/null
+}
+
 : ${POS1_AND_ERASE_LINE=[1G[2K}
 isKeepPrompt=
 hasCharLimit=
@@ -51,7 +56,7 @@ if [ "$isKeepPrompt" ]; then
 elif [ "$hasCharLimit" ] || [ ! "$isEcho" ]; then
     afterPromptSequence="$POS1_AND_ERASE_LINE"	# Return cursor to the beginning of the current line and clear it.
 else
-    printf >/dev/tty '\n%s' '[1F[s'   # Scroll if necessary for the new line created by concluding the input with Enter, go back to previous line and save the position.
+    printfToTerm '\n%s' '[1F[s'   # Scroll if necessary for the new line created by concluding the input with Enter, go back to previous line and save the position.
     afterPromptSequence='[u[0J' # Restore position and clear until the end of the terminal.
 fi
 
@@ -65,8 +70,8 @@ do
     if [ "$hasCharLimit" ] || [ ! "$isEcho" ]; then
 	promptText=()
     elif [ ! "$isKeepPrompt" ]; then
-	printf >/dev/tty %s "$afterPromptSequence"
+	printfToTerm %s "$afterPromptSequence"
     fi
 done
-printf >/dev/tty %s "$afterPromptSequence"
+printfToTerm %s "$afterPromptSequence"
 exit $status
