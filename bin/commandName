@@ -43,7 +43,7 @@ HELPTEXT
     printf '%q %s\n' "$(basename "$1")" "--eval 'test\ with\ spaces.sh foo bar'"
     printf '%q %s\n' "$(basename "$1")" '--eval '\''"test with spaces.sh" foo bar'\'''
     printf '%q %s\n' "$(basename "$1")" "--eval \"FOO=BAR GAGA=HI\ HO 'test with spaces.sh' foo bar\""
-    printf '%q %s\n' "$(basename "$1")" '-n /usr/bin/python3 /tmp/testscript.py arg1 arg2'
+    printf '%q %s\n' "$(basename "$1")" '-n /usr/bin/python /tmp/testscript.py arg1 arg2'
 }
 isEval=
 isDropInterpreter=
