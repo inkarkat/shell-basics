@@ -6,7 +6,7 @@ printShortUsage()
 {
     # Note: short followed by long option; if the user knows the short one, she can
     # skim the long one.
-    printf 'Usage: %q %s\n' "$(basename "$1")" '[--prefix PREFIX] [--suffix SUFFIX] [--truncate-after "N[ TRAIL-OFF]"] [--] SEPARATOR [ARG ...] [-?|-h|--help]'
+    printf 'Usage: %q %s\n' "$(basename "$1")" '[--prefix PREFIX] [--suffix SUFFIX] [--truncate-after "N[ TRAIL-OFF]"] [--summarize-larger "N[ ENTRIES]"] [--] SEPARATOR [ARG ...] [-?|-h|--help]'
     printf 'Usage: cat FILE [...] | %q %s\n' "$(basename "$1")" '[...] - SEPARATOR'
 }
 printUsage()
@@ -32,6 +32,9 @@ HELPDESCRIPTION
     --truncate-after N[ TRAIL-OFF]
 			After enumerating N ARGs, omit further ARGs and just
 			trail off with ... / TRAIL-OFF.
+    --summarize-larger N[ ENTRIES]
+			If there are more than N ARGs, do not print any and just
+			summarize as N elements / ENTRIES.
 See also: collapseToSingleLine takes lines from files / standard input and can
 do wrapping and elaborate line breaking.
 HELPTEXT
@@ -41,6 +44,8 @@ prefix=
 suffix=
 truncateNum=
 truncateText=' ...'
+summarizeNum=
+summarizeText=' elements'
 while [ $# -ne 0 ]
 do
     case "$1" in
@@ -58,6 +63,19 @@ do
 			    exit 2
 			fi >&2
 			[ -n "$text" ] && truncateText="$text"
+			shift
+			;;
+	--summarize-larger)
+			shift
+			text="${1#+([0-9])}"
+			summarizeNum=${1%"$text"}
+			if [ -z "$summarizeNum" ]; then
+			    echo 'Missing N.'
+			    echo
+			    printUsage "$0"
+			    exit 2
+			fi >&2
+			[ -n "$text" ] && summarizeText="$text"
 			shift
 			;;
 	--)		shift; break;;
@@ -84,12 +102,16 @@ if [ -z "${delimiter+t}" ]; then
 fi
 
 [ $# -eq 0 ] && exit
-printf '%s%s' "$prefix" "$1"; shift
-if [ -n "$truncateNum" ] && [ $# -ge $truncateNum ]; then
-    set -- "${@:1:$((truncateNum - 1))}"
-    printf %s "${@/#/$delimiter}"
-    [ -n "$truncateText" ] && printf %s "$truncateText"
+if [ -n "$summarizeNum" ] && [ $# -gt $summarizeNum ]; then
+    printf '%s%d%s%s\n' "$prefix" $# "$summarizeText" "$suffix"
 else
-    printf %s "${@/#/$delimiter}"
+    printf '%s%s' "$prefix" "$1"; shift
+    if [ -n "$truncateNum" ] && [ $# -ge $truncateNum ]; then
+	set -- "${@:1:$((truncateNum - 1))}"
+	printf %s "${@/#/$delimiter}"
+	[ -n "$truncateText" ] && printf %s "$truncateText"
+    else
+	printf %s "${@/#/$delimiter}"
+    fi
+    printf '%s\n' "$suffix"
 fi
-printf '%s\n' "$suffix"
