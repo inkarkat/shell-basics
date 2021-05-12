@@ -1,12 +1,13 @@
 #!/bin/bash
 # Source: https://stackoverflow.com/a/17841619/813602
+shopt -qs extglob
 
 printShortUsage()
 {
     # Note: short followed by long option; if the user knows the short one, she can
     # skim the long one.
-    printf 'Usage: %q %s\n' "$(basename "$1")" '[--prefix PREFIX] [--suffix SUFFIX] [--] SEPARATOR [ARG ...] [-?|-h|--help]'
-    printf 'Usage: cat FILE [...] | %q %s\n' "$(basename "$1")" '[...] - SEPARATOR [-?|-h|--help]'
+    printf 'Usage: %q %s\n' "$(basename "$1")" '[--prefix PREFIX] [--suffix SUFFIX] [--truncate-after "N[ TRAIL-OFF]"] [--] SEPARATOR [ARG ...] [-?|-h|--help]'
+    printf 'Usage: cat FILE [...] | %q %s\n' "$(basename "$1")" '[...] - SEPARATOR'
 }
 printUsage()
 {
@@ -28,6 +29,9 @@ HELPDESCRIPTION
     cat <<HELPTEXT
     --prefix PREFIX	Put PREFIX before anything else.
     --suffix SUFFIX	Append SUFFIX at the end.
+    --truncate-after N[ TRAIL-OFF]
+			After enumerating N ARGs, omit further ARGs and just
+			trail off with ... / TRAIL-OFF.
 See also: collapseToSingleLine takes lines from files / standard input and can
 do wrapping and elaborate line breaking.
 HELPTEXT
@@ -35,12 +39,27 @@ HELPTEXT
 unset delimiter
 prefix=
 suffix=
+truncateNum=
+truncateText=' ...'
 while [ $# -ne 0 ]
 do
     case "$1" in
 	--help|-h|-\?)	shift; printLongUsage "$0"; exit 0;;
 	--prefix)	shift; prefix="$1"; shift;;
 	--suffix)	shift; suffix="$1"; shift;;
+	--truncate-after)
+			shift
+			text="${1#+([0-9])}"
+			truncateNum=${1%"$text"}
+			if [ -z "$truncateNum" ]; then
+			    echo 'Missing N.'
+			    echo
+			    printUsage "$0"
+			    exit 2
+			fi >&2
+			[ -n "$text" ] && truncateText="$text"
+			shift
+			;;
 	--)		shift; break;;
 	-)		shift
 			if [ $# -ne 1 ]; then
@@ -66,5 +85,11 @@ fi
 
 [ $# -eq 0 ] && exit
 printf '%s%s' "$prefix" "$1"; shift
-printf "%s" "${@/#/$delimiter}"
+if [ -n "$truncateNum" ] && [ $# -ge $truncateNum ]; then
+    set -- "${@:1:$((truncateNum - 1))}"
+    printf %s "${@/#/$delimiter}"
+    [ -n "$truncateText" ] && printf %s "$truncateText"
+else
+    printf %s "${@/#/$delimiter}"
+fi
 printf '%s\n' "$suffix"
