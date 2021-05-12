@@ -1,18 +1,36 @@
 #!/bin/bash
 # Source: https://stackoverflow.com/a/17841619/813602
 
+printShortUsage()
+{
+    # Note: short followed by long option; if the user knows the short one, she can
+    # skim the long one.
+    printf 'Usage: %q %s\n' "$(basename "$1")" '[--prefix PREFIX] [--suffix SUFFIX] [--] SEPARATOR [ARG ...] [-?|-h|--help]'
+    printf 'Usage: cat FILE [...] | %q %s\n' "$(basename "$1")" '[...] - SEPARATOR [-?|-h|--help]'
+}
 printUsage()
 {
-    cat <<HELPTEXT
+    # This is the short help when launched with no or incorrect arguments.
+    # It is printed to stderr to avoid accidental processing.
+    printShortUsage "$1" >&2
+    printf >&2 '\nTry %q --help for more information.\n' "$(basename "$1")"
+}
+printLongUsage()
+{
+    # This is the long "man page" when launched with the help argument.
+    # It is printed to stdout to allow paging with 'more'.
+    cat <<HELPDESCRIPTION
 Join all ARGs with SEPARATOR in between each.
-
+HELPDESCRIPTION
+    echo
+    printShortUsage "$1"
+    echo
+    cat <<HELPTEXT
+    --prefix PREFIX	Put PREFIX before anything else.
+    --suffix SUFFIX	Append SUFFIX at the end.
 See also: collapseToSingleLine takes lines from files / standard input and can
 do wrapping and elaborate line breaking.
 HELPTEXT
-    echo
-    printf 'Usage: %q %s\n' "$(basename "$1")" '[--prefix PREFIX] [--suffix SUFFIX] [--] SEPARATOR [ARG ...] [-?|-h|--help]'
-    echo
-    printf 'Usage: cat FILE [...] | %q %s\n' "$(basename "$1")" '[--prefix PREFIX] [--suffix SUFFIX] - SEPARATOR [-?|-h|--help]'
 }
 unset delimiter
 prefix=
@@ -20,7 +38,7 @@ suffix=
 while [ $# -ne 0 ]
 do
     case "$1" in
-	--help|-h|-\?)	shift; printUsage "$0"; exit 0;;
+	--help|-h|-\?)	shift; printLongUsage "$0"; exit 0;;
 	--prefix)	shift; prefix="$1"; shift;;
 	--suffix)	shift; suffix="$1"; shift;;
 	--)		shift; break;;
