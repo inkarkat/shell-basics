@@ -5,7 +5,7 @@ printShortUsage()
 {
     # Note: short followed by long option; if the user knows the short one, she can
     # skim the long one.
-    printf 'Usage: %q %s\n' "$(basename "$1")" '[-q|--question QUESTION] [--accept-single [--auto-selected-entry-message MSG]] [--no-entries-message MSG] [--selection-message MSG] [--interactive-selection-message MSG] [-s|--select SELECTION] [-k|--keep-prompt] [-t TIMEOUT] [-u FD] [--] ENTRIES [...] [-?|-h|--help]'
+    printf 'Usage: %q %s\n' "$(basename "$1")" '[-q|--question QUESTION] [--no-cancel] [--accept-single [--auto-selected-entry-message MSG]] [--no-entries-message MSG] [--selection-message MSG] [--interactive-selection-message MSG] [-s|--select SELECTION] [-k|--keep-prompt] [-t TIMEOUT] [-u FD] [--] ENTRIES [...] [-?|-h|--help]'
 }
 printUsage()
 {
@@ -28,6 +28,8 @@ HELPDESCRIPTION
     cat <<HELPTEXT
     --question|-q QUESTION
 			Print QUESTION before the choices.
+    --no-cancel		Do not allow canceling via <Esc>; the script must be
+			aborted via Ctrl-C or killed.
     --accept-single	Accept a single available ENTRY without prompting the
 			user.
     --no-entries-message MSG
@@ -53,8 +55,11 @@ HELPDESCRIPTION
     --keep-prompt|-k	Keep the prompt and chosen answer on the screen instead
 			of clearing it.
 EXIT STATUS
-Exits with 124 if there are no entries available and --no-entries-message is
-given, 125 if (somehow) no entries were selected.
+    0	Complete success.
+    2	Bad invocation, wrong or missing command-line arguments.
+    3	Could not find unique accelerator, internal error or failed assertion.
+    124 There are no entries available and --no-entries-message is given.
+    125 No entries were selected due to cancelling via <Esc>.
 HELPTEXT
 }
 
@@ -71,6 +76,7 @@ noEntriesMessage=
 autoSelectedEntryMessage=
 selectionMessage=
 interactiveSelectionMessage=
+cancelKey=$'\e'
 selection=
 typeset -a userchoiceArgs=()
 while [ $# -ne 0 ]
@@ -78,6 +84,7 @@ do
     case "$1" in
 	--help|-h|-\?)	shift; printLongUsage "$0"; exit 0;;
 	--question|-q)	shift; question="$1"; shift;;
+	--no-cancel)	shift; cancelKey='';;
 	--accept-single)
 			shift; isAcceptSingle=t;;
 	--no-entries-message)
@@ -158,7 +165,7 @@ do
     fi
 done
 
-chosenAccelerator="$(userchoice --valid "[${accelerators}]" -n 1 -p "${question}${question:+ (}${acceleratedEntryEnumeration}${question:+)}? " "${userchoiceArgs[@]}")" || exit $?
+chosenAccelerator="$(userchoice --valid "[${cancelKey}${accelerators}]" -n 1 -p "${question}${question:+ (}${acceleratedEntryEnumeration}${cancelKey:+${USERCHOICEFROMLIST_ENTRY_SEPARATOR}<Esc> to cancel}${question:+)}? " "${userchoiceArgs[@]}")" || exit $?
 chosenEntry="${acceleratorToEntry["$chosenAccelerator"]}"
 
 [ -n "$chosenEntry" ] || exit 125
