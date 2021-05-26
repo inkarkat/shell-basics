@@ -1,3 +1,16 @@
 #!/bin/bash
 
+printUsage()
+{
+    cat <<HELPTEXT
+Execute COMMAND [ARG ...] with the environment variable DEBUG having COMMAND
+added to it.
+HELPTEXT
+    echo
+    printf 'Usage: %q %s\n' "$(basename "$1")" 'COMMAND [ARG ...] [-?|-h|--help]'
+}
+case "$1" in
+    --help|-h|-\?)	shift; printUsage "$0"; exit 0;;
+esac
+
 DEBUG="${DEBUG}${DEBUG:+,}${1:?}" exec "$@"
