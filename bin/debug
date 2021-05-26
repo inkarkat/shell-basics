@@ -3,14 +3,26 @@
 printUsage()
 {
     cat <<HELPTEXT
-Execute COMMAND [ARG ...] with the environment variable DEBUG having COMMAND
-added to it.
+Execute (/ source) COMMAND [ARG ...] with the environment variable DEBUG having
+COMMAND added to it.
 HELPTEXT
     echo
-    printf 'Usage: %q %s\n' "$(basename "$1")" 'COMMAND [ARG ...] [-?|-h|--help]'
+    printf 'Usage: %q %s\n' "$(basename "$1")" '[.] COMMAND [ARG ...] [-?|-h|--help]'
 }
 case "$1" in
     --help|-h|-\?)	shift; printUsage "$0"; exit 0;;
 esac
 
-DEBUG="${DEBUG}${DEBUG:+,}${1:?}" exec "$@"
+program=$1; shift
+if [ "$program" = '.' ]; then
+    # Sourced scripts may test for an interactive shell, so set it (even if that
+    # has no effect other than modifying $- here).
+    set -i
+    program="$1"; shift
+    BASH_ARGV0="$program"	# Bash 5+ only
+    DEBUG="${DEBUG}${DEBUG:+,}${program}"
+    . "$program" "$@"
+    exit $?
+fi
+
+DEBUG="${DEBUG}${DEBUG:+,}${program}" exec "$program" "$@"
