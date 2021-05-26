@@ -1,4 +1,17 @@
-#!/bin/sh
+#!/bin/bash
+
+printUsage()
+{
+    cat <<HELPTEXT
+Put this after the shell shebang to abort the script when it is called instead
+of sourced, and give a nice error message, too:
+HELPTEXT
+    printf 'Usage: #!/bin/bash %q\n' "$(basename "$1")"
+}
+case "$1" in
+    --help|-h|-\?)	shift; printUsage "$0"; exit 0;;
+esac
+
 
 echo >&2 "This script must be sourced, not executed${1:+: }${1:-!}"
 exit 1
