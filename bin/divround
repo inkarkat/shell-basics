@@ -3,6 +3,27 @@ set -u
 shopt -qs extglob
 LC_NUMERIC=C
 
+printUsage()
+{
+    cat <<HELPTEXT
+Divide passed NUMBER by 10^(PRECISION + 1) (default: 100, i.e. using percent
+numbers) and round with PRECISION fractional places.
+
+Example: 50 -> 0.5
+Example: 123456 -> 1234.6
+Example: 1234567 2 -> 1234.57
+HELPTEXT
+    echo
+    printf 'Usage: %q %s\n' "$(basename "$1")" 'NUMBER [PRECISION] [-?|-h|--help]'
+}
+case "$1" in
+    --help|-h|-\?)	shift; printUsage "$0"; exit 0;;
+esac
+if [ $# -lt 1 ]; then
+    printUsage "$0" >&2
+    exit 2
+fi
+
 round()
 {
     local val
@@ -16,10 +37,6 @@ round()
 }
 
 
-# Divide passed number by 10^(PRECISION + 1) and round with PRECISION
-# fractional places.
-# Example: 123456 -> 1234.6
-# Example: 1234567 2 -> 1234.57
 precision=${2:-1}
 precisionPlusOne=$((precision + 1))
 if [ $precisionPlusOne -gt ${#1} ]; then
