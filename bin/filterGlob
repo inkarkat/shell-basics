@@ -22,8 +22,8 @@ hasMatch=
 for elem
 do
     case "$elem" in
-	$glob)	[ "$isRemove" ] || { printf '%s\n' "$elem"; hasMatch=t; };;
-	*)	[ "$isRemove" ] && { printf '%s\n' "$elem"; hasMatch=t; };;
+	@($glob))   [ "$isRemove" ] || { printf '%s\n' "$elem"; hasMatch=t; };;
+	*)	    [ "$isRemove" ] && { printf '%s\n' "$elem"; hasMatch=t; };;
     esac
 done
 [ "$hasMatch" ]

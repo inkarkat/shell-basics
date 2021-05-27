@@ -19,7 +19,7 @@ let count=0
 for elem
 do
     case "$elem" in
-	$glob) let count+=1;;
+	@($glob)) let count+=1;;
     esac
 done
 printf '%d\n' "$count"

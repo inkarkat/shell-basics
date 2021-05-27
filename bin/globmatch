@@ -63,14 +63,14 @@ do
     for g in "${globs[@]}"
     do
 	case "$filename" in
-	    $g)  found=t; break;;
+	    @($g)) found=t; break;;
 	esac
 	case "$filespec" in
-	    $g)  found=t; break;;
+	    @($g)) found=t; break;;
 	esac
 	if [ "$isMatchSubPaths" ]; then
 	    case "$filespec" in
-		*/$g)	found=t; break;;
+		*/@($g)) found=t; break;;
 	    esac
 	fi
     done
