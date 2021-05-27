@@ -65,7 +65,7 @@ while :
 do
     choice="$(userquery "${readArgs[@]}" ${promptText:+-p} "${promptText[@]}" "$@")" || { status=$?; break; }
 
-    eval "case \"\$choice\" in $validResponseGlob) printf '%s\n' \"\$choice\"; break;; esac"
+    case "$choice" in @($validResponseGlob)) printf '%s\n' "$choice"; break;; esac
 
     if [ "$hasCharLimit" ] || [ ! "$isEcho" ]; then
 	promptText=()

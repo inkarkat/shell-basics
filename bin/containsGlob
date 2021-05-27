@@ -17,8 +17,8 @@ esac
 glob="$1"; shift
 for elem
 do
-    eval "case \"\$elem\" in
-	$glob) exit 0;;
-    esac"
+    case "$elem" in
+	@($glob)) exit 0;;
+    esac
 done
 exit 1
