@@ -10,7 +10,7 @@ FILESPEC(s).
 Returns 0 if (at least one) match and 1 if no matches.
 Returns 0 if no GLOB (but existing FILESPEC(s)) is passed.
 HELPTEXT
-    printf 'Usage: %q %s\n' "$(basename "$1")" "[-s|--subpath] [-l|--files-matching|-L|--files-not-matching] ['GLOB' ...] -- FILESPEC [...] [-?|-h|--help]"
+    printf 'Usage: %q %s\n' "$(basename "$1")" "[-s|--subpath] [-l|--files-matching|-1|--first-matching|-L|--files-not-matching] ['GLOB' ...] -- FILESPEC [...] [-?|-h|--help]"
     printf 'Usage: %q %s\n' "$(basename "$1")" "[...] 'GLOB' FILESPEC [...] [-?|-h|--help]"
 }
 if [ $# -eq 0 ]; then
@@ -19,6 +19,7 @@ if [ $# -eq 0 ]; then
 fi
 isMatchSubPaths=
 isPrintMatching=
+isPrintFirstMatching=
 isPrintNotMatching=
 typeset -a globs=()
 while [ $# -ne 0 ]
@@ -27,6 +28,7 @@ do
 	--help|-h|-\?)		    shift; printUsage "$0"; exit 0;;
 	--subpath|-s)		    shift; isMatchSubPaths=t;;
 	--files-matching|-l)	    shift; isPrintMatching=t;;
+	--first-matching|-1)	    shift; isPrintFirstMatching=t;;
 	--files-not-matching|-L)    shift; isPrintNotMatching=t;;
 	--)			    shift; break;;
 	*)			    globs+=("$1"); shift;;
@@ -80,6 +82,9 @@ do
 	if [ "$isPrintMatching" ]; then
 	    printf '%s\n' "$filespec"
 	    status=0
+	elif [ "$isPrintFirstMatching" ]; then
+	    printf '%s\n' "$filespec"
+	    exit 0
 	elif [ ! "$isPrintNotMatching" ]; then
 	    exit 0
 	fi
