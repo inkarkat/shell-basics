@@ -17,8 +17,9 @@ esac
 readonly scriptDir="$([ "${BASH_SOURCE[0]}" ] && dirname -- "${BASH_SOURCE[0]}" || exit 3)"
 [ -d "$scriptDir" ] || { echo >&2 "ERROR: Cannot determine script directory!"; exit 3; }
 
-# With nullglob, if there's no glob match, there are no results, but a literal
-# string is kept.
+# With nullglob, if there's no glob match, there are no results; the glob is
+# removed. However, a literal string is kept. That's exactly the differentiation
+# we need.
 shopt -qs nullglob
 for glob
 do
