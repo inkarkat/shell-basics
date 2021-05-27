@@ -55,6 +55,7 @@ elif [ $# -eq 0 ]; then
 fi
 
 
+status=1
 for filespec
 do
     found=
@@ -78,6 +79,7 @@ do
     if [ "$found" ]; then
 	if [ "$isPrintMatching" ]; then
 	    printf '%s\n' "$filespec"
+	    status=0
 	elif [ ! "$isPrintNotMatching" ]; then
 	    exit 0
 	fi
@@ -85,4 +87,4 @@ do
 	printf '%s\n' "$filespec"
     fi
 done
-exit 1
+exit $status
