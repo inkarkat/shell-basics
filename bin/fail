@@ -9,13 +9,16 @@ if this is not the case and returns 125 then; else returns 0.
 See also: acceptStatus can take multiple statuses, is silent and meant for
 scripting.
 HELPTEXT
-    printf 'Usage: %q %s\n' "$(basename "$1")" '[--|STATUS] COMMAND [ARG ...] [-?|-h|--help]'
+    printf 'Usage: %q %s\n' "$(basename "$1")" '[--|STATUS|-S|S|S+|S-T|S%T] COMMAND [ARG ...] [-?|-h|--help]'
 }
 expectedStatus=
+expectedRange=
 case "$1" in
     --help|-h|-\?)	shift; printUsage "$0"; exit 0;;
     +(0))		echo >&2 'ERROR: Cannot fail with status 0.'; exit 2;;
     +([0-9]))		expectedStatus="$1"; shift;;
+    -+([0-9])|+([0-9])+|+([0-9])[-%]+([0-9]))
+			expectedRange="$1"; shift;;
     --)			shift;;
 esac
 if [ $# -eq 0 ]; then
@@ -37,9 +40,28 @@ status=$?
 if [ $status -eq 0 ]; then
     printf >&2 '%s was expected to fail, but did succeed.\n' "$1"
     exit 125
-elif [ "$expectedStatus" ]; then
+elif [ -n "$expectedStatus" ]; then
     if [ $status -ne $expectedStatus ]; then
 	printf >&2 '%s was expected to fail with %d, but failed with %d instead.\n' "$1" "$expectedStatus" "$status"
 	exit 125
     fi
+elif [ -n "$expectedRange" ]; then
+    case "$expectedRange" in
+	-+([0-9]))	    [ $status -le ${expectedRange#-} ] && exit 0;;
+	+([0-9])+)	    [ $status -ge ${expectedRange%+} ] && exit 0;;
+	+([0-9])-+([0-9]))  minStatus=${expectedRange%-*}
+			    maxStatus=${expectedRange#*-}
+			    [ $status -ge $minStatus -a $status -le $maxStatus ] && exit 0
+			    ;;
+	+([0-9])%+([0-9]))  minStatus=${expectedRange%\%*}
+			    maxStatus=${expectedRange#*%}
+			    [ $status -lt $minStatus -o $status -gt $maxStatus ] && exit 0
+			    ;;
+	+([0-9]))	    [ $status -eq $expectedRange ] && exit 0;;
+	*)		    printf >&2 'ERROR: Invalid status range argument: %s\n' "$expectedrange"
+			    exit 2
+			    ;;
+    esac
+    printf >&2 '%s was expected to fail with %s, but failed with %d instead.\n' "$1" "$expectedRange" "$status"
+    exit 125
 fi

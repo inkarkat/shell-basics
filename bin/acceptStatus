@@ -16,21 +16,24 @@ See also: fail prints a message if the expectation isn't met and integrates with
 command-alerting, so is meant for interactive use.
 HELPTEXT
     echo
-    printf "Usage: [SUCCESS_STATUS=${SUCCESS_STATUS}] %q %s\\n" "$(basename "$1")" 'STATUS [...] COMMAND [ARG ...] [-?|-h|--help]'
+    printf "Usage: [SUCCESS_STATUS=${SUCCESS_STATUS}] %q %s\\n" "$(basename "$1")" 'STATUS|-S|S|S+|S-T|S%T [...] [--] COMMAND [ARG ...] [-?|-h|--help]'
 }
 
 typeset -A acceptedStatuses=()
+typeset -a acceptedRanges=()
 while [ $# -ne 0 ]
 do
     case "$1" in
 	--help|-h|-\?)	shift; printUsage "$0"; exit 0;;
 	+([0-9]))	acceptedStatuses["${1:?}"]=t; shift;;
+	-+([0-9])|+([0-9])+|+([0-9])[-%]+([0-9]))
+			acceptedRanges+=("$1"); shift;;
 	--)		shift; break;;
 	-*)		{ echo "ERROR: Unknown option \"$1\"!"; echo; printUsage "$0"; } >&2; exit 2;;
 	*)		break;;
     esac
 done
-if [ ${#acceptedStatuses[@]} -eq 0 ]; then
+if [ ${#acceptedStatuses[@]} -eq 0 -a ${#acceptedRanges[@]} -eq 0 ]; then
     echo 'ERROR: No STATUS passed.'
     echo
     printUsage "$0"
@@ -47,7 +50,28 @@ status=$?
 
 if [ "${acceptedStatuses[$status]}" ]; then
     exit 0
-elif [ $status -eq 0 ]; then
+elif [ ${#acceptedRanges[@]} -gt 0 ]; then
+    for range in "${acceptedRanges[@]}"
+    do
+	case "$range" in
+	    -+([0-9]))		[ $status -le ${range#-} ] && exit 0;;
+	    +([0-9])+)		[ $status -ge ${range%+} ] && exit 0;;
+	    +([0-9])-+([0-9]))	minStatus=${range%-*}
+				maxStatus=${range#*-}
+				[ $status -ge $minStatus -a $status -le $maxStatus ] && exit 0
+				;;
+	    +([0-9])%+([0-9]))	minStatus=${range%\%*}
+				maxStatus=${range#*%}
+				[ $status -lt $minStatus -o $status -gt $maxStatus ] && exit 0
+				;;
+	    +([0-9]))		[ $status -eq $range ] && exit 0;;
+	    *)			printf >&2 'ERROR: Invalid status range argument: %s\n' "$range"
+				exit 2
+				;;
+	esac
+    done
+fi
+if [ $status -eq 0 ]; then
     exit $SUCCESS_STATUS
 else
     exit $status
