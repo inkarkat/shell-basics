@@ -1,0 +1,87 @@
+#!/bin/bash
+shopt -qs extglob
+
+printUsage()
+{
+    cat <<HELPTEXT
+Print corresponding MESSAGE on exit status(es) STATUS from the supplied COMMAND.
+Returns COMMAND's original exit status.
+HELPTEXT
+    echo
+    printf 'Usage: %q %s\n' "$(basename "$1")" '[--prefix PREFIX] [--suffix SUFFIX] [--default MESSAGE] STATUS|-S|S|S+|S-T|S%T=MESSAGE [...] [--] COMMAND [ARG ...] [-?|-h|--help]'
+}
+
+prefix=
+suffix=
+defaultMessage=
+typeset -a ranges=()
+typeset -a messages=()
+while [ $# -ne 0 ]
+do
+    case "$1" in
+	--help|-h|-\?)	shift; printUsage "$0"; exit 0;;
+	--prefix)	shift; prefix="$1"; shift;;
+	--suffix)	shift; suffix="$1"; shift;;
+	--default)	shift; defaultMessage="$1"; shift;;
+	@(+([0-9])|-+([0-9])|+([0-9])+|+([0-9])[-%]+([0-9]))=*)
+			ranges+=("${1%%=*}")
+			messages+=("${1#*=}")
+			shift
+			;;
+	--)		shift; break;;
+	-*)		{ echo "ERROR: Unknown option \"$1\"!"; echo; printUsage "$0"; } >&2; exit 2;;
+	*)		break;;
+    esac
+done
+if [ ${#ranges[@]} -eq 0 ]; then
+    echo 'ERROR: No STATUS passed.'
+    echo
+    printUsage "$0"
+    exit 2
+elif [ $# -eq 0 ]; then
+    echo 'ERROR: No COMMAND passed.'
+    echo
+    printUsage "$0"
+    exit 2
+fi >&2
+
+"$@"
+status=$?
+
+evaluateRange()
+{
+    local range="${1:?}"; shift
+    case "$range" in
+	-+([0-9]))	    [ $status -le ${range#-} ] && return 0;;
+	+([0-9])+)	    [ $status -ge ${range%+} ] && return 0;;
+	+([0-9])-+([0-9]))  minStatus=${range%-*}
+			    maxStatus=${range#*-}
+			    [ $status -ge $minStatus -a $status -le $maxStatus ] && return 0
+			    ;;
+	+([0-9])%+([0-9]))  minStatus=${range%\%*}
+			    maxStatus=${range#*%}
+			    [ $status -lt $minStatus -o $status -gt $maxStatus ] && return 0
+			    ;;
+	+([0-9]))	    [ $status -eq $range ] && return 0;;
+	*)		    printf >&2 'ERROR: Invalid status [range] argument: %s\n' "$range"
+			    exit 2
+			    ;;
+    esac
+    return 1
+}
+
+printMessage()
+{
+    local message="${1?}"; shift
+    printf '%s%s%s\n' "$prefix" "$message" "$suffix"
+}
+
+for ((i = 0; i < ${#ranges[@]}; i++))
+do
+    if evaluateRange "${ranges[i]}"; then
+	printMessage "${messages[i]}"
+	exit $status
+    fi
+done
+[ -n "$defaultMessage" ] && printMessage "$defaultMessage"
+exit $status
