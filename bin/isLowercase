@@ -1,0 +1,39 @@
+#!/bin/bash
+shopt -qs extglob
+
+printUsage()
+{
+    cat <<HELPTEXT
+Check the case of TEXT (non-alphabetic characters are ignored), and return:
+    0 if all lowercase
+    1 if all UPPERCASE
+    2 if Capitalized Words
+    3 if PascalCase
+    4 if camelCase
+    9 if Mi-XED words
+    99 if TEXT is empty or only contains non-alphabetic characters
+HELPTEXT
+    echo
+    printf 'Usage: %q %s\n' "$(basename "$1")" 'TEXT [-?|-h|--help]'
+}
+
+if [ $# -ne 1 ]; then
+    printUsage "$0" >&2
+    exit 2
+fi
+
+if [[ "$1" =~ ^(([^[:alpha:]]*|[[:lower:]])*[[:lower:]]([[:upper:]][[:lower:]]+|[[:upper:]]+)+)+[^[:alpha:]]*$ ]]; then
+    exit 4
+elif [[ "$1" =~ ^([^[:alpha:]]*([[:upper:]][[:lower:]]+|[[:upper:]]+)*[[:upper:]][[:lower:]]+([[:upper:]][[:lower:]]+|[[:upper:]]+)*)+[^[:alpha:]]*$ ]]; then
+    exit 3
+elif [[ "$1" =~ ^[^[:alpha:]]*([[:upper:]]+[^[:alpha:]]*)+$ ]]; then
+    exit 1
+elif [[ "$1" =~ ^[^[:alpha:]]*([[:upper:]][[:lower:]]+[^[:alpha:]]*)+$ ]]; then
+    exit 2
+elif [[ "$1" =~ ^[^[:alpha:]]*([[:lower:]]+[^[:alpha:]]*)+$ ]]; then
+    exit 0
+elif [[ "$1" =~ [[:alpha:]] ]]; then
+    exit 9
+else
+    exit 99
+fi
