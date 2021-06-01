@@ -23,7 +23,7 @@ do
 	--prefix)	shift; prefix="$1"; shift;;
 	--suffix)	shift; suffix="$1"; shift;;
 	--default)	shift; defaultMessage="$1"; shift;;
-	@(+([0-9])|-+([0-9])|+([0-9])+|+([0-9])[-%]+([0-9]))=*)
+	@(+([0-9])|[-!]+([0-9])|+([0-9])+|+([0-9])[-%]+([0-9]))=*)
 			ranges+=("${1%%=*}")
 			messages+=("${1#*=}")
 			shift
@@ -62,6 +62,7 @@ evaluateRange()
 			    maxStatus=${range#*%}
 			    [ $status -lt $minStatus -o $status -gt $maxStatus ] && return 0
 			    ;;
+	!+([0-9]))	    [ $status -ne ${range#!} ] && return 0;;
 	+([0-9]))	    [ $status -eq $range ] && return 0;;
 	*)		    printf >&2 'ERROR: Invalid status [range] argument: %s\n' "$range"
 			    exit 2

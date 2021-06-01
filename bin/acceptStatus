@@ -16,7 +16,7 @@ See also: fail prints a message if the expectation isn't met and integrates with
 command-alerting, so is meant for interactive use.
 HELPTEXT
     echo
-    printf "Usage: [SUCCESS_STATUS=${SUCCESS_STATUS}] %q %s\\n" "$(basename "$1")" 'STATUS|-S|S|S+|S-T|S%T [...] [--] COMMAND [ARG ...] [-?|-h|--help]'
+    printf "Usage: [SUCCESS_STATUS=${SUCCESS_STATUS}] %q %s\\n" "$(basename "$1")" 'STATUS|-S|[!]S|S+|S-T|S%T [...] [--] COMMAND [ARG ...] [-?|-h|--help]'
 }
 
 typeset -A acceptedStatuses=()
@@ -26,7 +26,7 @@ do
     case "$1" in
 	--help|-h|-\?)	shift; printUsage "$0"; exit 0;;
 	+([0-9]))	acceptedStatuses["${1:?}"]=t; shift;;
-	-+([0-9])|+([0-9])+|+([0-9])[-%]+([0-9]))
+	[-!]+([0-9])|+([0-9])+|+([0-9])[-%]+([0-9]))
 			acceptedRanges+=("$1"); shift;;
 	--)		shift; break;;
 	-*)		{ echo "ERROR: Unknown option \"$1\"!"; echo; printUsage "$0"; } >&2; exit 2;;
@@ -64,6 +64,7 @@ elif [ ${#acceptedRanges[@]} -gt 0 ]; then
 				maxStatus=${range#*%}
 				[ $status -lt $minStatus -o $status -gt $maxStatus ] && exit 0
 				;;
+	    !+([0-9]))		[ $status -ne ${range#!} ] && exit 0;;
 	    +([0-9]))		[ $status -eq $range ] && exit 0;;
 	    *)			printf >&2 'ERROR: Invalid status range argument: %s\n' "$range"
 				exit 2
