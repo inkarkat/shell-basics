@@ -1,4 +1,5 @@
 #!/bin/bash
+# Duplicated to +/^contains() ~/Unixhome/profile.d/00common.sh
 
 needle=$1; shift
 for elem
