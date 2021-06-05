@@ -4,10 +4,11 @@ shopt -qs extglob # Enable extended file pattern matching operators from ksh (?(
 printUsage()
 {
     cat <<HELPTEXT
-Test whether any ARG matches GLOB.
+Test whether any ARG matches GLOB. Only considers ARGs until one is equal to the
+CONTAINSGLOB_UNTIL value.
 HELPTEXT
     echo
-    printf 'Usage: %q %s\n' "$(basename "$1")" "[--] 'GLOB' [ARG ...] [-?|-h|--help]"
+    printf 'Usage: [CONTAINSGLOB_UNTIL=value] %q %s\n' "$(basename "$1")" "[--] 'GLOB' [ARG ...] [-?|-h|--help]"
 }
 case "$1" in
     --help|-h|-\?)	shift; printUsage "$0"; exit 0;;
@@ -17,6 +18,7 @@ esac
 glob="$1"; shift
 for elem
 do
+    [ -n "$CONTAINSGLOB_UNTIL" ] && [ "$CONTAINSGLOB_UNTIL" = "$elem" ] && break
     case "$elem" in
 	@($glob)) exit 0;;
     esac

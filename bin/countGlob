@@ -4,10 +4,11 @@ shopt -qs extglob # Enable extended file pattern matching operators from ksh (?(
 printUsage()
 {
     cat <<HELPTEXT
-Count the number of ARG(s) that match GLOB.
+Count the number of ARG(s) that match GLOB. Only considers ARGs until one is
+equal to the COUNTGLOB_UNTIL value.
 HELPTEXT
     echo
-    printf 'Usage: count=$(%q %s)\n' "$(basename "$1")" "[--] 'GLOB' [ARG ...] [-?|-h|--help]"
+    printf 'Usage: count=$([COUNTGLOB_UNTIL=value] %q %s)\n' "$(basename "$1")" "[--] 'GLOB' [ARG ...] [-?|-h|--help]"
 }
 case "$1" in
     --help|-h|-\?)	shift; printUsage "$0"; exit 0;;
@@ -18,6 +19,7 @@ glob="$1"; shift
 let count=0
 for elem
 do
+    [ -n "$COUNTGLOB_UNTIL" ] && [ "$COUNTGLOB_UNTIL" = "$elem" ] && break
     case "$elem" in
 	@($glob)) let count+=1;;
     esac

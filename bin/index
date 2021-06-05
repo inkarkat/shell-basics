@@ -1,9 +1,17 @@
 #!/bin/bash
 
-needle=$1; shift
+# [INDEX_UNTIL=value] index NEEDLE HAYSTACK [...]
+#			Print the (0-based) index of the first argument in
+#			HAYSTACK that is equal to NEEDLE. Returns 1 if there are
+#			no matches.
+#			Only considers values in HAYSTACK until one is equal to
+#			the INDEX_UNTIL value.
+needle="$1"; shift
 for ((i = 0; i < $#; i++))
 do
-    if [ "$needle" = "${@:$((i + 1)):1}" ]; then
+    elem="${@:$((i + 1)):1}"
+    [ -n "$INDEX_UNTIL" ] && [ "$INDEX_UNTIL" = "$elem" ] && break
+    if [ "$needle" = "$elem" ]; then
 	printf '%d\n' "$i"
 	exit 0
     fi

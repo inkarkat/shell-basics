@@ -1,9 +1,15 @@
 #!/bin/bash
 # Duplicated to +/^contains() ~/Unixhome/profile.d/00common.sh
 
-needle=$1; shift
+# [CONTAINS_UNTIL=value] contains NEEDLE HAYSTACK [...]
+#			Test for inclusion of NEEDLE in HAYSTACK.
+#			Only considers values in HAYSTACK until one is equal to
+#			the CONTAINS_UNTIL value.
+
+needle="$1"; shift
 for elem
 do
+    [ -n "$CONTAINS_UNTIL" ] && [ "$CONTAINS_UNTIL" = "$elem" ] && break
     [ "$needle" = "$elem" ] && exit 0
 done
 exit 1
