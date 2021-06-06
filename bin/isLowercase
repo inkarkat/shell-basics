@@ -16,7 +16,9 @@ HELPTEXT
     echo
     printf 'Usage: %q %s\n' "$(basename "$1")" 'TEXT [-?|-h|--help]'
 }
-
+case "$1" in
+    --help|-h|-\?)	shift; printUsage "$0"; exit 0;;
+esac
 if [ $# -ne 1 ]; then
     printUsage "$0" >&2
     exit 2
