@@ -5,8 +5,10 @@ printUsage()
     cat <<HELPTEXT
 Just print all supplied command-line arguments to standard error.
 HELPTEXT
-    printf 'Usage: %q %s\n' "$(basename "$1")" '[-a|--array NAME|-v|--verbose] [--] [ARG ...] [-?|-h|--help]'
+    printf 'Usage: %q %s\n' "$(basename "$1")" '[-a|--array NAME] [-v|--verbose] [--] [ARG ...] [-?|-h|--help]'
 }
+defaultPrefix=''
+defaultSuffix=''
 isVerbose=
 verbosePrefix=''
 verboseSuffix=': '
@@ -15,7 +17,7 @@ while [ $# -ne 0 ]
 do
     case "$1" in
 	--help|-h|-\?)	shift; printUsage "$0"; exit 0;;
-	--array|-a)	shift; isVerbose=t; verbosePrefix="$1["; verboseSuffix=']='; startIndex=0; shift;;
+	--array|-a)	shift; defaultPrefix="$1=("; defaultSuffix=')'; verbosePrefix="$1["; verboseSuffix=']='; startIndex=0; shift;;
 	--verbose|-v)	shift; isVerbose=t;;
 	--)		shift; break;;
 	-*)		{ echo "ERROR: Unknown option \"$1\"!"; echo; printUsage "$0"; } >&2; exit 2;;
@@ -42,5 +44,5 @@ if [ "$isVerbose" ]; then
     done
 else
     quotedArgs=; if [ $# -gt 0 ]; then printf -v quotedArgs '%q ' "$@"; quotedArgs=${quotedArgs% }; fi
-    [ "$quotedArgs" ] && printf '%s\n' "$quotedArgs"
+    [ -n "$quotedArgs" -o -n "${defaultPrefix}${defaultSuffix}" ] && printf '%s%s%s\n' "$defaultPrefix" "$quotedArgs" "$defaultSuffix"
 fi
