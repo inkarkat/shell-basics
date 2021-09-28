@@ -8,6 +8,8 @@ HELPTEXT
     printf 'Usage: %q %s\n' "$(basename "$1")" '[-v|--verbose] [--] [ARG ...] [-?|-h|--help]'
 }
 isVerbose=
+verbosePrefix=''
+verboseSuffix=': '
 while [ $# -ne 0 ]
 do
     case "$1" in
@@ -32,7 +34,7 @@ if [ "$isVerbose" ]; then
     let argCnt=1
     while [ $# -gt 0 ]
     do
-	echo >&2 "${argCnt}: $(shellquote "$1")"
+	printf >&2 '%s%s%s%s\n' "$verbosePrefix" "$argCnt" "$verboseSuffix" "$(shellquote "$1")"
 	shift
 	let argCnt+=1
     done
