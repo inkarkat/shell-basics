@@ -17,7 +17,6 @@ printfToTerm()
     { printf >/dev/tty "$@"; } 2>/dev/null
 }
 
-: ${POS1_AND_ERASE_LINE=[1G[2K}
 isKeepPrompt=
 hasCharLimit=
 isEcho=t
@@ -53,11 +52,22 @@ if [ "$isKeepPrompt" ]; then
     if [ "$hasCharLimit" ] || [ ! "$isEcho" ]; then
 	afterPromptSequence=$'\n'   # The user doesn't provide the newline (or it isn't echoed); we have to.
     fi
-elif [ "$hasCharLimit" ] || [ ! "$isEcho" ]; then
-    afterPromptSequence="$POS1_AND_ERASE_LINE"	# Return cursor to the beginning of the current line and clear it.
 else
-    printfToTerm '\n%s' '[1F[s'   # Scroll if necessary for the new line created by concluding the input with Enter, go back to previous line and save the position.
-    afterPromptSequence='[u[0J' # Restore position and clear until the end of the terminal.
+    if [[ ${#promptText[@]} -gt 0 && ( ${#promptText[0]} -gt ${COLUMNS:-80} || "${promptText[0]}" =~ $'\n' ) ]]; then
+	# The prompt spans multiple terminal lines; need to determine how many to be
+	# able to completely clear them.
+	numLines=$(printf '%s' "${promptText[0]}" | nowrap --wrap | wc -l)
+	if [ ! "$hasCharLimit" ] && [ "$isEcho" ]; then
+	    # Add one for the new line created by concluding the input with Enter.
+	    let numLines+=1
+	fi
+	afterPromptSequence="[$((${numLines:-2} - 1))F[0J" # Return cursor to the beginning of the previous $numLines lines and clear to end of screen.
+    elif [ "$hasCharLimit" ] || [ ! "$isEcho" ]; then
+	afterPromptSequence='[1G[2K' # Return cursor to the beginning of the current line and clear it.
+    else
+	printfToTerm '\n%s' '[1F[s'   # Scroll if necessary for the new line created by concluding the input with Enter, go back to previous line and save the position.
+	afterPromptSequence='[u[0J' # Restore position and clear until the end of the terminal.
+    fi
 fi
 
 status=0
