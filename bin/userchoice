@@ -19,6 +19,7 @@ printfToTerm()
 
 isKeepPrompt=
 hasCharLimit=
+charLimit=0
 isEcho=t
 validResponseGlob=
 typeset -a promptText=()
@@ -38,7 +39,10 @@ do
 			shift
 			;;
 	-[ditu])	readArgs+=("$1" "$2"); shift; shift;;
-	-[nN])		readArgs+=("$1" "$2"); hasCharLimit=t; shift; shift;;
+	-[nN])		readArgs+=("$1" "$2"); hasCharLimit=t; charLimit="$2"
+			export USERQUERY_EOF='$'    # Need to keep any trailing newlines for $newlinesInChoice accounting.
+			shift; shift
+			;;
 	-p)		shift; promptText=("$1"); shift;;
 	*)		break;;
     esac
@@ -47,21 +51,38 @@ if [ -z "$validResponseGlob" ]; then
     printUsage "$0" >&2
     exit 2
 fi
+newlinesInChoice=
 
 if [ "$isKeepPrompt" ]; then
     if [ "$hasCharLimit" ] || [ ! "$isEcho" ]; then
 	afterPromptSequence=$'\n'   # The user doesn't provide the newline (or it isn't echoed); we have to.
     fi
 else
-    if [[ ${#promptText[@]} -gt 0 && ( ${#promptText[0]} -gt ${COLUMNS:-80} || "${promptText[0]}" =~ $'\n' ) ]]; then
+    if [[ ${#promptText[@]} -gt 0 && ( $((${#promptText[0]} + (${isEcho:-1} ? 0 : charLimit) )) -gt ${COLUMNS:-80} || "${promptText[0]}" =~ $'\n' ) ]]; then
 	# The prompt spans multiple terminal lines; need to determine how many to be
 	# able to completely clear them.
-	numLines=$(printf '%s' "${promptText[0]}" | nowrap --wrap | wc -l)
-	if [ ! "$hasCharLimit" ] && [ "$isEcho" ]; then
-	    # Add one for the new line created by concluding the input with Enter.
+	if [ ! "$isEcho" ]; then
+	    # No echoing of input; just need to account for the prompt itself.
+	    numLines=$(printf '%s' "${promptText[0]}" | nowrap --wrap | wc -l)
+	elif [ "$hasCharLimit" ]; then
+	    # As we don't know whether all $charLimit characters will be input,
+	    # add corresponding padding and backspacing after the prompt text so
+	    # that the terminal will definitely scroll, so that the (fixed)
+	    # amount of lines the cursor goes up ends up at the beginning of the
+	    # prompt.
+	    printf -v charLimitPadding "%${charLimit}s" ' '
+	    promptText=("${promptText[0]}${charLimitPadding}${charLimitPadding// /}")
+	    numLines=$(printf '%s' "${promptText[0]}" | nowrap --wrap | wc -l)
+	else
+	    # Add one for the newline created by concluding the input with Enter.
+	    numLines=$(printf '%s' "${promptText[0]}" | nowrap --wrap | wc -l)
 	    let numLines+=1
 	fi
-	afterPromptSequence="[$((${numLines:-2} - 1))F[0J" # Return cursor to the beginning of the previous $numLines lines and clear to end of screen.
+	if [ ${numLines:-1} -gt 1 ]; then
+	    afterPromptSequence="[$((numLines - 1))F[0J" # Return cursor to the beginning of the previous $numLines lines and clear to end of screen.
+	else
+	    afterPromptSequence='[1G[2K' # Return cursor to the beginning of the current line and clear it.
+	fi
     elif [ "$hasCharLimit" ] || [ ! "$isEcho" ]; then
 	afterPromptSequence='[1G[2K' # Return cursor to the beginning of the current line and clear it.
     else
@@ -74,14 +95,39 @@ status=0
 while :
 do
     choice="$(userquery "${readArgs[@]}" ${promptText:+-p} "${promptText[@]}" "$@")" || { status=$?; break; }
+    [ -n "$USERQUERY_EOF" ] && choice="${choice%$USERQUERY_EOF}"
 
     case "$choice" in @($validResponseGlob)) printf '%s\n' "$choice"; break;; esac
 
     if [ "$hasCharLimit" ] || [ ! "$isEcho" ]; then
 	promptText=()
+	newlinesInChoice="${newlinesInChoice}${choice//[^$'\n']/}"
     elif [ ! "$isKeepPrompt" ]; then
 	printfToTerm %s "$afterPromptSequence"
     fi
 done
+
+if [ ! "$isKeepPrompt" ]; then
+    if [ "$isEcho" ] && [ "$hasCharLimit" ] && [ ${#choice} -lt $charLimit ]; then
+	# The $promptText and $afterPromptSequence have considered the full
+	# $charLimit number of characters; now that fewer characters have been
+	# entered, the line break may not have happened, and one line too many
+	# may be cleared. To avoid this, add invisible padding now so that this
+	# won't happen. (Note that this calculation can be off if prior invalid
+	# choices have been input, but so is the simple assumption that one
+	# character occupied one screen cell... This all is an approximation
+	# that works for the majority of cases only. The only negative
+	# consequence of failure is partially remaining input lines or deletion
+	# of a previous, unrelated terminal line.)
+	printfToTerm "%$((charLimit - ${#choice}))s" ' '
+    fi
+    if [ "$isEcho" ]; then
+	newlinesInChoice="${newlinesInChoice}${choice//[^$'\n']/}"
+	if [ ${#newlinesInChoice} -gt 0 ]; then
+	    afterPromptSequence="[$((${#newlinesInChoice} - 1))F${afterPromptSequence}" # Return cursor to the beginning of the previous lines and clear to end of screen.
+	fi
+    fi
+fi
+
 printfToTerm %s "$afterPromptSequence"
 exit $status
