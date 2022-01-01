@@ -1,0 +1,101 @@
+#!/bin/bash
+shopt -qs extglob
+
+printShortUsage()
+{
+    # Note: short followed by long option; if the user knows the short one, she can
+    # skim the long one.
+    printf 'Usage: %q %s\n' "$(basename "$1")" '[--prefix PREFIX] [--suffix SUFFIX] [--empty TEXT] [-j|--joiner JOINER] [--] COUNT1 WHAT1[,PLURAL-WHAT1] [COUNT2 WHAT2 [...]] [-?|-h|--help]'
+}
+printUsage()
+{
+    # This is the short help when launched with no or incorrect arguments.
+    # It is printed to stderr to avoid accidental processing.
+    printShortUsage "$1" >&2
+    printf >&2 '\nTry %q --help for more information.\n' "$(basename "$1")"
+}
+printLongUsage()
+{
+    # This is the long "man page" when launched with the help argument.
+    # It is printed to stdout to allow paging with 'more'.
+    cat <<HELPDESCRIPTION
+Print all non-zero COUNTs of WHATs joined together.
+HELPDESCRIPTION
+    echo
+    printShortUsage "$1"
+    echo
+    cat <<HELPTEXT
+    --prefix PREFIX	Put PREFIX before anything else.
+    --suffix SUFFIX	Append SUFFIX at the end.
+    --empty TEXT	Print TEXT instead of nothing when there are no non-zero
+			counts at all.
+    --joiner|-j JOINER	Use JOINER instead of ", "  (and "and" for the last) to
+			join individual counts.
+HELPTEXT
+}
+prefix=
+suffix=
+emptyText=
+joiner=', '
+lastJoiner=' and '
+while [ $# -ne 0 ]
+do
+    case "$1" in
+	--help|-h|-\?)	shift; printLongUsage "$0"; exit 0;;
+	--prefix)	shift; prefix="$1"; shift;;
+	--suffix)	shift; suffix="$1"; shift;;
+	--empty)	shift; emptyText="$1"; shift;;
+	--joiner|-j)	shift; joiner="$1"; lastJoiner="$1"; shift;;
+	--)		shift; break;;
+	*)		break;;
+    esac
+done
+status=0
+typeset -a elements=()
+while [ $# -ne 0 ]
+do
+    if [ $# -eq 1 ]; then
+	echo 'ERROR: Missing WHAT[,PLURAL-WHAT].'
+	echo
+	printUsage "$0"
+	exit 2
+    fi >&2
+
+    if [ "$1" = 0 ]; then
+	shift; shift
+	continue
+    fi
+
+    case "$2" in
+	*,*)    whatSingular="${2%%,*}"
+		whatPlural="${2#*,}"
+		;;
+	*)	whatSingular="$2"
+		whatPlural="${2}s"
+		;;
+    esac
+
+    [ "$1" = 1 ] && elementWhat="$whatSingular" || elementWhat="$whatPlural"
+    if printf -v renderedElement '%d %s' "$1" "$elementWhat"; then
+	elements+=("$renderedElement")
+    else
+	status=1
+    fi
+
+    shift; shift
+done
+
+if [ ${#elements[@]} -eq 0 ]; then
+    [ -n "$emptyText" ] && printf '%s%s%s\n' "$prefix" "$emptyText" "$suffix"
+    exit $status
+fi
+
+firstElement="${elements[0]}"; elements=("${elements[@]:1}")
+lastElement="${elements[@]:$((${#elements[@]}-1))}"
+elements=("${elements[@]:0:$((${#elements[@]}-1))}")
+
+printf '%s%s' "$prefix" "$firstElement"
+[ ${#elements[@]} -eq 0 ] || printf '%s' "${elements[@]/#/$joiner}"
+printf '%s%s\n' "${lastElement:+$lastJoiner}${lastElement}" "$suffix"
+
+exit $status
