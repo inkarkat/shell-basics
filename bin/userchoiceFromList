@@ -55,10 +55,13 @@ HELPDESCRIPTION
 			silently ignored, and the user is prompted instead.
     --keep-prompt|-k	Keep the prompt and chosen answer on the screen instead
 			of clearing it.
+    -t TIMEOUT		Time out and return 123 if the user did not respond
+			within TIMEOUT seconds.
 EXIT STATUS
     0	Complete success.
     2	Bad invocation, wrong or missing command-line arguments.
     3	Could not find unique accelerator, internal error or failed assertion.
+    123 The user did not respond within the timeout.
     124 There are no entries available and --no-entries-message is given.
     125 No entries were selected due to cancelling via <Esc>.
 HELPTEXT
@@ -177,7 +180,13 @@ do
     fi
 done
 
-chosenAccelerator="$(userchoice --valid "[${cancelKey}${accelerators}]" -n 1 -p "${question}${question:+ (}${acceleratedEntryEnumeration}${cancelKey:+${USERCHOICEFROMLIST_ENTRY_SEPARATOR}<Esc> to cancel}${question:+)}? " "${userchoiceArgs[@]}")" || exit $?
+chosenAccelerator="$(userchoice --valid "[${cancelKey}${accelerators}]" -n 1 -p "${question}${question:+ (}${acceleratedEntryEnumeration}${cancelKey:+${USERCHOICEFROMLIST_ENTRY_SEPARATOR}<Esc> to cancel}${question:+)}? " "${userchoiceArgs[@]}")"; status=$?
+if [ $status -gt 128 ]; then
+    exit 123
+elif [ $status -gt 0 ]; then
+    exit $status
+fi
+
 [ "$isIgnoreCase" ] && chosenAccelerator="${chosenAccelerator,,}"
 chosenEntry="${acceleratorToEntry["$chosenAccelerator"]}"
 
