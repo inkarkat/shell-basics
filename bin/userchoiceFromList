@@ -5,7 +5,7 @@ printShortUsage()
 {
     # Note: short followed by long option; if the user knows the short one, she can
     # skim the long one.
-    printf 'Usage: %q %s\n' "$(basename "$1")" '[-q|--question QUESTION] [--no-cancel] [--accept-single [--auto-selected-entry-message MSG]] [--no-entries-message MSG] [--selection-message MSG] [--interactive-selection-message MSG] [-s|--select SELECTION] [-k|--keep-prompt] [-t TIMEOUT] [-u FD] [--] ENTRIES [...] [-?|-h|--help]'
+    printf 'Usage: %q %s\n' "$(basename "$1")" '[-q|--question QUESTION] [--no-cancel] [-i|--ignore-case] [--accept-single [--auto-selected-entry-message MSG]] [--no-entries-message MSG] [--selection-message MSG] [--interactive-selection-message MSG] [-s|--select SELECTION] [-k|--keep-prompt] [-t TIMEOUT] [-u FD] [--] ENTRIES [...] [-?|-h|--help]'
 }
 printUsage()
 {
@@ -30,6 +30,7 @@ HELPDESCRIPTION
 			Print QUESTION before the choices.
     --no-cancel		Do not allow canceling via <Esc>; the script must be
 			aborted via Ctrl-C or killed.
+    --ignore-case|-i	Accept both lower- and uppercase accelerator letters.
     --accept-single	Accept a single available ENTRY without prompting the
 			user.
     --no-entries-message MSG
@@ -71,6 +72,7 @@ printIfDefined()
 }
 
 question='Choose one:'
+isIgnoreCase=
 isAcceptSingle=
 noEntriesMessage=
 autoSelectedEntryMessage=
@@ -85,6 +87,8 @@ do
 	--help|-h|-\?)	shift; printLongUsage "$0"; exit 0;;
 	--question|-q)	shift; question="$1"; shift;;
 	--no-cancel)	shift; cancelKey='';;
+	--ignore-case|-i)
+			shift; isIgnoreCase=t;;
 	--accept-single)
 			shift; isAcceptSingle=t;;
 	--no-entries-message)
@@ -124,8 +128,11 @@ fi
 typeset -A reservedAccelerators=()
 for entry
 do
-    [[ "$entry" =~ ^(.*)\[([a-zA-Z0-9])\](.*)$ ]] && \
-	reservedAccelerators["${BASH_REMATCH[2]}"]=t
+    if [[ "$entry" =~ ^(.*)\[([a-zA-Z0-9])\](.*)$ ]]; then
+	a="${BASH_REMATCH[2]}"
+	[ "$isIgnoreCase" ] && a="${a,,}"
+	reservedAccelerators["$a"]=t
+    fi
 done
 
 accelerators=
@@ -135,13 +142,16 @@ acceleratedEntryEnumeration=
 for entry
 do
     if [[ "$entry" =~ ^(.*)\[([a-zA-Z0-9])\](.*)$ ]]; then
-	if [ -z "${acceleratorToEntry["${BASH_REMATCH[2]}"]}" ]; then
-	    accelerators="${accelerators}${BASH_REMATCH[2]}"
-	    acceleratorToEntry["${BASH_REMATCH[2]}"]="${BASH_REMATCH[1]}${BASH_REMATCH[2]}${BASH_REMATCH[3]}"
-	    acceleratorToOriginalEntry["${BASH_REMATCH[2]}"]="$entry"
+	a="${BASH_REMATCH[2]}"
+	[ "$isIgnoreCase" ] && a="${a,,}"
+	if [ -z "${acceleratorToEntry["$a"]}" ]; then
+	    accelerators="${accelerators}$a"
+	    [ "$isIgnoreCase" ] && [[ "$a" =~ ^[a-z]$ ]] && accelerators="${accelerators}${a^^}"
+	    acceleratorToEntry["$a"]="${BASH_REMATCH[1]}$a${BASH_REMATCH[3]}"
+	    acceleratorToOriginalEntry["$a"]="$entry"
 	    acceleratedEntryEnumeration="${acceleratedEntryEnumeration}${acceleratedEntryEnumeration:+"$USERCHOICEFROMLIST_ENTRY_SEPARATOR"}${entry}"
 	else
-	    printf >&2 'ERROR: Duplicate accelerator in %s; already exists in %s.\n' "$entry" "${acceleratorToOriginalEntry["${BASH_REMATCH[2]}"]}"
+	    printf >&2 'ERROR: Duplicate accelerator in %s; already exists in %s.\n' "$entry" "${acceleratorToOriginalEntry["$a"]}"
 	    exit 3
 	fi
     else
@@ -149,11 +159,13 @@ do
 	for ((i = 0; i < ${#entry}; i++))
 	do
 	    a="${entry:$i:1}"
+	    [ "$isIgnoreCase" ] && a="${a,,}"
 	    if [[ "$a" =~ ^[a-zA-Z0-9]$ ]] && [ -z "${acceleratorToEntry["$a"]}" ] && [ -z "${reservedAccelerators["$a"]}" ]; then
 		accelerators="${accelerators}$a"
+		[ "$isIgnoreCase" ] && [[ "$a" =~ ^[a-z]$ ]] && accelerators="${accelerators}${a^^}"
 		acceleratorToEntry["$a"]="$entry"
 		acceleratorToOriginalEntry["$a"]="$entry"
-		acceleratedEntryEnumeration="${acceleratedEntryEnumeration}${acceleratedEntryEnumeration:+"$USERCHOICEFROMLIST_ENTRY_SEPARATOR"}${entry:0:$i}[${a}]${entry:$((i+1))}"
+		acceleratedEntryEnumeration="${acceleratedEntryEnumeration}${acceleratedEntryEnumeration:+"$USERCHOICEFROMLIST_ENTRY_SEPARATOR"}${entry:0:$i}[${entry:$i:1}]${entry:$((i+1))}"
 		gotAccelerator=t
 		break
 	    fi
@@ -166,6 +178,7 @@ do
 done
 
 chosenAccelerator="$(userchoice --valid "[${cancelKey}${accelerators}]" -n 1 -p "${question}${question:+ (}${acceleratedEntryEnumeration}${cancelKey:+${USERCHOICEFROMLIST_ENTRY_SEPARATOR}<Esc> to cancel}${question:+)}? " "${userchoiceArgs[@]}")" || exit $?
+[ "$isIgnoreCase" ] && chosenAccelerator="${chosenAccelerator,,}"
 chosenEntry="${acceleratorToEntry["$chosenAccelerator"]}"
 
 [ -n "$chosenEntry" ] || exit 125
