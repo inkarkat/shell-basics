@@ -1,14 +1,16 @@
 #!/bin/bash
 
+: ${ECHOTRACE_IFS=' '}
+
 printUsage()
 {
     cat <<HELPTEXT
-Write arguments as an execution trace (i.e. with \$PS4 prepended and indicating
-the nesting level) to standard error / ECHOTRACE_TRACEFILE, like "set -x" would
-do (but without the execution).
+Write arguments (separated by a space or \$ECHOTRACE_IFS) as an execution trace
+(i.e. with \$PS4 prepended and indicating the nesting level) to standard error /
+ECHOTRACE_TRACEFILE, like "set -x" would do (but without the execution).
 With --eval, the evaluation result will be printed instead of the (quoted) eval.
 HELPTEXT
-    printf 'Usage: [ECHOTRACE_TRACEFILE=FILESPEC|&N] %q %s\n' "$(basename "$1")" '[--eval] [--] [ARG ...] [-?|-h|--help]'
+    printf 'Usage: [ECHOTRACE_IFS=STRING] [ECHOTRACE_TRACEFILE=FILESPEC|&N] %q %s\n' "$(basename "$1")" '[--eval] [--] [ARG ...] [-?|-h|--help]'
 }
 isEval=
 case "$1" in
@@ -30,11 +32,13 @@ if [ $SHLVL -gt 3 ]; then
     nesting="${PS4:0:1}"
     printf -v nestingPrefix "%$((SHLVL - 3))s" "${PS4:0:1}"; printf -v nestingPrefix %s "${nestingPrefix// /${PS4:0:1}}"
 fi
+tracePrefix="${nestingPrefix}${PS4:-\$ }"
+
+ECHOTRACE_IFS="${ECHOTRACE_IFS//$'\n'/$'\n'${tracePrefix}}"
 
 if [ "$isEval" ]; then
     shift
-    allargs="$*"
-    printf '%s\n' "${allargs%$'\n'}" | prefix >&3 -- "${nestingPrefix}${PS4:-\$ }"
+    joinBy >&3 --prefix "${tracePrefix}" -- "$ECHOTRACE_IFS" "$@"
     exit
 fi
 
@@ -47,7 +51,7 @@ do
 	*[$'\n\r\t\v']*) printf -v arg %q "$arg";;
 	*[$'\\ `\'\"?*[]!+']*) printf -v arg %s "'${arg//\'/\'\\\'\'}'";;
     esac
-    quotedArgs="${quotedArgs}${quotedArgs:+ }${arg}"
+    quotedArgs="${quotedArgs}${quotedArgs:+${ECHOTRACE_IFS}}${arg}"
 done
 
-printf >&3 '%s%s\n' "${nestingPrefix}${PS4:-\$ }" "$quotedArgs"
+printf >&3 '%s%s\n' "$tracePrefix" "$quotedArgs"
