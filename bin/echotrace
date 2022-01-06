@@ -1,6 +1,7 @@
 #!/bin/bash
 
 : ${ECHOTRACE_IFS=' '}
+[ "$ECHOTRACE_IFS" = newline ] && ECHOTRACE_IFS=$' \\\n  '
 
 printUsage()
 {
@@ -10,7 +11,7 @@ Write arguments (separated by a space or \$ECHOTRACE_IFS) as an execution trace
 ECHOTRACE_TRACEFILE, like "set -x" would do (but without the execution).
 With --eval, the evaluation result will be printed instead of the (quoted) eval.
 HELPTEXT
-    printf 'Usage: [ECHOTRACE_IFS=STRING] [ECHOTRACE_TRACEFILE=FILESPEC|&N] %q %s\n' "$(basename "$1")" '[--eval] [--] [ARG ...] [-?|-h|--help]'
+    printf 'Usage: [ECHOTRACE_IFS=STRING|newline] [ECHOTRACE_TRACEFILE=FILESPEC|&N] %q %s\n' "$(basename "$1")" '[--eval] [--] [ARG ...] [-?|-h|--help]'
 }
 isEval=
 case "$1" in
