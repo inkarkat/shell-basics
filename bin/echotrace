@@ -28,7 +28,7 @@ fi
 if [ "$isEval" ]; then
     shift
     allargs="$*"
-    printf '%s\n' "${allargs%$'\n'}" | prefix -- "${nestingPrefix}${PS4:-\$ }"
+    printf '%s\n' "${allargs%$'\n'}" | prefix >&2 -- "${nestingPrefix}${PS4:-\$ }"
     exit
 fi
 
