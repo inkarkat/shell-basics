@@ -5,7 +5,7 @@ printShortUsage()
 {
     # Note: short followed by long option; if the user knows the short one, she can
     # skim the long one.
-    printf 'Usage: %q %s\n' "$(basename "$1")" '[-q|--question QUESTION] [--no-cancel] [-i|--ignore-case] [--accept-single [--auto-selected-entry-message MSG]] [--no-entries-message MSG] [--selection-message MSG] [--interactive-selection-message MSG] [-s|--select SELECTION] [-k|--keep-prompt] [-t TIMEOUT] [-u FD] [--] ENTRIES [...] [-?|-h|--help]'
+    printf 'Usage: choice="$(%q %s)"\n' "$(basename "$1")" '[-q|--question QUESTION] [--no-cancel] [-i|--ignore-case] [--accept-single [--auto-selected-entry-message MSG]] [--no-entries-message MSG] [--selection-message MSG] [--interactive-selection-message MSG] [-s|--select SELECTION] [-k|--keep-prompt] [-t TIMEOUT] [-u FD] [--] ENTRIES [...] [-?|-h|--help]'
 }
 printUsage()
 {
@@ -21,6 +21,7 @@ printLongUsage()
     cat <<HELPDESCRIPTION
 Query the user for a single selection from ENTRIES to be selected by a unique
 accelerator that is either pre-set (like "[t]his") or automatically chosen.
+The selected ENTRY (without any [.] accelerator markers) is printed to stdout.
 HELPDESCRIPTION
     echo
     printShortUsage "$1"
