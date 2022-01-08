@@ -1,0 +1,138 @@
+#!/bin/bash
+
+printShortUsage()
+{
+    # Note: short followed by long option; if the user knows the short one, she can
+    # skim the long one.
+    printf 'Usage: %q %s\n' "$(basename "$1")" '[-q|--question QUESTION] [-k|--keep-prompt] [-t|--timeout TIMEOUT] [--console|-c|--gui|-g] [--] --yes-no|--ok-cancel|POSITIVE_ENTRY NEGATIVE_ENTRY [-?|-h|--help]'
+}
+printUsage()
+{
+    # This is the short help when launched with no or incorrect arguments.
+    # It is printed to stderr to avoid accidental processing.
+    printShortUsage "$1" >&2
+    printf >&2 '\nTry %q --help for more information.\n' "$(basename "$1")"
+}
+printLongUsage()
+{
+    # This is the long "man page" when launched with the help argument.
+    # It is printed to stdout to allow paging with 'more'.
+    cat <<HELPDESCRIPTION
+Query the user to choose among two alternatives (e.g. ok/cancel, yes/no,
+black/white).
+HELPDESCRIPTION
+    echo
+    printShortUsage "$1"
+    echo
+    cat <<HELPTEXT
+    --question|-q QUESTION
+			Print QUESTION before the choices.
+    --keep-prompt|-k	Keep the prompt and chosen answer on the screen instead
+			of clearing it (in the terminal).
+    --timeout|-t TIMEOUT
+			Time out and return 123 if the user did not respond
+			within TIMEOUT seconds.
+    --console|-c	Print the question to the terminal.
+    --gui|-g		Open a GUI dialog with the question.
+    By default, the question is printed to the terminal if output is to it; if
+    the output is redirected or no terminal is connected, a GUI dialog is
+    attempted. If that also doesn't work, the command fails with 122.
+    --yes-no		Use [O]k and [C]ancel.
+    --ok-cancel		Use [Y]es and [N]o.
+
+EXIT STATUS:
+    0	POSITIVE_ENTRY was chosen.
+    1	NEGATIVE_ENTRY was chosen.
+    2	Bad invocation, wrong or missing command-line arguments.
+    3   Internal error or failed assertion.
+    122 No GUI is available and the output is not to the terminal.
+    123 The user did not respond within the timeout.
+
+Example:
+HELPTEXT
+    printf '%q %s && echo "Me too!"\n' "$(basename "$1")" '-q "Do you like ice cream?" --yes-no'
+}
+
+question=
+positiveEntry=
+negativeEntry=
+typeset -a userchoiceArgs=()
+typeset -a zenityArgs=()
+outputDevice=
+while [ $# -ne 0 ]
+do
+    case "$1" in
+	--help|-h|-\?)	shift; printLongUsage "$0"; exit 0;;
+	--question|-q)	shift; question="$1"; shift;;
+	--keep-prompt|-k)
+			userchoiceArgs+=("$1"); shift;;
+	--timeout|-t)	userchoiceArgs+=("$1" "$2"); zenityArgs+=(--timeout "$2"); shift; shift;;
+	--console|-c)	shift; outputDevice=console;;
+	--gui|-g)	shift; outputDevice=gui;;
+	--yes-no)	shift; positiveEntry='[Y]es'; negativeEntry='[N]o';;
+	--ok-cancel)	shift; positiveEntry='[O]k'; negativeEntry='[C]ancel';;
+	--)		shift; break;;
+	-*)		{ echo "ERROR: Unknown option \"$1\"!"; echo; printUsage "$0"; } >&2; exit 2;;
+	*)		break;;
+    esac
+done
+if [ -z "$positiveEntry" -o -z "$negativeEntry" ]; then
+    if [ $# -ne 2 ]; then
+	echo 'ERROR: No --yes-no|--ok-cancel nor POSITIVE_ENTRY NEGATIVE_ENTRY passed.'
+	echo
+	printUsage "$0"
+	exit 2
+    fi
+    positiveEntry="$1"; shift
+    negativeEntry="$1"; shift
+elif [ $# -ne 0 ]; then
+    printUsage "$0"
+    exit 2
+fi >&2
+
+consoleChoice()
+{
+    local reply; reply="$(userchoiceFromList "${userchoiceArgs[@]}" ${question:+--question "$question"} --no-cancel --ignore-case -- "$positiveEntry" "$negativeEntry")"; local status=$?
+    case $status in
+	0)  case "$reply" in
+		"${positiveEntry//[][]/}")  exit 0;;
+		"${negativeEntry//[][]/}")  exit 1;;
+		*)			    exit 3;;
+	    esac
+	    ;;
+	123)
+	    exit $status;;
+	*)  return $status;;
+    esac
+}
+
+guiChoice()
+{
+    if [ "$positiveEntry" = '[Y]es' -a "$negativeEntry" = '[N]o' ]; then
+	# Zenity defaults to Yes/No and by not passing these, at least we can
+	# get the default built-in accelerators (which cannot be passed in).
+	positiveEntry=''
+	negativeEntry=''
+    fi
+
+    zenity "${zenityArgs[@]}" --question --text="${question:-Choose one:}" ${positiveEntry:+--ok-label "${positiveEntry//[][]/}"} ${negativeEntry:+--cancel-label "${negativeEntry//[][]/}"}; local status=$?
+    case $status in
+	0)  exit 0;;
+	1)  exit 1;;
+	5)  exit 123;;
+	*)  return 122;;
+    esac
+}
+
+if { printf '' >/dev/tty; } 2>/dev/null && [ "$outputDevice" = console -o "$outputDevice" = '' ]; then
+    consoleChoice || \
+	if [ -n "$DISPLAY" ] && [ "$outputDevice" = '' ]; then
+	    guiChoice
+	else
+	    exit 122
+	fi
+elif [ -n "$DISPLAY" ] && [ "$outputDevice" = gui -o "$outputDevice" = '' ]; then
+    guiChoice
+else
+    exit 122
+fi
