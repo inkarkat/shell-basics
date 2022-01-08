@@ -5,7 +5,7 @@ printShortUsage()
 {
     # Note: short followed by long option; if the user knows the short one, she can
     # skim the long one.
-    printf 'Usage: choice="$(%q %s)"\n' "$(basename "$1")" '[-q|--question QUESTION] [--no-cancel] [-i|--ignore-case] [--accept-single [--auto-selected-entry-message MSG]] [--no-entries-message MSG] [--selection-message MSG] [--interactive-selection-message MSG] [-s|--select SELECTION] [-k|--keep-prompt] [-t TIMEOUT] [-u FD] [--] ENTRIES [...] [-?|-h|--help]'
+    printf 'Usage: choice="$(%q %s)"\n' "$(basename "$1")" '[-q|--question QUESTION] [--no-cancel] [-i|--ignore-case] [--accept-single [--auto-selected-entry-message MSG]] [--no-entries-message MSG] [--selection-message MSG] [--interactive-selection-message MSG] [-s|--select SELECTION] [-k|--keep-prompt] [-t|--timeout TIMEOUT] [-u FD] [--] ENTRIES [...] [-?|-h|--help]'
 }
 printUsage()
 {
@@ -100,13 +100,14 @@ do
 	--auto-selected-entry-message)
 			shift; autoSelectedEntryMessage="$1"; shift;;
 	--selection-message)
-			    shift; selectionMessage="$1"; shift;;
+			shift; selectionMessage="$1"; shift;;
 	--interactive-selection-message)
-			    shift; interactiveSelectionMessage="$1"; shift;;
+			shift; interactiveSelectionMessage="$1"; shift;;
 	--select|-s)	shift; selection="$1"; shift;;
 	--keep-prompt|-k)
 			userchoiceArgs+=("$1"); shift;;
 	-[tu])		userchoiceArgs+=("$1" "$2"); shift; shift;;
+	--timeout)	userchoiceArgs+=(-t "$2"); shift; shift;;
 	--)		shift; break;;
 	-*)		{ echo "ERROR: Unknown option \"$1\"!"; echo; printUsage "$0"; } >&2; exit 2;;
 	*)		break;;
