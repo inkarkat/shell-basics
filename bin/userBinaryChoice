@@ -4,7 +4,7 @@ printShortUsage()
 {
     # Note: short followed by long option; if the user knows the short one, she can
     # skim the long one.
-    printf 'Usage: %q %s\n' "$(basename "$1")" '[-q|--question QUESTION] [-k|--keep-prompt] [-t|--timeout TIMEOUT] [--console|-c|--gui|-g] [--] --yes-no|--ok-cancel|POSITIVE_ENTRY NEGATIVE_ENTRY [-?|-h|--help]'
+    printf 'Usage: %q %s\n' "$(basename "$1")" '[-q|--question QUESTION] [-k|--keep-prompt] [-t|--timeout TIMEOUT] [-c|--console|-g|--gui] [--] --yes-no|--ok-cancel|POSITIVE_ENTRY NEGATIVE_ENTRY [-?|-h|--help]'
 }
 printUsage()
 {
