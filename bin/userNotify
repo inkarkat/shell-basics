@@ -1,0 +1,149 @@
+#!/bin/bash
+
+: ${USERNOTIFY_TITLE_PREFIX=[01m}
+: ${USERNOTIFY_TITLE_SUFFIX=[0m}
+
+printShortUsage()
+{
+    # Note: short followed by long option; if the user knows the short one, she can
+    # skim the long one.
+    printf 'Usage: %q %s\n' "$(basename "$1")" '[-T|--title TITLE] [-t|--timeout TIMEOUT] [-c|--console] [-d|--desktop] [-g|--gui] [-l|--login-notification] [--no-markup] [--] MESSAGE [...] [-?|-h|--help]'
+}
+printUsage()
+{
+    # This is the short help when launched with no or incorrect arguments.
+    # It is printed to stderr to avoid accidental processing.
+    printShortUsage "$1" >&2
+    printf >&2 '\nTry %q --help for more information.\n' "$(basename "$1")"
+}
+printLongUsage()
+{
+    # This is the long "man page" when launched with the help argument.
+    # It is printed to stdout to allow paging with 'more'.
+    cat <<HELPDESCRIPTION
+Notify the user about an event (often, from a long-running asynchronous
+background task).
+HELPDESCRIPTION
+    echo
+    printShortUsage "$1"
+    echo
+    cat <<HELPTEXT
+    --timeout|-t TIMEOUT
+			Auto-close the notification (if possible) and return 123
+			if the user did not acknowledge within TIMEOUT seconds.
+    --console|-c	Print the notification to the terminal.
+    --desktop|-d	Submit a desktop notification.
+    --gui|-g		Open a GUI dialog (that needs to be acknowledged) with
+			the notification.
+    --login-notification|-l
+			Submit a notification shown at each login until the user
+			acknowledges it.
+    By default, the question is printed to the terminal if output is to it; if
+    the output is redirected or no terminal is connected, the first of the
+    following that succeeds:
+	- a desktop notification
+	- GUI dialog
+	- login notification
+    If none of these work, the command fails with 122.
+    Passed notification sinks override this and are tried in the given order.
+
+    --no-markup		Do not enable pango markup; print the notification TEXT
+			as-is without interpreting the HTML subset.
+    MESSAGE		This can use the simple HTML subset of the pango markup
+			language for styling (where available, else ignored).
+EXIT STATUS:
+    0	Complete success.
+    2	Bad invocation, wrong or missing command-line arguments.
+    3   Internal error or failed assertion.
+    122 No notification sink is available.
+    123 The user did not acknowledge within the timeout.
+
+Example:
+HELPTEXT
+    printf '%q %s\n' "$(basename "$1")" '"The download is done."'
+}
+
+typeset -a sinks=()
+timeout=
+title=
+isRaw=
+while [ $# -ne 0 ]
+do
+    case "$1" in
+	--help|-h|-\?)	shift; printLongUsage "$0"; exit 0;;
+	--title|-T)	shift; title="$1"; shift;;
+	--timeout|-t)	shift; timeout="$1"; shift;;
+	--no-markup)	shift; isRaw=t;;
+
+	--console|-c)	shift; sinks+=(consoleNotify);;
+	--gui|-g)	shift; sinks+=(guiNotify);;
+	--desktop|-d)	shift; sinks+=(desktopNotify);;
+	--login-notification|-l)
+			shift; sinks+=(loginNotify);;
+	--)		shift; break;;
+	-*)		{ echo "ERROR: Unknown option \"$1\"!"; echo; printUsage "$0"; } >&2; exit 2;;
+	*)		break;;
+    esac
+done
+if [ $# -eq 0 ]; then
+    echo 'ERROR: No MESSAGE passed.'
+    echo
+    printUsage "$0"
+    exit 2
+fi >&2
+message="$*"
+
+[ ${#sinks[@]} -gt 0 ] || sinks=(consoleNotify desktopNotify guiNotify loginNotify)
+
+consoleNotify()
+{
+    { printf '' >/dev/tty; } 2>/dev/null || return 122
+
+    printf '\n%s%s%s\n' "$USERNOTIFY_TITLE_PREFIX" "$title" "$USERNOTIFY_TITLE_SUFFIX"
+    if [ "$isRaw" ]; then
+	printf '%s\n' "$message"
+    else
+	printf '%s\n' "$message" | pango2ansi
+    fi
+
+    userprompt --keep-prompt ${timeout:+--timeout "$timeout"}
+}
+
+desktopNotify()
+{
+    exists notify-send || return 122
+
+    local rawMessage="$message"
+    [ "$isRaw" ] || rawMessage="$(printf '%s\n' "$message" | trpango)"
+
+    notify-send --icon dialog-information ${timeout:+--expire-time "${timeout}000"} ${title:+"$title"} "$rawMessage"
+}
+
+guiNotify()
+{
+    [ -n "$DISPLAY" ] && exists zenity || return 122
+
+    errorOutput="$(LC_MESSAGES=en_US.UTF-8 zenity --info --title "$title" --no-wrap ${timeout:+--timeout "$timeout"} ${isRaw:+--no-markup} --text "$message" 2>&1 >/dev/null)"
+    case $? in
+	0)  return 0;;
+	1)  # XXX: This can mean that the user canceled the dialog, or that the dialog could not be shown. In the latter case, there's also an error message (e.g. "Gtk-WARNING **: cannot open display"), so use that to differentiate.
+	    ! [[ "$errorOutput" =~ 'cannot open display' ]];;
+	5)  return 123;;    # zenity dialog timeout
+	*)  return 3;;
+    esac
+}
+
+loginNotify()
+{
+    addLoginNotification --title "${title:-Notification}" ${timeout:+--timeout "$timeout"} ${isRaw:+--no-markup} --text "$message"
+}
+
+
+for sink in "${sinks[@]}"
+do
+    $sink; status=$?
+    case $status in
+	0|123)	exit $status;;
+    esac
+done
+exit 122
