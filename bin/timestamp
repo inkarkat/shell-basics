@@ -27,7 +27,7 @@ do
 	--help|-h|-\?)	shift; printUsage "$0"; exit 0;;
 	--human)	shift; dateFormat='+%d-%b-%Y${fieldSeparator-_}%T';;
 	--short)	shift; dateFormat='+%Y%m%d${fieldSeparator--}%H%M%S';;
-	--sortable)	shift; dateFormat='+%Y-%m-%d${fieldSeparator-_}%T${millis}';;
+	--sortable)	shift; dateFormat='+%Y-%m-%d${fieldSeparator-T}%T${millis}';;
 	--no-millis)	shift; millis=''; shift;;
 	--field-separator|-f)
 			shift; fieldSeparator="$1"; shift;;
