@@ -7,6 +7,7 @@ Print a timestamp / prefix output from stdin with timestamps, by default as two
 space-separated fields in a human-readable format that includes milliseconds.
 With --quoted, each argument of MESSAGE is individually quoted (e.g. to preserve
 a passed command with arguments in reusable form).
+
 See also: ts (provided by GNU moreutils)
 HELPTEXT
     echo
