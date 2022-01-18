@@ -1,18 +1,45 @@
 #!/bin/bash
 
+printShortUsage()
+{
+    # Note: short followed by long option; if the user knows the short one, she can
+    # skim the long one.
+    printf 'Usage: %q %s\n' "$(basename "$1")" '[--human|--short|--sortable] [--no-millis] [-f|--field-separator SEP] [-d|--date DATE] [--prefix PREFIX] [[--quoted] [--] MESSAGE [...]] [-?|-h|--help]'
+    printf 'Usage: cat FILE [...] | %q %s\n' "$(basename "$1")" '[...] [-s|--separator SEP] -'
+}
 printUsage()
 {
-    cat <<HELPTEXT
+    # This is the short help when launched with no or incorrect arguments.
+    # It is printed to stderr to avoid accidental processing.
+    printShortUsage "$1" >&2
+    printf >&2 '\nTry %q --help for more information.\n' "$(basename "$1")"
+}
+printLongUsage()
+{
+    # This is the long "man page" when launched with the help argument.
+    # It is printed to stdout to allow paging with 'more'.
+    cat <<HELPDESCRIPTION
 Print a timestamp / prefix output from stdin with timestamps, by default as two
 space-separated fields in a human-readable format that includes milliseconds.
-With --quoted, each argument of MESSAGE is individually quoted (e.g. to preserve
-a passed command with arguments in reusable form).
+HELPDESCRIPTION
+    echo
+    printShortUsage "$1"
+    echo
+    cat <<HELPTEXT
+    --human		Human-readable output format: %d-%b-%Y${fieldSeparator-_}%T
+    --short		Sortable output format: %Y%m%d${fieldSeparator--}%H%M%S
+    --sortable		Sortable output format: %Y-%m-%d${fieldSeparator-T}%T${millis}
+    --no-millis		Drop the milliseconds off the --sortable format.
+    --field-separator|-f SEP
+			Use SEP between date and time.
+    --date DATE		Use DATE instead of the current time.
+    --prefix PREFIX	Put PREFIX directly before the timestamp.
+    --quoted		Each argument of MESSAGE is individually quoted (e.g. to
+			preserve a passed command with arguments in reusable
+			form).
 
 See also: ts (provided by GNU moreutils)
 HELPTEXT
-    echo
-    printf 'Usage: %q %s\n' "$(basename "$1")" '[--human|--short|--sortable] [--no-millis] [-f|--field-separator SEP] [-d|--date DATE] [--prefix PREFIX] [[--quoted] [--] MESSAGE [...]] [-?|-h|--help]'
-    printf 'Usage: cat FILE [...] | %q %s\n' "$(basename "$1")" '[...] [-s|--separator SEP] -'
 }
 
 typeset -a dateArgs=()
@@ -25,7 +52,7 @@ prefix=
 while [ $# -ne 0 ]
 do
     case "$1" in
-	--help|-h|-\?)	shift; printUsage "$0"; exit 0;;
+	--help|-h|-\?)	shift; printLongUsage "$0"; exit 0;;
 	--human)	shift; dateFormat='+%d-%b-%Y${fieldSeparator-_}%T';;
 	--short)	shift; dateFormat='+%Y%m%d${fieldSeparator--}%H%M%S';;
 	--sortable)	shift; dateFormat='+%Y-%m-%d${fieldSeparator-T}%T${millis}';;
