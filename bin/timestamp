@@ -11,7 +11,7 @@ a passed command with arguments in reusable form).
 See also: ts (provided by GNU moreutils)
 HELPTEXT
     echo
-    printf 'Usage: %q %s\n' "$(basename "$1")" '[--human|--short|--sortable] [--no-millis] [-f|--field-separator SEP] [-d|--date DATE] [[--quoted] [--] MESSAGE [...]] [-?|-h|--help]'
+    printf 'Usage: %q %s\n' "$(basename "$1")" '[--human|--short|--sortable] [--no-millis] [-f|--field-separator SEP] [-d|--date DATE] [--prefix PREFIX] [[--quoted] [--] MESSAGE [...]] [-?|-h|--help]'
     printf 'Usage: cat FILE [...] | %q %s\n' "$(basename "$1")" '[...] [-s|--separator SEP] -'
 }
 
@@ -21,6 +21,7 @@ separator=' '
 millis='.%N'
 unset fieldSeparator
 isQuoted=
+prefix=
 while [ $# -ne 0 ]
 do
     case "$1" in
@@ -34,6 +35,7 @@ do
 	--separator|-s)	shift; separator="$1"; shift;;
 	--date|-d)	shift; dateArgs+=(--date "${1:?}"); shift;;
 	--quoted)	shift; isQuoted=t;;
+	--prefix)	shift; prefix="$1"; shift;;
 	-)		break;;
 	--)		shift; break;;
 	-*)		{ echo "ERROR: Unknown option \"$1\"!"; echo; printUsage "$0"; } >&2; exit 2;;
@@ -44,7 +46,7 @@ if [ $# -eq 1 ] && [ "$1" = '-' ]; then
     isEOL=t
     while IFS=$'\n' read -r line || { isEOL=; [ -n "$line" ]; }
     do
-	printf "%s%s%s${isEOL:+\\n}" "$(eval "date \"\${dateArgs[@]}\" \"$dateFormat\"")" "$separator" "$line"
+	printf "%s%s%s%s${isEOL:+\\n}" "$prefix" "$(eval "date \"\${dateArgs[@]}\" \"$dateFormat\"")" "$separator" "$line"
     done
 elif [ $# -gt 0 ]; then
     if [ "$isQuoted" ]; then
@@ -62,7 +64,8 @@ elif [ $# -gt 0 ]; then
 	set -- "$quotedArgs"
     fi
 
-    printf '%s%s%s\n' "$(eval "date \"\${dateArgs[@]}\" \"$dateFormat\"")" "$separator" "$*"
+    printf '%s%s%s%s\n' "$prefix" "$(eval "date \"\${dateArgs[@]}\" \"$dateFormat\"")" "$separator" "$*"
 else
+    [ -n "$prefix" ] && printf %s "$prefix"
     eval "date \"\${dateArgs[@]}\" \"$dateFormat\""
 fi
