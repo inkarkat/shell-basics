@@ -1,0 +1,60 @@
+#!/bin/bash
+
+printShortUsage()
+{
+    # Note: short followed by long option; if the user knows the short one, she can
+    # skim the long one.
+    printf 'Usage: [VAR="$VAR"] [PATHSEPARATOR=SEP] %q %s\n' "$(basename "$1")" 'VAR [-q|--quiet] [GREP-ARGS ...] [-?|-h|--help]'
+    echo
+    printf 'Usage: echo "$VAR" | [PATHSEPARATOR=SEP] %q %s\n' "$(basename "$1")" '[-q|--quiet] [GREP-ARGS ...]'
+}
+printUsage()
+{
+    # This is the short help when launched with no or incorrect arguments.
+    # It is printed to stderr to avoid accidental processing.
+    printShortUsage "$1" >&2
+    printf >&2 '\nTry %q --help for more information.\n' "$(basename "$1")"
+}
+printLongUsage()
+{
+    # This is the long "man page" when launched with the help argument.
+    # It is printed to stdout to allow paging with 'more'.
+    cat <<HELPDESCRIPTION
+Print / grep parsed standard input / VAR's value; each path component on a
+separate line.
+HELPDESCRIPTION
+    echo
+    printShortUsage "$1"
+    echo
+    cat <<HELPTEXT
+    --quiet|-q		No output, but the exit status indicates whether such a
+			path exists.
+HELPTEXT
+}
+
+isFirstArg=t
+varName=
+typeset -a grepArgs=()
+typeset -a pager=("${PAGER:-less}" --RAW-CONTROL-CHARS); [ -t 1 ] || typeset -a pager=()
+while [ $# -ne 0 ]
+do
+    case "$1" in
+	--help|-h|-\?)	shift; printLongUsage "$0"; exit 0;;
+	--quiet|-q)	grepArgs+=("$1"); shift; pager=();;
+	--)		grepArgs+=("$1"); shift; break;;
+	-*)		grepArgs+=("$1"); shift;;
+	*)		if [ "$isFirstArg" ]; then
+			    varName="$1"; shift
+			else
+			    grepArgs+=("$1"); shift
+			fi
+			;;
+    esac
+    isFirstArg=
+done
+[ ${#grepArgs[@]} -gt 0 -o $# -gt 0 ] && typeset -a grepPipeline=(grep "${grepArgs[@]}" "$@")
+
+eval "${varName:+printf %s\\\\n \"\$$varName\"|}" \
+    'sed -e "s/${PATHSEPARATOR:-:}/\\n/g"' \
+    "${grepPipeline:+|}" '"${grepPipeline[@]}"' \
+    "${pager:+|}" '"${pager[@]}"'
