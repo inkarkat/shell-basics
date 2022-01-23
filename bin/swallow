@@ -1,0 +1,5 @@
+#!/bin/sh
+
+# No usage help here, because we want the command to really swallow any
+# command-line arguments.
+exec cat >/dev/null
