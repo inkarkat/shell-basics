@@ -34,3 +34,26 @@
     run divround 123456789
     [ "$output" = "1234568" ]
 }
+
+@test "round off with large round numbers" {
+    run divround 50000
+    [ "$output" = "500" ]
+
+    run divround 500000
+    [ "$output" = "5000" ]
+
+    run divround 5000000
+    [ "$output" = "50000" ]
+
+    run divround 50000000
+    [ "$output" = "500000" ]
+
+    run divround 500000000
+    [ "$output" = "5000000" ]
+
+    run divround 5000000000
+    [ "$output" = "50000000" ]
+
+    run divround 50000000000
+    [ "$output" = "500000000" ]
+}

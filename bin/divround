@@ -32,8 +32,7 @@ round()
     printf -v val "%.${2:-1}f" "${1:?}"
 
     # Drop trailing .000
-    val=${val%%*(0)}
-    val=${val%.}
+    val=${val%%.*(0)}
 
     printf '%s\n' "$val"
 }
