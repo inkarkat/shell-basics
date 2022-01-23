@@ -7,16 +7,18 @@ printUsage()
 {
     cat <<HELPTEXT
 Divide passed NUMBER by 10^(PRECISION + 1) (default: 100, i.e. using percent
-numbers) and round with PRECISION fractional places.
+numbers) and round with PRECISION fractional places, unless the integer part is
+in the thousands or larger; then, just round off to the closest integer value.
 
 Example: 50 -> 0.5
-Example: 123456 -> 1234.6
-Example: 1234567 2 -> 1234.57
+Example: 1236 -> 12.4
+Example: 123456 -> 1235
+Example: 1236 2 -> 1.24
 HELPTEXT
     echo
     printf 'Usage: %q %s\n' "$(basename "$1")" 'NUMBER [PRECISION] [-?|-h|--help]'
 }
-case "$1" in
+case "${1:-}" in
     --help|-h|-\?)	shift; printUsage "$0"; exit 0;;
 esac
 if [ $# -lt 1 ]; then
@@ -30,8 +32,7 @@ round()
     printf -v val "%.${2:-1}f" "${1:?}"
 
     # Drop trailing .000
-    val=${val%%*(0)}
-    val=${val%.}
+    val=${val%%.*(0)}
 
     printf '%s\n' "$val"
 }
