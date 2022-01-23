@@ -13,6 +13,7 @@ in the thousands or larger; then, just round off to the closest integer value.
 Example: 50 -> 0.5
 Example: 1236 -> 12.4
 Example: 123456 -> 1235
+Example: 1236 2 -> 1.24
 HELPTEXT
     echo
     printf 'Usage: %q %s\n' "$(basename "$1")" 'NUMBER [PRECISION] [-?|-h|--help]'
