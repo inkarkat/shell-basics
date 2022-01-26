@@ -6,7 +6,7 @@ printShortUsage()
 {
     # Note: short followed by long option; if the user knows the short one, she can
     # skim the long one.
-    printf 'Usage: %q %s\n' "$(basename "$1")" '[--prefix PREFIX] [--suffix SUFFIX] [--empty TEXT] [--truncate-after "N[ TRAIL-OFF]"] [--summarize-larger "N[ ENTRIES]"] [--] SEPARATOR [ARG ...] [-?|-h|--help]'
+    printf 'Usage: %q %s\n' "$(basename "$1")" '[--prefix PREFIX] [--suffix SUFFIX] [--empty TEXT] [--omit-empty] [--truncate-after "N[ TRAIL-OFF]"] [--summarize-larger "N[ ENTRIES]"] [--] SEPARATOR [ARG ...] [-?|-h|--help]'
     printf 'Usage: cat FILE [...] | %q %s\n' "$(basename "$1")" '[...] - SEPARATOR'
 }
 printUsage()
@@ -31,6 +31,9 @@ HELPDESCRIPTION
     --suffix SUFFIX	Append SUFFIX at the end.
     --empty TEXT	Print TEXT instead of nothing when there are no ARGs at
 			all.
+    --omit-empty	Do not put a SEPARATOR around completely empty ARGs
+			(empty lines with -), and don't count them for
+			truncation or summary.
     --truncate-after N[ TRAIL-OFF]
 			After enumerating N ARGs, omit further ARGs and just
 			trail off with ... / TRAIL-OFF.
@@ -45,6 +48,7 @@ unset delimiter
 prefix=
 suffix=
 emptyText=
+isOmitEmpty=
 truncateNum=
 truncateText=' ...'
 summarizeNum=
@@ -56,6 +60,7 @@ do
 	--prefix)	shift; prefix="$1"; shift;;
 	--suffix)	shift; suffix="$1"; shift;;
 	--empty)	shift; emptyText="$1"; shift;;
+	--omit-empty)	shift; isOmitEmpty=t;;
 	--truncate-after)
 			shift
 			text="${1#+([0-9])}"
@@ -103,6 +108,15 @@ if [ -z "${delimiter+t}" ]; then
 	exit 2
     fi
     delimiter="${1?}"; shift
+fi
+
+if [ "$isOmitEmpty" ]; then
+    typeset -a args=()
+    for arg
+    do
+	[ -n "$arg" ] && args+=("$arg")
+    done
+    set -- "${args[@]}"
 fi
 
 if [ $# -eq 0 ]; then
