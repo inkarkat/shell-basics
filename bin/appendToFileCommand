@@ -7,7 +7,7 @@ Print a Bash command that appends the passed TEXT to FILE.
 Useful to build up a batch file of future tasks, e.g. within a existsOr
 autosource check.
 HELPTEXT
-    printf 'Usage: %q %s\n' "$(basename "$1")" '[--] FILE [TEXT ...] [-?|-h|--help]'
+    printf 'Usage: [APPENDTOFILECOMMAND_USE_APPENDTOFILE=true] %q %s\n' "$(basename "$1")" '[--] FILE [TEXT ...] [-?|-h|--help]'
 }
 case "$1" in
     --help|-h|-\?)	shift; printUsage "$0"; exit 0;;
@@ -20,7 +20,15 @@ fi
 
 filespec=${1:?}; shift
 if [ $# -eq 0 ]; then
-    printf "echo >> %q\\n" "$filespec"
+    if [ "$APPENDTOFILECOMMAND_USE_APPENDTOFILE" ]; then
+	printf "appendToFile %q\\n" "$filespec"
+    else
+	printf "echo >> %q\\n" "$filespec"
+    fi
 else
-    printf "printf '%%s\\\\n' %q >> %q\\n" "$*" "$filespec"
+    if [ "$APPENDTOFILECOMMAND_USE_APPENDTOFILE" ]; then
+	printf "appendToFile %q %q\\n" "$filespec" "$*"
+    else
+	printf "printf '%%s\\\\n' %q >> %q\\n" "$*" "$filespec"
+    fi
 fi
