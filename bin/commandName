@@ -71,12 +71,22 @@ dropInterpreter()
 	@(${COMMANDNAME_SHELLS})${COMMANDNAME_EXTENSIONS})
 	    commandFilespec="$(basename -- "${2:-$1}")"
 
+	    if commandStringIdx=$(INDEX_UNTIL=-- index -c "$@") && [ $((commandStringIdx + 1)) -le $# ]; then
+		typeset -a commandArguments=(${@:$((commandStringIdx + 2)):1})	# The -c command_string is a single argument, we need to split that into individual arguments, and also evaluate shell stuff.
+		commandFilespec="$(basename -- "${commandArguments[0]}")"
+		# Recursive removal of another interpreter inside the COMMAND,
+		# e.g. bash -c 'perl script.pl'
+		dropInterpreter "${commandArguments[@]}"
+		return
+	    fi
+
 	    allArgsIdx=$(indexGlob '*"$@"' "$@") && [ $((allArgsIdx + 3)) -le $# ] && case "${@:$((allArgsIdx + 2)):1}" in
 		@(${COMMANDNAME_SHELLS})${COMMANDNAME_EXTENSIONS})
 		    commandFilespec="$(basename -- "${@:$((allArgsIdx + 3)):1}")"
 		    # Recursive removal of another interpreter inside the
 		    # COMMAND, e.g. bash -c "$@" bash perl script.pl
 		    dropInterpreter "${@:$((allArgsIdx + 3))}"
+		    return
 		    ;;
 	    esac
 	    ;;
