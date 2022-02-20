@@ -108,6 +108,7 @@ if [ "$isEval" ]; then
     # because of the incomplete glob. Therefore, error messages should be
     # suppressed. As set -o noglob doesn't help, try removing arguments from the
     # back for as long as possible and retry.
+    set -- '"$@"'   # Trick: To keep a "$@" argument intact, set the current arguments to that as a literal string.
     until eval "set -- $netCommandLine" 2>/dev/null
     do
 	if [ "${netCommandLine/ //}" = "$netCommandLine" ]; then
