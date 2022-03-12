@@ -31,6 +31,7 @@ do
 	--first-matching|-1)	    shift; isPrintFirstMatching=t;;
 	--files-not-matching|-L)    shift; isPrintNotMatching=t;;
 	--)			    shift; break;;
+	-*)			    { echo "ERROR: Unknown option \"$1\"!"; echo; printUsage "$0"; } >&2; exit 2;;
 	*)			    globs+=("$1"); shift;;
     esac
 

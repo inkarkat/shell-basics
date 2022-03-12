@@ -50,6 +50,7 @@ do
 	--keep-prompt|-k)	shift; clearPromptSequence=$'\n';;
 	--timeout|-t|--for)	shift; readArgs+=(-t "$1"); timeoutPlural=s; [ "$1" = 1 ] && timeoutPlural=; timeoutValue="${1} second$timeoutPlural"; shift;;
 	--)		shift; break;;
+	-*)		{ echo "ERROR: Unknown option \"$1\"!"; echo; printUsage "$0"; } >&2; exit 2;;
 	*)		break;;
     esac
 done
