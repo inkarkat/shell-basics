@@ -1,0 +1,47 @@
+#!/bin/bash
+
+# Note: Reuse the userquery environment variables instead of defining
+# USERPREQUERY_... ones, because this is a very close derivative that closely
+# follows the original.
+: ${USERQUERY_EXIT_STATUS_NO_TERM:=99}
+
+readonly scriptDir="$([ "${BASH_SOURCE[0]}" ] && dirname -- "${BASH_SOURCE[0]}" || exit 3)"
+[ -d "$scriptDir" ] || { echo >&2 'ERROR: Cannot determine script directory!'; exit 3; }
+readonly projectDir="${scriptDir}/.."
+readonly etcDir="${projectDir}/etc/userquery"
+
+printUsage()
+{
+    cat <<HELPTEXT
+Prepare for a query of the user (e.g. via select()) that will follow if this
+command succeeds. Some queries are hard to externalize but one may still want to
+benefit from the terminal check and alerting of userquery.
+If \$USERQUERY_ALERT_TIMESPAN is set and the last query (for
+\$USERQUERY_ALERT_SUBJECT) was done earlier than VALID-TIMESPAN|TIMESLOT, the
+user additionally is alerted (via sound chime / notification) of the pending
+query, too.
+Returns $USERQUERY_EXIT_STATUS_NO_TERM / \$USERQUERY_EXIT_STATUS_NO_TERM if input cannot be read from the
+terminal.
+HELPTEXT
+    echo
+    printf 'Usage: $([USERQUERY_EXIT_STATUS_NO_TERM=99] [USERQUERY_INPUT=/dev/stdin] [USERQUERY_ERROR_OUTPUT=/dev/null] [USERQUERY_ALERT_SUBJECT=SUBJECT] [USERQUERY_ALERT_TIMESPAN=VALID-TIMESPAN|TIMESLOT] %q %s)"\n' "$(basename "$1")" '|| exit $?; select entry; do ...; done < "${USERQUERY_INPUT:-/dev/tty}"'
+}
+case "$1" in
+    --help|-h|-\?)	shift; printUsage "$0"; exit 0;;
+esac
+
+{ exec 0<"${USERQUERY_INPUT:-/dev/tty}"; } 2>/dev/null || exit $USERQUERY_EXIT_STATUS_NO_TERM
+
+if [ "$USERQUERY_ALERT_TIMESPAN" ]; then
+    marker()
+    {
+	executionMarker --base-type runtime --group userquery "$@"
+    }
+
+    if marker --query "${USERQUERY_ALERT_SUBJECT:-default}" --without "$USERQUERY_ALERT_TIMESPAN"; then
+	alert --exit-status 0 --success "${etcDir}/alert.mp3" --success-sigil '❓' --command-name "${USERQUERY_ALERT_SUBJECT:-Query}" --message "${USERQUERY_ALERT_SUBJECT:-An application} is waiting for your input again."
+    fi
+    marker --update "${USERQUERY_ALERT_SUBJECT:-default}"
+fi
+
+exit 0
