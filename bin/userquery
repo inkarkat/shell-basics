@@ -6,10 +6,17 @@
 printUsage()
 {
     cat <<HELPTEXT
-Query the user with READ-ARGS (e.g. -n 1 -p 'Type letter: ') from the terminal.
-Returns $USERQUERY_EXIT_STATUS_NO_TERM if input cannot be read from the terminal.
+Query the user with READ-ARGS (e.g. -n 1 -p 'Type letter: ') from the terminal /
+\$USERQUERY_INPUT.
+If \$USERQUERY_ALERT_TIMESPAN is set and the last query (for
+\$USERQUERY_ALERT_SUBJECT) was done earlier than VALID-TIMESPAN|TIMESLOT, the
+user additionally is alerted (via sound chime / notification) of the pending
+query, too.
+Returns $USERQUERY_EXIT_STATUS_NO_TERM / \$USERQUERY_EXIT_STATUS_NO_TERM if input cannot be read from the
+terminal.
 HELPTEXT
-    printf 'Usage: choice="$([USERQUERY_EOF=string] %q %s)"\n' "$(basename "$1")" '[READ-ARGS ...]'
+    echo
+    printf 'Usage: choice="$([USERQUERY_EOF=STRING] [USERQUERY_EXIT_STATUS_NO_TERM=99] [USERQUERY_INPUT=/dev/stdin] [USERQUERY_ERROR_OUTPUT=/dev/null] [USERQUERY_ALERT_SUBJECT=SUBJECT] [USERQUERY_ALERT_TIMESPAN=VALID-TIMESPAN|TIMESLOT] %q %s)"\n' "$(basename "$1")" '[READ-ARGS ...]'
 }
 case "$1" in
     --help|-h|-\?)	shift; printUsage "$0"; exit 0;;
