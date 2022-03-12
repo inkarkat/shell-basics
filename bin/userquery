@@ -15,7 +15,7 @@ case "$1" in
     --help|-h|-\?)	shift; printUsage "$0"; exit 0;;
 esac
 
-{ exec 0</dev/tty; } 2>/dev/null || exit $USERQUERY_EXIT_STATUS_NO_TERM
+{ exec 0<"${USERQUERY_INPUT:-/dev/tty}"; } 2>/dev/null || exit $USERQUERY_EXIT_STATUS_NO_TERM
 
 if [ "$USERQUERY_ALERT_TIMESPAN" ]; then
     marker()
@@ -29,4 +29,4 @@ if [ "$USERQUERY_ALERT_TIMESPAN" ]; then
     marker --update "${USERQUERY_ALERT_SUBJECT:-default}"
 fi
 
-IFS='' read "$@" CHOICE 2>/dev/tty && printf '%s%s' "$CHOICE" "$USERQUERY_EOF"
+IFS='' read "$@" CHOICE 2>"${USERQUERY_ERROR_OUTPUT:-/dev/tty}" && printf '%s%s' "$CHOICE" "$USERQUERY_EOF"
