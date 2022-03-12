@@ -3,6 +3,11 @@
 : ${USERQUERY_EXIT_STATUS_NO_TERM:=99}
 : ${USERQUERY_EOF=$'\n'}
 
+readonly scriptDir="$([ "${BASH_SOURCE[0]}" ] && dirname -- "${BASH_SOURCE[0]}" || exit 3)"
+[ -d "$scriptDir" ] || { echo >&2 'ERROR: Cannot determine script directory!'; exit 3; }
+readonly projectDir="${scriptDir}/.."
+readonly etcDir="${projectDir}/etc/$(basename -- "${BASH_SOURCE[0]}")"
+
 printUsage()
 {
     cat <<HELPTEXT
@@ -31,7 +36,7 @@ if [ "$USERQUERY_ALERT_TIMESPAN" ]; then
     }
 
     if marker --query "${USERQUERY_ALERT_SUBJECT:-default}" --without "$USERQUERY_ALERT_TIMESPAN"; then
-	alert --exit-status 0 --success ~/public/wave/Hallo.mp3 --success-sigil '❓' --command-name "${USERQUERY_ALERT_SUBJECT:-Query}" --message "${USERQUERY_ALERT_SUBJECT:-An application} is waiting for your input again."
+	alert --exit-status 0 --success "${etcDir}/alert.mp3" --success-sigil '❓' --command-name "${USERQUERY_ALERT_SUBJECT:-Query}" --message "${USERQUERY_ALERT_SUBJECT:-An application} is waiting for your input again."
     fi
     marker --update "${USERQUERY_ALERT_SUBJECT:-default}"
 fi
