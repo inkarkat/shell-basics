@@ -82,10 +82,22 @@ elif [ $# -gt 0 ]; then
 	quotedArgs=
 	for arg
 	do
-	    case "$arg" in
-		*[$'\n\r\t\v']*) printf -v arg %q "$arg";;
-		*[$'\\ `\'\"?*[]!+']*) printf -v arg %s "'${arg//\'/\'\\\'\'}'";;
-	    esac
+	    # Enclose in single quotes if it contains special characters (but not
+	    # non-space whitespace), and does not solely consist of that special
+	    # character (then, it's shorter to escape: \( vs. '(').
+	    if [[ "$arg" =~ [][$\ \`\"?\*{}()\&\;\!~] ]] && [[ ! "$arg" =~ [$'\n\r\t\v'] ]] &&  [ ${#arg} -gt 1 ]; then
+		if [[ "$arg" =~ \' ]]; then
+		    # Decide based on length whether to .\ \ \'\ \ . or '   '\''  .'
+		    printf -v sqArg %s "'${arg//\'/\'\\\'\'}'"
+		    sqArg="${sqArg#\'\'}"; sqArg="${sqArg%\'\'}"    # Empty '' at the beginning and end can be removed.
+		    printf -v arg %q "$arg"
+		    [ ${#sqArg} -lt ${#arg} ] && arg="$sqArg"
+		else
+		    printf -v arg %s "'${arg//\'/\'\\\'\'}'"
+		fi
+	    else
+		printf -v arg %q "$arg"
+	    fi
 	    quotedArgs="${quotedArgs}${quotedArgs:+ }${arg}"
 	done
 	set -- "$quotedArgs"
