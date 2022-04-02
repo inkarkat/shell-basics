@@ -52,7 +52,7 @@ do
     esac
 done
 if [ "$isInPlace" ]; then
-    awkCall=(gawk -i inplace -v "INPLACE_SUFFIX=$inPlaceExtension")
+    awkCall=(gawk -i inplace -v "INPLACE_SUFFIX=$inPlaceExtension" -v "inplace::suffix=$inPlaceExtension")
 fi
 
 
