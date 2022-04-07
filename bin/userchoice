@@ -101,7 +101,7 @@ do
 
     if [ "$hasCharLimit" ] || [ ! "$isEcho" ]; then
 	promptText=()
-	newlinesInChoice="${newlinesInChoice}${choice//[^$'\n']/}"
+	newlinesInChoice+="${choice//[^$'\n']/}"
     elif [ ! "$isKeepPrompt" ]; then
 	printfToTerm %s "$afterPromptSequence"
     fi
@@ -122,7 +122,7 @@ if [ ! "$isKeepPrompt" ]; then
 	printfToTerm "%$((charLimit - ${#choice}))s" ' '
     fi
     if [ "$isEcho" ]; then
-	newlinesInChoice="${newlinesInChoice}${choice//[^$'\n']/}"
+	newlinesInChoice+="${choice//[^$'\n']/}"
 	if [ ${#newlinesInChoice} -gt 0 ]; then
 	    afterPromptSequence="[$((${#newlinesInChoice} - 1))F${afterPromptSequence}" # Return cursor to the beginning of the previous lines and clear to end of screen.
 	fi

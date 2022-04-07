@@ -98,7 +98,7 @@ elif [ $# -gt 0 ]; then
 	    else
 		printf -v arg %q "$arg"
 	    fi
-	    quotedArgs="${quotedArgs}${quotedArgs:+ }${arg}"
+	    quotedArgs+="${quotedArgs:+ }${arg}"
 	done
 	set -- "$quotedArgs"
     fi

@@ -20,9 +20,9 @@ if [ "$program" = '.' ]; then
     set -i
     program="$1"; shift
     BASH_ARGV0="$program"	# Bash 5+ only
-    DEBUG="${DEBUG}${DEBUG:+,}${program}"
+    DEBUG+="${DEBUG:+,}${program}"
     . "$program" "$@"
     exit $?
 fi
 
-DEBUG="${DEBUG}${DEBUG:+,}${program}" exec "$program" "$@"
+DEBUG+="${DEBUG:+,}${program}" exec "$program" "$@"

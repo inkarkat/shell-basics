@@ -64,7 +64,7 @@ do
     else
 	printf -v arg %q "$arg"
     fi
-    quotedArgs="${quotedArgs}${quotedArgs:+${ECHOTRACE_IFS}}${arg}"
+    quotedArgs+="${quotedArgs:+${ECHOTRACE_IFS}}${arg}"
 done
 
 printf >&3 '%s%s\n' "$tracePrefix" "$quotedArgs"

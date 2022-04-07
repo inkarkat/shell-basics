@@ -151,11 +151,11 @@ do
 	[ "$isIgnoreCase" ] && a="${a,,}"
 	entryWithoutAccelerator="${BASH_REMATCH[1]}${BASH_REMATCH[2]}${BASH_REMATCH[3]}"
 	if [ -z "${acceleratorToEntry["$a"]}" ]; then
-	    accelerators="${accelerators}$a"
-	    [ "$isIgnoreCase" ] && [[ "$a" =~ ^[a-z]$ ]] && accelerators="${accelerators}${a^^}"
+	    accelerators+="$a"
+	    [ "$isIgnoreCase" ] && [[ "$a" =~ ^[a-z]$ ]] && accelerators+="${a^^}"
 	    acceleratorToEntry["$a"]="$entryWithoutAccelerator"
 	    acceleratorToOriginalEntry["$a"]="$entry"
-	    acceleratedEntryEnumeration="${acceleratedEntryEnumeration}${acceleratedEntryEnumeration:+"$USERCHOICEFROMLIST_ENTRY_SEPARATOR"}${entry}"
+	    acceleratedEntryEnumeration+="${acceleratedEntryEnumeration:+"$USERCHOICEFROMLIST_ENTRY_SEPARATOR"}${entry}"
 	else
 	    printf >&2 'ERROR: Duplicate accelerator in %s; already exists in %s.\n' "$entry" "${acceleratorToOriginalEntry["$a"]}"
 	    exit 3
@@ -167,11 +167,11 @@ do
 	    a="${entry:$i:1}"
 	    [ "$isIgnoreCase" ] && a="${a,,}"
 	    if [[ "$a" =~ ^[a-zA-Z0-9]$ ]] && [ -z "${acceleratorToEntry["$a"]}" ] && [ -z "${reservedAccelerators["$a"]}" ]; then
-		accelerators="${accelerators}$a"
-		[ "$isIgnoreCase" ] && [[ "$a" =~ ^[a-z]$ ]] && accelerators="${accelerators}${a^^}"
+		accelerators+="$a"
+		[ "$isIgnoreCase" ] && [[ "$a" =~ ^[a-z]$ ]] && accelerators+="${a^^}"
 		acceleratorToEntry["$a"]="$entry"
 		acceleratorToOriginalEntry["$a"]="$entry"
-		acceleratedEntryEnumeration="${acceleratedEntryEnumeration}${acceleratedEntryEnumeration:+"$USERCHOICEFROMLIST_ENTRY_SEPARATOR"}${entry:0:$i}[${entry:$i:1}]${entry:$((i+1))}"
+		acceleratedEntryEnumeration+="${acceleratedEntryEnumeration:+"$USERCHOICEFROMLIST_ENTRY_SEPARATOR"}${entry:0:$i}[${entry:$i:1}]${entry:$((i+1))}"
 		gotAccelerator=t
 		break
 	    fi
