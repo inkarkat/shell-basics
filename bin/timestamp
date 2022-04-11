@@ -77,33 +77,11 @@ if [ $# -eq 1 ] && [ "$1" = '-' ]; then
     done
 elif [ $# -gt 0 ]; then
     if [ "$isQuoted" ]; then
-	# Duplicated to echotrace
-	# Duplicated to ../../verbose/bin/verbose
-	quotedArgs=
-	for arg
-	do
-	    # Enclose in single quotes if it contains special characters (but not
-	    # non-space whitespace), and does not solely consist of that special
-	    # character (then, it's shorter to escape: \( vs. '(').
-	    if [[ "$arg" =~ [][$\ \`\"?\*{}()\&\;\!~] ]] && [[ ! "$arg" =~ [$'\n\r\t\v'] ]] &&  [ ${#arg} -gt 1 ]; then
-		if [[ "$arg" =~ \' ]]; then
-		    # Decide based on length whether to .\ \ \'\ \ . or '   '\''  .'
-		    printf -v sqArg %s "'${arg//\'/\'\\\'\'}'"
-		    sqArg="${sqArg#\'\'}"; sqArg="${sqArg%\'\'}"    # Empty '' at the beginning and end can be removed.
-		    printf -v arg %q "$arg"
-		    [ ${#sqArg} -lt ${#arg} ] && arg="$sqArg"
-		else
-		    printf -v arg %s "'${arg//\'/\'\\\'\'}'"
-		fi
-	    else
-		printf -v arg %q "$arg"
-	    fi
-	    quotedArgs+="${quotedArgs:+ }${arg}"
-	done
-	set -- "$quotedArgs"
+	PRETTYPRINTQUOTEDARGS_PREFIX="${prefix}$(eval "date \"\${dateArgs[@]}\" \"$dateFormat\"")${separator}" \
+	    exec prettyPrintQuotedArgs -- "$@"
+    else
+	printf '%s%s%s%s\n' "$prefix" "$(eval "date \"\${dateArgs[@]}\" \"$dateFormat\"")" "$separator" "$*"
     fi
-
-    printf '%s%s%s%s\n' "$prefix" "$(eval "date \"\${dateArgs[@]}\" \"$dateFormat\"")" "$separator" "$*"
 else
     [ -n "$prefix" ] && printf %s "$prefix"
     eval "date \"\${dateArgs[@]}\" \"$dateFormat\""
