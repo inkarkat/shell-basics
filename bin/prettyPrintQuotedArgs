@@ -1,0 +1,39 @@
+#!/bin/bash
+
+printUsage()
+{
+    cat <<HELPTEXT
+Pretty-print all supplied ARGS (separated by a space or
+PRETTYPRINTQUOTEDARGS_IFS) in a way that keeps them valid and allows
+copy-and-paste into a shell [script], yet also try to make them short and
+visually appealing, so they are easy to discern.
+HELPTEXT
+    echo
+    printf 'Usage: [PRETTYPRINTQUOTEDARGS_IFS=TEXT] [PRETTYPRINTQUOTEDARGS_PREFIX=TEXT] [PRETTYPRINTQUOTEDARGS_SUFFIX=TEXT] %q %s\n' "$(basename "$1")" '[--] [ARGS ...] [-?|-h|--help]'
+}
+case "$1" in
+    --help|-h|-\?)	shift; printUsage "$0"; exit 0;;
+    --)			shift;;
+esac
+
+for arg
+do
+    # Enclose in single quotes if it contains special characters (but not
+    # non-space whitespace), and does not solely consist of that special
+    # character (then, it's shorter to escape: \( vs. '(').
+    if [[ "$arg" =~ [][$\ \`\"?\*{}()\&\;\!~] ]] && [[ ! "$arg" =~ [$'\n\r\t\v'] ]] &&  [ ${#arg} -gt 1 ]; then
+	if [[ "$arg" =~ \' ]]; then
+	    # Decide based on length whether to .\ \ \'\ \ . or '   '\''  .'
+	    printf -v sqArg %s "'${arg//\'/\'\\\'\'}'"
+	    sqArg="${sqArg#\'\'}"; sqArg="${sqArg%\'\'}"    # Empty '' at the beginning and end can be removed.
+	    printf -v arg %q "$arg"
+	    [ ${#sqArg} -lt ${#arg} ] && arg="$sqArg"
+	else
+	    printf -v arg %s "'${arg//\'/\'\\\'\'}'"
+	fi
+    else
+	printf -v arg %q "$arg"
+    fi
+    quotedArgs+="${quotedArgs:+${PRETTYPRINTQUOTEDARGS_IFS:- }}${arg}"
+done
+[ -n "$quotedArgs" ] && printf '%s%s%s\n' "$PRETTYPRINTQUOTEDARGS_PREFIX" "$quotedArgs" "$PRETTYPRINTQUOTEDARGS_SUFFIX"
