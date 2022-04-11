@@ -26,23 +26,23 @@ do
 done
 
 if [ "$isVerbose" ]; then
-    shellquote()
-    {
-	case "$1" in
-	    *[$'\n\r\t\v']*)	    printf %q "$1";;
-	    *[$'\\ `\'\"?*[]!+']*)  printf %s "'${1//\'/\'\\\'\'}'";;
-	    *)			    printf %s "$1";;
-	esac
-    }
-
     let argCnt=$startIndex
     while [ $# -gt 0 ]
     do
-	printf >&2 '%s%s%s%s\n' "$verbosePrefix" "$argCnt" "$verboseSuffix" "$(shellquote "$1")"
+	PRETTYPRINTQUOTEDARGS_PREFIX="${verbosePrefix}${argCnt}${verboseSuffix}" \
+	    prettyPrintQuotedArgs -- "$1" >&2
 	shift
 	let argCnt+=1
     done
 else
     quotedArgs=; if [ $# -gt 0 ]; then printf -v quotedArgs '%q ' "$@"; quotedArgs=${quotedArgs% }; fi
-    [ -n "$quotedArgs" -o -n "${defaultPrefix}${defaultSuffix}" ] && printf '%s%s%s\n' "$defaultPrefix" "$quotedArgs" "$defaultSuffix"
+    if [ $# -gt 0 ]; then
+	PRETTYPRINTQUOTEDARGS_PREFIX="$defaultPrefix" \
+	    PRETTYPRINTQUOTEDARGS_SUFFIX="$defaultSuffix" \
+	    exec prettyPrintQuotedArgs -- "$@"
+    elif [ -n "${defaultPrefix}${defaultSuffix}" ]; then
+	printf '%s%s\n' "$defaultPrefix" "$defaultSuffix"
+    else
+	exit 1
+    fi >&2
 fi
