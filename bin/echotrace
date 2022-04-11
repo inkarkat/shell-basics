@@ -31,7 +31,7 @@ esac
 nestingPrefix=
 if [ $SHLVL -gt 3 ]; then
     nesting="${PS4:0:1}"
-    printf -v nestingPrefix "%$((SHLVL - 3))s" "${PS4:0:1}"; printf -v nestingPrefix %s "${nestingPrefix// /${PS4:0:1}}"
+    printf -v nestingPrefix "%$((SHLVL - 3))s" "$nesting"; printf -v nestingPrefix %s "${nestingPrefix// /$nesting}"
 fi
 tracePrefix="${nestingPrefix}${PS4:-\$ }"
 
