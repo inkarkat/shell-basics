@@ -7,7 +7,8 @@ printUsage()
 Change / canonicalize the quoting of ARGS to single quotes where necessary /
 $'...' for special whitespace.
 HELPTEXT
-    printf 'Usage: printf %%q ARGS [...] | %q %s\n' "$(basename "$1")" '[-s|--separator SEP] [-?|-h|--help]'
+    echo
+    printf "Usage: printf '%%q ' ARGS [...] | %q %s\\n" "$(basename "$1")" '[-s|--separator SEP] [-?|-h|--help]'
 }
 separator=' '
 case "$1" in
