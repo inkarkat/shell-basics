@@ -4,7 +4,7 @@ printShortUsage()
 {
     # Note: short followed by long option; if the user knows the short one, she can
     # skim the long one.
-    printf 'Usage: %q %s\n' "$(basename "$1")" '[-x|--ignore PATTERN] [-i[SUFFIX]|--in-place[=SUFFIX]] [--] [FILE ...] [-?|-h|--help]'
+    printf 'Usage: %q %s\n' "$(basename "$1")" '[-x|--ignore PATTERN [-x ...]] [-i[SUFFIX]|--in-place[=SUFFIX]] [--] [FILE ...] [-?|-h|--help]'
 }
 printUsage()
 {
@@ -43,7 +43,7 @@ while [ $# -ne 0 ]
 do
     case "$1" in
 	--help|-h|-\?)		shift; printLongUsage "$0"; exit 0;;
-	--ignore|-x)		shift; ignorePattern="$1"; shift;;
+	--ignore|-x)		shift; ignorePattern+="${ignorePattern:+|}${1:?}"; shift;;
 	-i|--in-place)		isInPlace=t; shift;;
 	-i?*|--in-place=*)	isInPlace=t; inPlaceExtension="${1#-i}"; inPlaceExtension="${inPlaceExtension#--in-place=}"; shift;;
 	--)			shift; break;;
