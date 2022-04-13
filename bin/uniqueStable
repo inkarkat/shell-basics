@@ -67,9 +67,9 @@ fi
 
 
 exec "${awkCall[@]}" \
-    -v "skipPattern=${skipPattern//\/\\}" \
-    -v "matchPattern=${matchPattern//\/\\}" \
-    -v "ignorePattern=${ignorePattern//\/\\}" \
+    -v "skipPattern=${skipPattern//\\/\\\\}" \
+    -v "matchPattern=${matchPattern//\\/\\\\}" \
+    -v "ignorePattern=${ignorePattern//\\/\\\\}" \
 '
 {
     if (ignorePattern != "" && $0 ~ ignorePattern) {
