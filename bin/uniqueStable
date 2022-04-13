@@ -4,7 +4,7 @@ printShortUsage()
 {
     # Note: short followed by long option; if the user knows the short one, she can
     # skim the long one.
-    printf 'Usage: %q %s\n' "$(basename "$1")" '[-e|--exclude PATTERN] [-i[SUFFIX]|--in-place[=SUFFIX]] [--] [FILE ...] [-?|-h|--help]'
+    printf 'Usage: %q %s\n' "$(basename "$1")" '[-s|--skip PATTERN [-s ...]] [-m|--match PATTERN [-m ...]] [-x|--ignore PATTERN [-x ...]] [-i[SUFFIX]|--in-place[=SUFFIX]] [--] [FILE ...] [-?|-h|--help]'
 }
 printUsage()
 {
@@ -26,11 +26,17 @@ HELPDESCRIPTION
     cat <<HELPTEXT
 Filters FILE(s) (or standard input) so that each line is contained only once (in
 its first occurrence, across all FILEs).
-    --in-place[=SUFFIX]|-i[SUFFIX]  Edit FILE(s) in place (makes backup if
-				    SUFFIX supplied).
-    -e|--exclude PATTERN	    Keep duplicate lines matching PATTERN. For
-				    example, use '^[ \\t]\$' to keep all lines
-				    that are empty or contain just whitespace.
+    --in-place[=SUFFIX]|-i[SUFFIX]
+			Edit FILE(s) in place (makes backup if SUFFIX supplied).
+    --skip|-s PATTERN	Do not consider the parts of the line that match
+			PATTERN.
+    --match|-m PATTERN	Only consider the parts of the line that match PATTERN.
+			Other parts (and those parts that also match --skip
+			PATTERN) are ignored when comparing with other lines for
+			uniqueness.
+    --ignore|-x PATTERN	Keep duplicate lines matching PATTERN. For example, use
+			'^[ \\t]\$' to keep all lines that are empty or contain
+			just whitespace.
 All PATTERNs are AWK-style extended regular expressions.
 HELPTEXT
 }
@@ -38,12 +44,16 @@ HELPTEXT
 typeset -a awkCall=(awk)
 isInPlace=
 inPlaceExtension=
-excludePattern=
+skipPattern=
+matchPattern=
+ignorePattern=
 while [ $# -ne 0 ]
 do
     case "$1" in
 	--help|-h|-\?)		shift; printLongUsage "$0"; exit 0;;
-	--exclude|-e)		shift; excludePattern="$1"; shift;;
+	--skip|-s)		shift; skipPattern+="${skipPattern:+|}${1:?}"; shift;;
+	--match|-m)		shift; matchPattern+="${matchPattern:+|}${1:?}"; shift;;
+	--ignore|-x)		shift; ignorePattern+="${ignorePattern:+|}${1:?}"; shift;;
 	-i|--in-place)		isInPlace=t; shift;;
 	-i?*|--in-place=*)	isInPlace=t; inPlaceExtension="${1#-i}"; inPlaceExtension="${inPlaceExtension#--in-place=}"; shift;;
 	--)			shift; break;;
@@ -56,13 +66,37 @@ if [ "$isInPlace" ]; then
 fi
 
 
-exec "${awkCall[@]}" -v excludePattern="$excludePattern" '
+exec "${awkCall[@]}" \
+    -v "skipPattern=${skipPattern//\\/\\\\}" \
+    -v "matchPattern=${matchPattern//\\/\\\\}" \
+    -v "ignorePattern=${ignorePattern//\\/\\\\}" \
+'
 {
-    if (excludePattern != "" && $0 ~ excludePattern) {
+    if (ignorePattern != "" && $0 ~ ignorePattern) {
 	print
 	next
     }
-    if (!seen[$0]++) {
+
+    lineIdentity = $0
+    if (matchPattern != "") {
+	nonMatchNum = split(lineIdentity, ignoredMatches, matchPattern, nonMatches)
+	matchResult = ""
+	for (i = 0; i <= nonMatchNum; ++i) {
+	    matchResult = matchResult nonMatches[i]
+	}
+	lineIdentity = matchResult
+    }
+
+    if (skipPattern != "" && lineIdentity ~ skipPattern) {
+	matchNum = split(lineIdentity, matches, skipPattern)
+	skipResult = ""
+	for (i = 1; i <= matchNum; ++i) {
+	    skipResult = skipResult matches[i]
+	}
+	lineIdentity = skipResult
+    }
+
+    if (! seen[lineIdentity]++) {
 	print
     }
 }
