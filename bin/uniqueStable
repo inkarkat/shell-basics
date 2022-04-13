@@ -71,23 +71,6 @@ exec "${awkCall[@]}" \
     -v "matchPattern=${matchPattern//\\/\\\\}" \
     -v "ignorePattern=${ignorePattern//\\/\\\\}" \
 '
-function replaceAnchors( t )
-{
-    # Replace anchors with a newline, then undo the replacement for escaped
-    # ones.
-    t = gensub(/\^/, "\n", "g", t)
-    t = gensub(/((\\\\)*)\\\n/, "\\1\\\\^", "g", t)
-    t = gensub(/\$/, "\n", "g", t)
-    t = gensub(/((\\\\)*)\\\n/, "\\1\\\\$", "g", t)
-    return t
-
-    # XXX: We have to do it this way around, because the \xhex or \ddd special
-    # string constants are always rendered into the string; i.e. there is no way
-    # to first render escaped anchors into \xhex and then replace unescaped
-    # anchors with newlines:
-    #t = gensub(/((\\\\)*)\\\^/, "\\1\\\\\x5e", "g", t)
-    #t = gensub(/\^/, "\\\\n", "g", t)
-}
 {
     if (ignorePattern != "" && $0 ~ ignorePattern) {
 	print
@@ -96,24 +79,19 @@ function replaceAnchors( t )
 
     lineIdentity = $0
     if (matchPattern != "") {
-	# XXX: Anchors (^ and $) would match on each split-off element again,
-	# but we intend them to anchor to the whole line here. That can be
-	# achieved by enclosing the whole line and then matching with a
-	# character (that is guaranteed to not occur - a newline is the only
-	# candidate as we are processing arbitrary lines).
-	matchNum = patsplit("\n" lineIdentity "\n", matches, replaceAnchors(matchPattern))
+	nonMatchNum = split(lineIdentity, ignoredMatches, matchPattern, nonMatches)
 	matchResult = ""
-	for (i = 1; i <= matchNum; ++i) {
-	    matchResult = matchResult matches[i]
+	for (i = 0; i <= nonMatchNum; ++i) {
+	    matchResult = matchResult nonMatches[i]
 	}
-	lineIdentity = gensub(/\n/, "", "g", matchResult)
+	lineIdentity = matchResult
     }
 
     if (skipPattern != "" && lineIdentity ~ skipPattern) {
-	nonMatchNum = patsplit(lineIdentity, matches, skipPattern, nonMatches)
+	matchNum = split(lineIdentity, matches, skipPattern)
 	skipResult = ""
-	for (i = 0; i <= nonMatchNum; ++i) {
-	    skipResult = skipResult nonMatches[i]
+	for (i = 1; i <= matchNum; ++i) {
+	    skipResult = skipResult matches[i]
 	}
 	lineIdentity = skipResult
     }
