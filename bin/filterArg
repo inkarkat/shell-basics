@@ -1,0 +1,30 @@
+#!/bin/bash
+shopt -qs extglob # Enable extended file pattern matching operators from ksh (?(pattern-list), !(pattern-list), ...) in Bash.
+
+printUsage()
+{
+    cat <<HELPTEXT
+Only print those HAYSTACK argument(s) on separate lines that are equal to (with
+-v|--remove: are not equal to) NEEDLE. Returns 1 if there are no results.
+HELPTEXT
+    echo
+    printf 'Usage: %q %s\n' "$(basename "$1")" "[-v|--remove] [--] NEEDLE [HAYSTACK ...] [-?|-h|--help]"
+}
+isRemove=
+case "$1" in
+    --help|-h|-\?)	shift; printUsage "$0"; exit 0;;
+    --remove|-v)	shift; isRemove=t;;
+    --)			shift;;
+esac
+
+needle="$1"; shift
+hasMatch=
+for elem
+do
+    if [ "$needle" = "$elem" ]; then
+	[ "$isRemove" ] || { printf '%s\n' "$elem"; hasMatch=t; }
+    else
+	[ "$isRemove" ] && { printf '%s\n' "$elem"; hasMatch=t; }
+    fi
+done
+[ "$hasMatch" ]
