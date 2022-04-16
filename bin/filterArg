@@ -1,23 +1,49 @@
 #!/bin/bash
 shopt -qs extglob # Enable extended file pattern matching operators from ksh (?(pattern-list), !(pattern-list), ...) in Bash.
 
+printShortUsage()
+{
+    # Note: short followed by long option; if the user knows the short one, she can
+    # skim the long one.
+    printf 'Usage: [FILTERARGS_UNTIL=VALUE] %q %s\n' "$(basename "$1")" "[-1|--first] [-v|--remove] [--] NEEDLE [HAYSTACK ...] [-?|-h|--help]"
+}
 printUsage()
 {
-    cat <<HELPTEXT
-Only print those HAYSTACK argument(s) on separate lines that are equal to (with
--v|--remove: are not equal to) NEEDLE. Returns 1 if there are no results.
-Only considers values in HAYSTACK until one is equal to the FILTERARGS_UNTIL
-value.
-HELPTEXT
+    # This is the short help when launched with no or incorrect arguments.
+    # It is printed to stderr to avoid accidental processing.
+    printShortUsage "$1" >&2
+    printf >&2 '\nTry %q --help for more information.\n' "$(basename "$1")"
+}
+printLongUsage()
+{
+    # This is the long "man page" when launched with the help argument.
+    # It is printed to stdout to allow paging with 'more'.
+    cat <<HELPDESCRIPTION
+Only print those HAYSTACK argument(s) on separate lines that are equal to
+NEEDLE.
+HELPDESCRIPTION
     echo
-    printf 'Usage: [FILTERARGS_UNTIL=VALUE] %q %s\n' "$(basename "$1")" "[-1|--first] [-v|--remove] [--] NEEDLE [HAYSTACK ...] [-?|-h|--help]"
+    printShortUsage "$1"
+    echo
+    cat <<HELPTEXT
+    --first|-1		Stop after printing the first (non-)equal argument.
+    --remove|-v		Invert the check: Only HAYSTACK arguments that are not
+			equal are printed.
+    Only considers values in HAYSTACK until one is equal to the FILTERARGS_UNTIL
+    value.
+
+EXIT STATUS:
+    0	Complete success.
+    1	No results.
+    2	Bad invocation, wrong or missing command-line arguments.
+HELPTEXT
 }
 isFirst=
 isRemove=
 while [ $# -ne 0 ]
 do
     case "$1" in
-	--help|-h|-\?)	shift; printUsage "$0"; exit 0;;
+	--help|-h|-\?)	shift; printLongUsage "$0"; exit 0;;
 	--first|-1)	shift; isFirst=t;;
 	--remove|-v)	shift; isRemove=t;;
 	--)		shift; break;;
