@@ -8,11 +8,11 @@ a) Encode FILESPEC for use as a filename; i.e. escape all forbidden characters
    FILESPEC into an absolute path (so at least FILESPEC's directory has to
    exist) unless --as-is is given.
 HELPTEXT
-    printf 'Usage: %q %s\n' "$(basename "$1")" '[--as-is] -e|--encode [--] FILESPEC [-?|-h|--help]'
+    printf 'Usage: %q %s\n' "$(basename "$1")" '[--as-is] -e|--encode [--] FILESPEC [...] [-?|-h|--help]'
     cat <<HELPTEXT
 b) Decode ENCODED into a filespec.
 HELPTEXT
-    printf 'Usage: %q %s\n' "$(basename "$1")" '-d|--decode [--] ENCODED [-?|-h|--help]'
+    printf 'Usage: %q %s\n' "$(basename "$1")" '-d|--decode [--] ENCODED [...] [-?|-h|--help]'
 }
 
 isAsIs=
@@ -29,7 +29,7 @@ do
 	*)		break;;
     esac
 done
-if [ -z "$action" -o $# -ne 1 ]; then
+if [ -z "$action" -o $# -eq 0 ]; then
     printUsage "$0" >&2
     exit 2
 fi
@@ -40,7 +40,7 @@ encode()
     if [ "$isAsIs" ]; then
 	absoluteFilespec="$1"
     else
-	absoluteFilespec="$(realpath --no-symlinks -- "$1")" || exit $?
+	absoluteFilespec="$(realpath --no-symlinks -- "$1")" || return $?
 	[ "$HOME" -a -d "$HOME" ] && absoluteFilespec="${absoluteFilespec/#${HOME%/}/\~}"
     fi
 
@@ -61,4 +61,9 @@ decode()
     printf '%s\n' "$filespec"
 }
 
-$action
+status=0
+for arg
+do
+    $action "$arg" || status=$?
+done
+exit $status
