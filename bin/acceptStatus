@@ -12,11 +12,15 @@ COMMAND to succeed), exit status 0 is returned as ${SUCCESS_STATUS}.
 Useful for applications that indicate special (but benign) situations with
 particular exit statuses in a cron job that otherwise would indiscriminately
 send an email on any application failure.
-See also: fail prints a message if the expectation isn't met and integrates with
-command-alerting, so is meant for interactive use.
 HELPTEXT
     echo
     printf "Usage: [SUCCESS_STATUS=${SUCCESS_STATUS}] %q %s\\n" "$(basename "$1")" 'STATUS|-S|[!]S|S+|S-T|S%T [...] [--] COMMAND [ARG ...] [-?|-h|--help]'
+    echo
+    cat <<HELPTEXT
+See also: succeedThis, failThis, negatethis
+See also: fail prints a message if the expectation isn't met and integrates with
+command-alerting, so is meant for interactive use.
+HELPTEXT
 }
 
 typeset -A acceptedStatuses=()

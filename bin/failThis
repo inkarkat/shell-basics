@@ -6,7 +6,12 @@ printUsage()
     cat <<HELPTEXT
 Fail the supplied command [with STATUS], regardless of its actual exit status.
 HELPTEXT
+    echo
     printf 'Usage: %q %s\n' "$(basename "$1")" '[--|STATUS] COMMAND [ARG ...] [-?|-h|--help]'
+    echo
+    cat <<HELPTEXT
+See also: succeedThis, negateThis, acceptStatus
+HELPTEXT
 }
 expectedStatus=1
 case "$1" in
