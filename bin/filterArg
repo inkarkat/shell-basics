@@ -6,9 +6,11 @@ printUsage()
     cat <<HELPTEXT
 Only print those HAYSTACK argument(s) on separate lines that are equal to (with
 -v|--remove: are not equal to) NEEDLE. Returns 1 if there are no results.
+Only considers values in HAYSTACK until one is equal to the FILTERARGS_UNTIL
+value.
 HELPTEXT
     echo
-    printf 'Usage: %q %s\n' "$(basename "$1")" "[-v|--remove] [--] NEEDLE [HAYSTACK ...] [-?|-h|--help]"
+    printf 'Usage: [FILTERARGS_UNTIL=VALUE] %q %s\n' "$(basename "$1")" "[-v|--remove] [--] NEEDLE [HAYSTACK ...] [-?|-h|--help]"
 }
 isRemove=
 case "$1" in
@@ -21,6 +23,8 @@ needle="$1"; shift
 hasMatch=
 for elem
 do
+    [ -n "$FILTERARGS_UNTIL" ] && [ "$FILTERARGS_UNTIL" = "$elem" ] && break
+
     if [ "$needle" = "$elem" ]; then
 	[ "$isRemove" ] || { printf '%s\n' "$elem"; hasMatch=t; }
     else
