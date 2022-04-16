@@ -1,11 +1,10 @@
 #!/bin/bash
-shopt -qs extglob # Enable extended file pattern matching operators from ksh (?(pattern-list), !(pattern-list), ...) in Bash.
 
 printShortUsage()
 {
     # Note: short followed by long option; if the user knows the short one, she can
     # skim the long one.
-    printf 'Usage: [FILTERGLOB_UNTIL=VALUE] %q %s\n' "$(basename "$1")" "[-1|--first] [-v|--remove] [--] 'GLOB' [ARG ...] [-?|-h|--help]"
+    printf 'Usage: [FILTERARGS_UNTIL=VALUE] %q %s\n' "$(basename "$1")" "[-1|--first] [-v|--remove] [--] NEEDLE [HAYSTACK ...] [-?|-h|--help]"
 }
 printUsage()
 {
@@ -19,16 +18,17 @@ printLongUsage()
     # This is the long "man page" when launched with the help argument.
     # It is printed to stdout to allow paging with 'more'.
     cat <<HELPDESCRIPTION
-Only print those ARG(s) on separate lines that match GLOB.
+Only print those HAYSTACK argument(s) on separate lines that are equal to
+NEEDLE.
 HELPDESCRIPTION
     echo
     printShortUsage "$1"
     echo
     cat <<HELPTEXT
-    --first|-1		Stop after printing the first (non-)matching argument.
-    --remove|-v		Invert the check: Only arguments that do not match are
-			printed.
-    Only considers values in ARG until one is equal to the FILTERGLOB_UNTIL
+    --first|-1		Stop after printing the first (non-)equal argument.
+    --remove|-v		Invert the check: Only HAYSTACK arguments that are not
+			equal are printed.
+    Only considers values in HAYSTACK until one is equal to the FILTERARGS_UNTIL
     value.
 
 EXIT STATUS:
@@ -51,15 +51,16 @@ do
     esac
 done
 
-glob="$1"; shift
+needle="$1"; shift
 hasMatch=
 for elem
 do
-    [ -n "$FILTERGLOB_UNTIL" ] && [ "$FILTERGLOB_UNTIL" = "$elem" ] && break
+    [ -n "$FILTERARGS_UNTIL" ] && [ "$FILTERARGS_UNTIL" = "$elem" ] && break
 
-    case "$elem" in
-	@($glob))   [ "$isRemove" ] || { printf '%s\n' "$elem"; hasMatch=t; [ "$isFirst" ] && exit 0; };;
-	*)	    [ "$isRemove" ] && { printf '%s\n' "$elem"; hasMatch=t; [ "$isFirst" ] && exit 0; };;
-    esac
+    if [ "$needle" = "$elem" ]; then
+	[ "$isRemove" ] || { printf '%s\n' "$elem"; hasMatch=t; [ "$isFirst" ] && exit 0; }
+    else
+	[ "$isRemove" ] && { printf '%s\n' "$elem"; hasMatch=t; [ "$isFirst" ] && exit 0; }
+    fi
 done
 [ "$hasMatch" ]
