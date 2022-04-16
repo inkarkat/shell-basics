@@ -10,14 +10,21 @@ Only considers values in HAYSTACK until one is equal to the FILTERARGS_UNTIL
 value.
 HELPTEXT
     echo
-    printf 'Usage: [FILTERARGS_UNTIL=VALUE] %q %s\n' "$(basename "$1")" "[-v|--remove] [--] NEEDLE [HAYSTACK ...] [-?|-h|--help]"
+    printf 'Usage: [FILTERARGS_UNTIL=VALUE] %q %s\n' "$(basename "$1")" "[-1|--first] [-v|--remove] [--] NEEDLE [HAYSTACK ...] [-?|-h|--help]"
 }
+isFirst=
 isRemove=
-case "$1" in
-    --help|-h|-\?)	shift; printUsage "$0"; exit 0;;
-    --remove|-v)	shift; isRemove=t;;
-    --)			shift;;
-esac
+while [ $# -ne 0 ]
+do
+    case "$1" in
+	--help|-h|-\?)	shift; printUsage "$0"; exit 0;;
+	--first|-1)	shift; isFirst=t;;
+	--remove|-v)	shift; isRemove=t;;
+	--)		shift; break;;
+	-*)		{ echo "ERROR: Unknown option \"$1\"!"; echo; printUsage "$0"; } >&2; exit 2;;
+	*)		break;;
+    esac
+done
 
 needle="$1"; shift
 hasMatch=
@@ -26,9 +33,9 @@ do
     [ -n "$FILTERARGS_UNTIL" ] && [ "$FILTERARGS_UNTIL" = "$elem" ] && break
 
     if [ "$needle" = "$elem" ]; then
-	[ "$isRemove" ] || { printf '%s\n' "$elem"; hasMatch=t; }
+	[ "$isRemove" ] || { printf '%s\n' "$elem"; hasMatch=t; [ "$isFirst" ] && exit 0; }
     else
-	[ "$isRemove" ] && { printf '%s\n' "$elem"; hasMatch=t; }
+	[ "$isRemove" ] && { printf '%s\n' "$elem"; hasMatch=t; [ "$isFirst" ] && exit 0; }
     fi
 done
 [ "$hasMatch" ]
