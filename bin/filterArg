@@ -1,5 +1,4 @@
 #!/bin/bash
-shopt -qs extglob # Enable extended file pattern matching operators from ksh (?(pattern-list), !(pattern-list), ...) in Bash.
 
 printShortUsage()
 {
