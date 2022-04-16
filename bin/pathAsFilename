@@ -8,11 +8,16 @@ a) Encode FILESPEC for use as a filename; i.e. escape all forbidden characters
    FILESPEC into an absolute path (so at least FILESPEC's directory has to
    exist) unless --as-is is given.
 HELPTEXT
+    echo
     printf 'Usage: %q %s\n' "$(basename "$1")" '[--as-is] -e|--encode [--] FILESPEC [...] [-?|-h|--help]'
+    printf 'Usage: cat FILE [...] | %q %s\n' "$(basename "$1")" '[--as-is] -e|--encode [-]'
+    echo
     cat <<HELPTEXT
 b) Decode ENCODED into a filespec.
 HELPTEXT
+    echo
     printf 'Usage: %q %s\n' "$(basename "$1")" '-d|--decode [--] ENCODED [...] [-?|-h|--help]'
+    printf 'Usage: cat FILE [...] | %q %s\n' "$(basename "$1")" '-d|--decode [-]'
 }
 
 isAsIs=
@@ -25,15 +30,18 @@ do
 	--encode|-e)	shift; action=encode;;
 	--decode|-d)	shift; action=decode;;
 	--)		shift; break;;
+	-)		break;;	# For supporting special - FILE without prior --
 	-*)		{ echo "ERROR: Unknown option \"$1\"!"; echo; printUsage "$0"; } >&2; exit 2;;
 	*)		break;;
     esac
 done
-if [ -z "$action" -o $# -eq 0 ]; then
+if [ -z "$action" ]; then
     printUsage "$0" >&2
     exit 2
+elif [ $# -eq 0 -o "$1" = '-' ]; then
+    readarray -t args
+    set -- "${args[@]}"
 fi
-
 
 encode()
 {
