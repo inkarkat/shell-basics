@@ -29,34 +29,36 @@ do
 	*)		break;;
     esac
 done
-if ! [ "$action" -a $# -eq 1 ]; then
+if [ -z "$action" -o $# -ne 1 ]; then
     printUsage "$0" >&2
     exit 2
 fi
 
 
-case "$action" in
-    encode)
-	if [ "$isAsIs" ]; then
-	    absoluteFilespec="$1"
-	else
-	    absoluteFilespec="$(realpath --no-symlinks -- "$1")" || exit $?
-	    [ "$HOME" -a -d "$HOME" ] && absoluteFilespec="${absoluteFilespec/#${HOME%/}/\~}"
-	fi
+encode()
+{
+    if [ "$isAsIs" ]; then
+	absoluteFilespec="$1"
+    else
+	absoluteFilespec="$(realpath --no-symlinks -- "$1")" || exit $?
+	[ "$HOME" -a -d "$HOME" ] && absoluteFilespec="${absoluteFilespec/#${HOME%/}/\~}"
+    fi
 
-	name="$absoluteFilespec"
-	name="${name//=/==}"
-	name="${name//\//=+}"
-	name="${name//:/=-}"
-	printf '%s\n' "$name"
-	;;
-    decode)
-	filespec="$1"
-	filespec="${filespec//=-/:}"
-	filespec="${filespec//=+/\/}"
-	filespec="${filespec//==/=}"
-	[ "$HOME" -a -d "$HOME" ] && filespec="${filespec/#~\//${HOME%/}\/}"
-	printf '%s\n' "$filespec"
-	;;
-    *)	printf >&2 'ASSERT: Invalid action: %s\n' "$action"; exit 2;;
-esac
+    name="$absoluteFilespec"
+    name="${name//=/==}"
+    name="${name//\//=+}"
+    name="${name//:/=-}"
+    printf '%s\n' "$name"
+}
+
+decode()
+{
+    filespec="$1"
+    filespec="${filespec//=-/:}"
+    filespec="${filespec//=+/\/}"
+    filespec="${filespec//==/=}"
+    [ "$HOME" -a -d "$HOME" ] && filespec="${filespec/#~\//${HOME%/}\/}"
+    printf '%s\n' "$filespec"
+}
+
+$action
