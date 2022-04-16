@@ -1,29 +1,65 @@
 #!/bin/bash
 shopt -qs extglob # Enable extended file pattern matching operators from ksh (?(pattern-list), !(pattern-list), ...) in Bash.
 
+printShortUsage()
+{
+    # Note: short followed by long option; if the user knows the short one, she can
+    # skim the long one.
+    printf 'Usage: [FILTERGLOB_UNTIL=VALUE] %q %s\n' "$(basename "$1")" "[-1|--first] [-v|--remove] [--] 'GLOB' [ARG ...] [-?|-h|--help]"
+}
 printUsage()
 {
-    cat <<HELPTEXT
-Only print those ARG(s) on separate lines that match (with -v|--remove: don't
-match) GLOB. Returns 1 if there are no results.
-HELPTEXT
-    echo
-    printf 'Usage: %q %s\n' "$(basename "$1")" "[-v|--remove] [--] 'GLOB' [ARG ...] [-?|-h|--help]"
+    # This is the short help when launched with no or incorrect arguments.
+    # It is printed to stderr to avoid accidental processing.
+    printShortUsage "$1" >&2
+    printf >&2 '\nTry %q --help for more information.\n' "$(basename "$1")"
 }
+printLongUsage()
+{
+    # This is the long "man page" when launched with the help argument.
+    # It is printed to stdout to allow paging with 'more'.
+    cat <<HELPDESCRIPTION
+Only print those ARG(s) on separate lines that match GLOB.
+HELPDESCRIPTION
+    echo
+    printShortUsage "$1"
+    echo
+    cat <<HELPTEXT
+    --first|-1		Stop after printing the first (non-)matching argument.
+    --remove|-v		Invert the check: Only arguments that do not match are
+			printed.
+    Only considers values in ARG until one is equal to the FILTERGLOB_UNTIL
+    value.
+
+EXIT STATUS:
+    0	Complete success.
+    1	No results.
+    2	Bad invocation, wrong or missing command-line arguments.
+HELPTEXT
+}
+isFirst=
 isRemove=
-case "$1" in
-    --help|-h|-\?)	shift; printUsage "$0"; exit 0;;
-    --remove|-v)	shift; isRemove=t;;
-    --)			shift;;
-esac
+while [ $# -ne 0 ]
+do
+    case "$1" in
+	--help|-h|-\?)	shift; printLongUsage "$0"; exit 0;;
+	--first|-1)	shift; isFirst=t;;
+	--remove|-v)	shift; isRemove=t;;
+	--)		shift; break;;
+	-*)		{ echo "ERROR: Unknown option \"$1\"!"; echo; printUsage "$0"; } >&2; exit 2;;
+	*)		break;;
+    esac
+done
 
 glob="$1"; shift
 hasMatch=
 for elem
 do
+    [ -n "$FILTERGLOB_UNTIL" ] && [ "$FILTERGLOB_UNTIL" = "$elem" ] && break
+
     case "$elem" in
-	@($glob))   [ "$isRemove" ] || { printf '%s\n' "$elem"; hasMatch=t; };;
-	*)	    [ "$isRemove" ] && { printf '%s\n' "$elem"; hasMatch=t; };;
+	@($glob))   [ "$isRemove" ] || { printf '%s\n' "$elem"; hasMatch=t; [ "$isFirst" ] && exit 0; };;
+	*)	    [ "$isRemove" ] && { printf '%s\n' "$elem"; hasMatch=t; [ "$isFirst" ] && exit 0; };;
     esac
 done
 [ "$hasMatch" ]
