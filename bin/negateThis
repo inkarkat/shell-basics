@@ -4,13 +4,14 @@ shopt -qs extglob
 printUsage()
 {
     cat <<HELPTEXT
-Succeed the supplied command, regardless of its actual exit status.
+Negate the exit status of the supplied command; a success turns into 1 and any
+failure into 0.
 HELPTEXT
     echo
     printf 'Usage: %q %s\n' "$(basename "$1")" '[--] COMMAND [ARG ...] [-?|-h|--help]'
     echo
     cat <<HELPTEXT
-See also: failThis, negateThis, acceptStatus
+See also: succeedThis, failThis, acceptStatus
 HELPTEXT
 }
 case "$1" in
@@ -24,5 +25,4 @@ if [ $# -eq 0 ]; then
     exit 2
 fi
 
-"$@"
-exit 0
+"$@" && exit 1 || exit 0
