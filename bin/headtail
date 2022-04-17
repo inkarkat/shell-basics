@@ -32,8 +32,10 @@ HELPDESCRIPTION
     --lines|-n NUM	Print NUM lines instead of the default $DEFAULT_LINES.
     --separator|-s HEAD-TAIL-SEPARATOR
 			Print HEAD-TAIL-SEPARATOR between the first and last
-			lines. Inside, {} is replaced with the number of omitted
-			lines.
+			lines. If only one line would be omitted, print the
+			NUM+1 one instead. Inside, {} is replaced with the
+			number (2 or more, because a single would-be omitted
+			line does not print the separator) of omitted lines.
     --quiet|-q		Do not precede each FILE with a header.
     --verbose|-v	Precede with header even if processing just one FILE.
     By default, each FILE is precedes with a header giving the file name if more
@@ -71,11 +73,14 @@ exec awk \
     -v "separator=${separator//\\/\\\\}" \
     -v "header=$header" \
 '
-function printHeadTail(      start, i)
+function printHeadTail(      omittedNum, start, i)
 {
     if (bufCnt > lines && separator != "") {
-	if (separator ~ /\{\}/) {
-	    print gensub(/\{\}/, bufCnt - lines, "g", separator)
+	omittedNum = (bufCnt - lines)
+	if (omittedNum == 1) {
+	    print plusOneLine
+	} else if (separator ~ /\{\}/) {
+	    print gensub(/\{\}/, omittedNum, "g", separator)
 	} else {
 	    print separator
 	}
@@ -100,6 +105,9 @@ FNR == 1 {
 FNR <= lines {
     print
     next
+}
+FNR == (lines + 1) {
+    plusOneLine = $0
 }
 {
     buf[((FNR - 1) % lines) + 1] = $0
