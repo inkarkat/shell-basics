@@ -3,15 +3,38 @@ shopt -qs extglob
 
 DEFAULT_LINES=5
 
+printShortUsage()
+{
+    # Note: short followed by long option; if the user knows the short one, she can
+    # skim the long one.
+    printf 'Usage: %q %s\n' "$(basename "$1")" '[-n|--lines=NUM] [-q|--quiet|--silent|-v|--verbose] [--] [FILE ...] [-?|-h|--help]'
+    printf 'Usage: cat FILE [...] | %q %s\n' "$(basename "$1")" '[...] [-]'
+}
 printUsage()
 {
-    cat <<HELPTEXT
+    # This is the short help when launched with no or incorrect arguments.
+    # It is printed to stderr to avoid accidental processing.
+    printShortUsage "$1" >&2
+    printf >&2 '\nTry %q --help for more information.\n' "$(basename "$1")"
+}
+printLongUsage()
+{
+    # This is the long "man page" when launched with the help argument.
+    # It is printed to stdout to allow paging with 'more'.
+    cat <<HELPDESCRIPTION
 Print the first $DEFAULT_LINES and last $DEFAULT_LINES lines of each FILE to standard output (handling
-overlaps). With more than one FILE, precede each with a header giving the file
-name.
-HELPTEXT
+overlaps).
+HELPDESCRIPTION
     echo
-    printf 'Usage: %q %s\n' "$(basename "$1")" '[-n|--lines=NUM] [-q|--quiet|--silent|-v|--verbose] [--] [FILE ...] [-?|-h|--help]'
+    printShortUsage "$1"
+    echo
+    cat <<HELPTEXT
+    --lines|-n NUM	Print NUM lines instead of the default $DEFAULT_LINES.
+    --quiet|-q		Do not precede each FILE with a header.
+    --verbose|-v	Precede with header even if processing just one FILE.
+    By default, each FILE is precedes with a header giving the file name if more
+    than one FILE is given.
+HELPTEXT
 }
 
 lines=$DEFAULT_LINES
@@ -19,7 +42,7 @@ header=auto
 while [ $# -ne 0 ]
 do
     case "$1" in
-	--help|-h|-\?)	shift; printUsage "$0"; exit 0;;
+	--help|-h|-\?)	shift; printLongUsage "$0"; exit 0;;
 	--lines|-n)	shift
 			case "$1" in
 			    +([0-9]))	lines="$1"; shift;;
