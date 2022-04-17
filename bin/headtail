@@ -7,7 +7,7 @@ printShortUsage()
 {
     # Note: short followed by long option; if the user knows the short one, she can
     # skim the long one.
-    printf 'Usage: %q %s\n' "$(basename "$1")" '[-n|--lines=NUM] [-q|--quiet|--silent|-v|--verbose] [--] [FILE ...] [-?|-h|--help]'
+    printf 'Usage: %q %s\n' "$(basename "$1")" '[-n|--lines=NUM] [-s|--separator HEAD-TAIL-SEPARATOR] [-q|--quiet|--silent|-v|--verbose] [--] [FILE ...] [-?|-h|--help]'
     printf 'Usage: cat FILE [...] | %q %s\n' "$(basename "$1")" '[...] [-]'
 }
 printUsage()
@@ -30,6 +30,9 @@ HELPDESCRIPTION
     echo
     cat <<HELPTEXT
     --lines|-n NUM	Print NUM lines instead of the default $DEFAULT_LINES.
+    --separator|-s HEAD-TAIL-SEPARATOR
+			Print HEAD-TAIL-SEPARATOR between the first and last
+			lines.
     --quiet|-q		Do not precede each FILE with a header.
     --verbose|-v	Precede with header even if processing just one FILE.
     By default, each FILE is precedes with a header giving the file name if more
@@ -38,6 +41,7 @@ HELPTEXT
 }
 
 lines=$DEFAULT_LINES
+separator=
 header=auto
 while [ $# -ne 0 ]
 do
@@ -50,6 +54,7 @@ do
 			esac
 			;;
 	--lines=*)	lines="${1#--lines=}"; shift;;
+	--separator|-s)	shift; separator="$1"; shift;;
 	--silent|--quiet|-q)
 			shift; header=no;;
 	--verbose|-v)	shift; header=yes;;
@@ -62,12 +67,16 @@ done
 
 exec awk \
     -v "lines=$lines" \
+    -v "separator=${separator//\\/\\\\}" \
     -v "header=$header" \
 '
 function printHeadTail(      start, i)
 {
-    start = (bufCnt < lines ? lines - bufCnt + 1 : 1)
+    if (bufCnt > lines && separator != "") {
+	print separator
+    }
 
+    start = (bufCnt < lines ? lines - bufCnt + 1 : 1)
     for (i = start; i <= lines; i++)
 	print buf[((lastNr + i - 1) % lines) + 1]
 
