@@ -44,7 +44,7 @@ HELPTEXT
 }
 
 typeset -a dateArgs=()
-dateFormat='+%d-%b-%Y${separator}%T${millis}'
+dateFormat='+%d-%b-%Y${fieldSeparator- }%T${millis}'
 separator=' '
 millis=',%3N'
 unset fieldSeparator
