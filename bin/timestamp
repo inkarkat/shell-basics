@@ -4,8 +4,8 @@ printShortUsage()
 {
     # Note: short followed by long option; if the user knows the short one, she can
     # skim the long one.
-    printf 'Usage: %q %s\n' "$(basename "$1")" '[--human|--short|--sortable] [--no-millis] [-f|--field-separator SEP] [-d|--date DATE] [--prefix PREFIX] [[--quoted] [--] MESSAGE [...]] [-?|-h|--help]'
-    printf 'Usage: cat FILE [...] | %q %s\n' "$(basename "$1")" '[...] [-s|--separator SEP] -'
+    printf 'Usage: %q %s\n' "$(basename "$1")" '[--human|--short|--sortable] [--no-millis] [-s|--separator SEP] [-f|--field-separator SEP] [-d|--date DATE] [--prefix PREFIX] [[--quoted] [--] MESSAGE [...]] [-?|-h|--help]'
+    printf 'Usage: cat FILE [...] | %q %s\n' "$(basename "$1")" '[...] -'
 }
 printUsage()
 {
@@ -30,6 +30,7 @@ HELPDESCRIPTION
     --short		Sortable output format: %Y%m%d${fieldSeparator--}%H%M%S
     --sortable		Sortable output format: %Y-%m-%d${fieldSeparator-T}%T${millis}
     --no-millis		Drop the milliseconds off the --sortable format.
+    --separator|-s SEP	Use SEP between timestamp and MESSAGE.
     --field-separator|-f SEP
 			Use SEP between date and time.
     --date DATE		Use DATE instead of the current time.
