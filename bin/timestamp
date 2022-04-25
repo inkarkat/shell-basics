@@ -45,7 +45,7 @@ HELPTEXT
 typeset -a dateArgs=()
 dateFormat='+%d-%b-%Y${separator}%T${millis}'
 separator=' '
-millis='.%3N'
+millis=',%3N'
 unset fieldSeparator
 isQuoted=
 prefix=
