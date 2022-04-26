@@ -39,7 +39,7 @@ HELPDESCRIPTION
 			preserve a passed command with arguments in reusable
 			form).
 
-See also: ts (provided by GNU moreutils)
+SEE ALSO: ts (provided by GNU moreutils)
 HELPTEXT
 }
 
