@@ -57,7 +57,7 @@ do
 	--human)	shift; dateFormat='+%d-%b-%Y${fieldSeparator-_}%T';;
 	--short)	shift; dateFormat='+%Y%m%d${fieldSeparator--}%H%M%S';;
 	--sortable)	shift; dateFormat='+%Y-%m-%d${fieldSeparator-T}%T${millis}';;
-	--no-millis)	shift; millis=''; shift;;
+	--no-millis)	shift; millis='';;
 	--field-separator|-f)
 			shift; fieldSeparator="$1"; shift;;
 	--separator|-s)	shift; separator="$1"; shift;;
