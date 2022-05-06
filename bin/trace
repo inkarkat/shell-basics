@@ -1,13 +1,34 @@
 #!/bin/bash
 
+printShortUsage()
+{
+    # Note: short followed by long option; if the user knows the short one, she can
+    # skim the long one.
+    printf 'Usage: %q %s\n' "$(basename "$1")" '[-p|--paged] [.] COMMAND [ARG ...] [-?|-h|--help]'
+}
 printUsage()
 {
-    cat <<HELPTEXT
+    # This is the short help when launched with no or incorrect arguments.
+    # It is printed to stderr to avoid accidental processing.
+    printShortUsage "$1" >&2
+    printf >&2 '\nTry %q --help for more information.\n' "$(basename "$1")"
+}
+printLongUsage()
+{
+    # This is the long "man page" when launched with the help argument.
+    # It is printed to stdout to allow paging with 'more'.
+    cat <<HELPDESCRIPTION
 Execute (/ source) COMMAND [ARG ...] with trace output (xtrace / set -x)
-enabled (shown in the pager with -p|--paged).
-HELPTEXT
+enabled.
+HELPDESCRIPTION
     echo
-    printf 'Usage: %q %s\n' "$(basename "$1")" '[-p|--paged] [.] COMMAND [ARG ...] [-?|-h|--help]'
+    printShortUsage "$1"
+    echo
+    cat <<HELPTEXT
+    --paged|-p		Show the trace separately after the execution. Output
+			and errors are shown separately, and are not part of the
+			trace.
+HELPTEXT
 }
 viewTrace()
 {
@@ -16,7 +37,7 @@ viewTrace()
     rm -f -- "$TMPFILE" 2>/dev/null
 }
 case "$1" in
-    --help|-h|-\?)	shift; printUsage "$0"; exit 0;;
+    --help|-h|-\?)	shift; printLongUsage "$0"; exit 0;;
     --paged|-p)		shift
 			typeset -a viewer=("${PAGER:-less}" --RAW-CONTROL-CHARS --)
 			TMPFILE="$(mktemp --tmpdir "$(basename -- "$0")-XXXXXX" 2>/dev/null || echo "${TEMP:-/tmp}/$(basename -- "$0").$$$RANDOM")"
