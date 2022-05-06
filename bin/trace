@@ -30,6 +30,14 @@ HELPDESCRIPTION
 			trace.
 HELPTEXT
 }
+setupCaptureAndViewing()
+{
+    viewer=("$@")
+    TMPFILE="$(mktemp --tmpdir "$(basename -- "$0")-XXXXXX" 2>/dev/null || echo "${TEMP:-/tmp}/$(basename -- "$0").$$$RANDOM")"
+    trap 'set +x; viewTrace' EXIT
+    exec 42>"$TMPFILE"
+    BASH_XTRACEFD=42
+}
 viewTrace()
 {
     sed -i '${ /^+ set +x$/d }' -- "$TMPFILE"
@@ -38,13 +46,7 @@ viewTrace()
 }
 case "$1" in
     --help|-h|-\?)	shift; printLongUsage "$0"; exit 0;;
-    --paged|-p)		shift
-			typeset -a viewer=("${PAGER:-less}" --RAW-CONTROL-CHARS --)
-			TMPFILE="$(mktemp --tmpdir "$(basename -- "$0")-XXXXXX" 2>/dev/null || echo "${TEMP:-/tmp}/$(basename -- "$0").$$$RANDOM")"
-			trap 'set +x; viewTrace' EXIT
-			exec 42>"$TMPFILE"
-			BASH_XTRACEFD=42
-			;;
+    --paged|-p)		shift; setupCaptureAndViewing "${PAGER:-less}" --RAW-CONTROL-CHARS --;;
 esac
 
 program="$1"; shift
