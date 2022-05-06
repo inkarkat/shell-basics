@@ -4,7 +4,7 @@ printShortUsage()
 {
     # Note: short followed by long option; if the user knows the short one, she can
     # skim the long one.
-    printf 'Usage: %q %s\n' "$(basename "$1")" '[-p|--paged] [.] COMMAND [ARG ...] [-?|-h|--help]'
+    printf 'Usage: %q %s\n' "$(basename "$1")" '[-p|--paged|--inbox] [.] COMMAND [ARG ...] [-?|-h|--help]'
 }
 printUsage()
 {
@@ -28,6 +28,7 @@ HELPDESCRIPTION
     --paged|-p		Show the trace separately after the execution. Output
 			and errors are shown separately, and are not part of the
 			trace.
+    --inbox		Write the trace into the inbox.
 HELPTEXT
 }
 setupCaptureAndViewing()
@@ -47,6 +48,7 @@ viewTrace()
 case "$1" in
     --help|-h|-\?)	shift; printLongUsage "$0"; exit 0;;
     --paged|-p)		shift; setupCaptureAndViewing "${PAGER:-less}" --RAW-CONTROL-CHARS --;;
+    --inbox)		shift; setupCaptureAndViewing inbox --base trace --;;
 esac
 
 program="$1"; shift
