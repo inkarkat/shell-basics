@@ -4,16 +4,29 @@ printUsage()
 {
     cat <<HELPTEXT
 Execute (/ source) COMMAND [ARG ...] with trace output (xtrace / set -x)
-enabled.
+enabled (shown in the pager with -p|--paged).
 HELPTEXT
     echo
-    printf 'Usage: %q %s\n' "$(basename "$1")" '[.] COMMAND [ARG ...] [-?|-h|--help]'
+    printf 'Usage: %q %s\n' "$(basename "$1")" '[-p|--paged] [.] COMMAND [ARG ...] [-?|-h|--help]'
+}
+viewTrace()
+{
+    sed -i '${ /^+ set +x$/d }' -- "$TMPFILE"
+    "${viewer[@]}" "$TMPFILE"
+    rm -f -- "$TMPFILE" 2>/dev/null
 }
 case "$1" in
     --help|-h|-\?)	shift; printUsage "$0"; exit 0;;
+    --paged|-p)		shift
+			typeset -a viewer=("${PAGER:-less}" --RAW-CONTROL-CHARS --)
+			TMPFILE="$(mktemp --tmpdir "$(basename -- "$0")-XXXXXX" 2>/dev/null || echo "${TEMP:-/tmp}/$(basename -- "$0").$$$RANDOM")"
+			trap 'set +x; viewTrace' EXIT
+			exec 42>"$TMPFILE"
+			BASH_XTRACEFD=42
+			;;
 esac
 
-program=$1; shift
+program="$1"; shift
 if [ "$program" = '.' ]; then
     # Sourced scripts may test for an interactive shell, so set it (even if that
     # has no effect other than modifying $- here).
