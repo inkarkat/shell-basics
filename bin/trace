@@ -1,19 +1,57 @@
 #!/bin/bash
 
+printShortUsage()
+{
+    # Note: short followed by long option; if the user knows the short one, she can
+    # skim the long one.
+    printf 'Usage: %q %s\n' "$(basename "$1")" '[-p|--paged|--inbox] [.] COMMAND [ARG ...] [-?|-h|--help]'
+}
 printUsage()
 {
-    cat <<HELPTEXT
+    # This is the short help when launched with no or incorrect arguments.
+    # It is printed to stderr to avoid accidental processing.
+    printShortUsage "$1" >&2
+    printf >&2 '\nTry %q --help for more information.\n' "$(basename "$1")"
+}
+printLongUsage()
+{
+    # This is the long "man page" when launched with the help argument.
+    # It is printed to stdout to allow paging with 'more'.
+    cat <<HELPDESCRIPTION
 Execute (/ source) COMMAND [ARG ...] with trace output (xtrace / set -x)
 enabled.
-HELPTEXT
+HELPDESCRIPTION
     echo
-    printf 'Usage: %q %s\n' "$(basename "$1")" '[.] COMMAND [ARG ...] [-?|-h|--help]'
+    printShortUsage "$1"
+    echo
+    cat <<HELPTEXT
+    --paged|-p		Show the trace separately after the execution. Output
+			and errors are shown separately, and are not part of the
+			trace.
+    --inbox		Write the trace into the inbox.
+HELPTEXT
+}
+setupCaptureAndViewing()
+{
+    viewer=("$@")
+    TMPFILE="$(mktemp --tmpdir "$(basename -- "$0")-XXXXXX" 2>/dev/null || echo "${TEMP:-/tmp}/$(basename -- "$0").$$$RANDOM")"
+    trap 'set +x; viewTrace' EXIT
+    exec 42>"$TMPFILE"
+    BASH_XTRACEFD=42
+}
+viewTrace()
+{
+    sed -i '${ /^+ set +x$/d }' -- "$TMPFILE"
+    "${viewer[@]}" "$TMPFILE"
+    rm -f -- "$TMPFILE" 2>/dev/null
 }
 case "$1" in
-    --help|-h|-\?)	shift; printUsage "$0"; exit 0;;
+    --help|-h|-\?)	shift; printLongUsage "$0"; exit 0;;
+    --paged|-p)		shift; setupCaptureAndViewing "${PAGER:-less}" --RAW-CONTROL-CHARS --;;
+    --inbox)		shift; setupCaptureAndViewing inbox --base trace --;;
 esac
 
-program=$1; shift
+program="$1"; shift
 if [ "$program" = '.' ]; then
     # Sourced scripts may test for an interactive shell, so set it (even if that
     # has no effect other than modifying $- here).
