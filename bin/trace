@@ -45,11 +45,16 @@ viewTrace()
     "${viewer[@]}" "$TMPFILE"
     rm -f -- "$TMPFILE" 2>/dev/null
 }
-case "$1" in
-    --help|-h|-\?)	shift; printLongUsage "$0"; exit 0;;
-    --paged|-p)		shift; setupCaptureAndViewing "${PAGER:-less}" --RAW-CONTROL-CHARS --;;
-    --inbox)		shift; setupCaptureAndViewing inbox --base trace --;;
-esac
+while [ $# -ne 0 ]
+do
+    case "$1" in
+	--help|-h|-\?)	shift; printLongUsage "$0"; exit 0;;
+	--paged|-p)	shift; setupCaptureAndViewing "${PAGER:-less}" --RAW-CONTROL-CHARS --;;
+	--inbox)	shift; setupCaptureAndViewing inbox --base trace --;;
+	-*)		{ echo "ERROR: Unknown option \"$1\"!"; echo; printUsage "$0"; } >&2; exit 2;;
+	*)		break;;
+    esac
+done
 
 program="$1"; shift
 if [ "$program" = '.' ]; then
