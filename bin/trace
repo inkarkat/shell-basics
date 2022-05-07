@@ -4,7 +4,7 @@ printShortUsage()
 {
     # Note: short followed by long option; if the user knows the short one, she can
     # skim the long one.
-    printf 'Usage: %q %s\n' "$(basename "$1")" '[-p|--paged|--inbox] [.] COMMAND [ARG ...] [-?|-h|--help]'
+    printf 'Usage: %q %s\n' "$(basename "$1")" '[(-p|--paged|--inbox) [-o|--with-output]] [.] COMMAND [ARG ...] [-?|-h|--help]'
 }
 printUsage()
 {
@@ -35,8 +35,13 @@ setupCaptureAndViewing()
 {
     viewer=("$@")
     TMPFILE="$(mktemp --tmpdir "$(basename -- "$0")-XXXXXX" 2>/dev/null || echo "${TEMP:-/tmp}/$(basename -- "$0").$$$RANDOM")"
-    trap 'set +x; exec 42>&-; viewTrace' EXIT
+    trap "set +x; ${isWithOutput:+exec 1>&43 2>&44 43>&- 44>&-; sleep 1; }exec 42>&-; viewTrace" EXIT
     exec 42>"$TMPFILE"
+    if [ "$isWithOutput" ]; then
+	exec 43>&1 44>&2
+	exec >  >(tee -ia "$TMPFILE")
+	exec 2> >(tee -ia "$TMPFILE" >&2)
+    fi
     BASH_XTRACEFD=42
 }
 viewTrace()
@@ -45,12 +50,15 @@ viewTrace()
     "${viewer[@]}" "$TMPFILE"
     rm -f -- "$TMPFILE" 2>/dev/null
 }
+isWithOutput=
 while [ $# -ne 0 ]
 do
     case "$1" in
 	--help|-h|-\?)	shift; printLongUsage "$0"; exit 0;;
 	--paged|-p)	shift; setupCaptureAndViewing "${PAGER:-less}" --RAW-CONTROL-CHARS --;;
 	--inbox)	shift; setupCaptureAndViewing inbox --base trace --;;
+	--with-output|-o)
+			shift; isWithOutput=t;;
 	-*)		{ echo "ERROR: Unknown option \"$1\"!"; echo; printUsage "$0"; } >&2; exit 2;;
 	*)		break;;
     esac
