@@ -22,12 +22,11 @@ filespec="${!#}"
 typeset -a lines=("${@:1:$(($#-1))}")
 typeset -a sedArgs=()
 
-# Note: There's a race condition if the file is created shortly after the check,
-# the contents could get lost. Ideally we'd append nothing to the file and use
-# the main algorithm for prepending, but sed doesn't trigger on a completely
-# empty file. So we need to at least create a single empty line, and adapt the
-# sed command to remove that again.
-if [ ! -e "$filespec" ]; then
+# sed doesn't trigger on a completely empty file. So we need to at least create
+# a single empty line, and adapt the sed command to remove that again.
+if [ ! -s "$filespec" ]; then
+    # Note: There's a race condition if the file is created / content is added
+    # shortly after the check, but before we can add the empty line.
     printf '\n' >> "$filespec"
     sedArgs=(-e '1{/^$/d}')
 fi
