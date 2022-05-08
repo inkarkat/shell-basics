@@ -8,18 +8,27 @@ end of what >> does in the shell.
 HELPTEXT
     echo
     printf 'Usage: %q %s\n' "$(basename "$1")" '[--] LINE [...] FILE [-?|-h|--help]'
+    echo
+    printf 'Usage: echo LINE | %q %s\n' "$(basename "$1")" '- FILE'
 }
+typeset -a lines=()
+requiredArgNum=2
 case "$1" in
     --help|-h|-\?)	shift; printUsage "$0"; exit 0;;
+    -)			shift
+			readarray -t lines
+			[ ${#lines[@]} -gt 0 ] || exit 99
+			requiredArgNum=1
+			;;
     --)			shift;;
 esac
-if [ $# -lt 2 ]; then
+if [ $# -lt $requiredArgNum ]; then
     printUsage "$0" >&2
     exit 2
 fi
 
 filespec="${!#}"
-typeset -a lines=("${@:1:$(($#-1))}")
+[ $# -gt 1 ] && lines=("${@:1:$(($#-1))}")
 typeset -a sedArgs=()
 
 # sed doesn't trigger on a completely empty file. So we need to at least create
