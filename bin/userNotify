@@ -100,7 +100,7 @@ consoleNotify()
 {
     { printf '' >/dev/tty; } 2>/dev/null || return 122
 
-    printf '\n%s%s%s\n' "$USERNOTIFY_TITLE_PREFIX" "$title" "$USERNOTIFY_TITLE_SUFFIX"
+    [ -n "$title" ] && printf '\n%s%s%s\n' "$USERNOTIFY_TITLE_PREFIX" "$title" "$USERNOTIFY_TITLE_SUFFIX"
     if [ "$isRaw" ]; then
 	printf '%s\n' "$message"
     else
