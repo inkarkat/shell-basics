@@ -28,6 +28,7 @@ HELPDESCRIPTION
     printShortUsage "$1"
     echo
     cat <<HELPTEXT
+    --title|-T TITLE	Title shown in the heading or window title.
     --timeout|-t TIMEOUT
 			Auto-close the notification (if possible) and return 123
 			if the user did not acknowledge within TIMEOUT seconds.
