@@ -1,0 +1,91 @@
+#!/bin/bash
+
+printShortUsage()
+{
+    # Note: short followed by long option; if the user knows the short one, she can
+    # skim the long one.
+    printf 'Usage: %q %s\n' "$(basename "$1")" '-p|--get-prefix|-P|--remove-prefix [--] FILE [...] [-?|-h|--help]'
+    printf 'Usage: cat FILE [...] | %q %s\n' "$(basename "$1")" '... [-]'
+}
+printUsage()
+{
+    # This is the short help when launched with no or incorrect arguments.
+    # It is printed to stderr to avoid accidental processing.
+    printShortUsage "$1" >&2
+    printf >&2 '\nTry %q --help for more information.\n' "$(basename "$1")"
+}
+printLongUsage()
+{
+    # This is the long "man page" when launched with the help argument.
+    # It is printed to stdout to allow paging with 'more'.
+    cat <<HELPDESCRIPTION
+Find / remove the longest prefix / suffix in all input lines.
+HELPDESCRIPTION
+    echo
+    printShortUsage "$1"
+    echo
+    cat <<HELPTEXT
+    --get-prefix|-p	Print the longest string common to the beginning of all
+			input lines.
+    --remove-prefix|-P	Remove the longest common prefix from the beginning of
+			all input lines and print the resulting shortened lines.
+
+EXIT STATUS:
+    0	Complete success.
+    1	Failed to process the input.
+    2	Bad invocation, wrong or missing command-line arguments.
+    3	Internal error or failed assertion.
+    99	There is no common string at all; input data remains unchanged.
+
+HELPTEXT
+}
+
+action=
+while [ $# -ne 0 ]
+do
+    case "$1" in
+	--help|-h|-\?)	shift; printLongUsage "$0"; exit 0;;
+	--get-prefix|-p)
+			shift; action=getPrefix;;
+	--remove-prefix|-P)
+			shift; action=removePrefix;;
+	--)		shift; break;;
+	-)		break;; # For supporting special - FILE without prior --
+	-*)		{ echo "ERROR: Unknown option \"$1\"!"; echo; printUsage "$0"; } >&2; exit 2;;
+	*)		break;;
+    esac
+done
+if [ -z "$action" ]; then
+    printUsage "$0" >&2
+    exit 2
+fi
+
+
+getPrefix()
+{
+    # Source: https://unix.stackexchange.com/a/67121/18876
+    # Note: For long prefixes (but not too many), the Bash implementation in
+    # https://unix.stackexchange.com/a/18695/18876 might be more efficient.
+    sed -n -e '1h' -e 'G; s#\(.*\).*\n\1.*#\1#; h;' -e '${ /^$/q 99; p; }' -- "$@"
+}
+
+removePrefix()
+{
+    typeset -a lines=()
+    if [ $# -eq 0 -o "$1" = '-' ]; then
+	readarray -t lines
+    else
+	readarray -t lines < "$@"
+    fi
+
+    local prefix status=0
+    if prefix="$(printf '%s\n' "${lines[@]}" | getPrefix)"; then
+	printf '%s\n' "${lines[@]#"$prefix"}"
+    else
+	status=$?
+	printf '%s\n' "${lines[@]}"
+	return $status
+    fi
+}
+
+$action "$@"
