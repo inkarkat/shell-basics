@@ -36,7 +36,7 @@ HELPDESCRIPTION
 		Drop a generic interpreter (bash, perl, python, etc.) from the
 		command-line and use the next (script filename) argument
 		instead. Also detects the special shell-wrapping invocation
-		(bash -c "$@" bash COMMAND).
+		(bash -c "\$@" bash COMMAND).
 Example:
 HELPTEXT
     printf '%q %s\n' "$(basename "$1")" 'FOO=BAR /usr/bin/awk -F# "{ print \"$1\"; }"'
@@ -127,6 +127,10 @@ if [ "$isEval" ]; then
 	    netCommandLine="${netCommandLine% *}"
 	fi
     done
+    if [ "$1" = '"$@"' ]; then
+	# Drop the literal "$@" argument to avoid that it gets reported.
+	shift
+    fi
 else
     while [[ "$1" =~ ^[[:alpha:]_][[:alnum:]_]+= ]]; do shift; done
 fi
