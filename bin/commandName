@@ -127,6 +127,10 @@ if [ "$isEval" ]; then
 	    netCommandLine="${netCommandLine% *}"
 	fi
     done
+    if [ "$1" = '"$@"' ]; then
+	# Drop the literal "$@" argument to avoid that it gets reported.
+	shift
+    fi
 else
     while [[ "$1" =~ ^[[:alpha:]_][[:alnum:]_]+= ]]; do shift; done
 fi
