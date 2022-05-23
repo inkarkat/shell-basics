@@ -22,7 +22,7 @@ fi
 typeset -A taken=()
 for ((i = 0; i < count; i++))
 do
-    while :
+    for ((j = 0; j < ${RANDOMLINE_DEDUPLICATE_ATTEMPTS_MAX_COUNT:-10}; j++))
     do
 	if [ $# -eq 1 ]; then
 	    filespec="$1"
