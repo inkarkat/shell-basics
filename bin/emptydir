@@ -1,21 +1,53 @@
 #!/bin/bash
+shopt -s nullglob dotglob
 
 printUsage()
 {
     cat <<HELPTEXT
-Check whether the passed dirspec does not contain any files (or is not a
-directory, or does not exist). Returns 1 only if it is a directory and contains
-at least one file or subdirectory.
+Check whether all of the passed DIRs do not (with -v|--invert: do) contain any
+files (or are not a directory, or do not exist). Non-existing DIRs and
+non-directories are ignored.
+Returns 1 only if any is a directory and contains at least one (with
+-v|--invert: no) file or subdirectory.
 HELPTEXT
-printf 'Usage: %q %s\n' "$(basename "$1")" '[--] DIR [-?|-h|--help]'
+    echo
+    printf 'Usage: %q %s\n' "$(basename "$1")" '[-v|--invert] [--] DIR [...] [-?|-h|--help]'
+    echo
+    cat <<HELPTEXT
+Print those DIRs that do not (with -v|--invert: do) contain any files (or are
+not a directory, or do not exist).
+HELPTEXT
+    echo
+    printf 'Usage: %q %s\n' "$(basename "$1")" '-p|--print [-v|--invert] [--] DIR [...] [-?|-h|--help]'
 }
-case "$1" in
-    --help|-h|-\?)	shift; printUsage "$0"; exit 0;;
-    --)			shift;;
-esac
-[ $# -eq 1 ] || { printUsage "$0" >&2; exit 2; }
+compareOp=-ne
+isPrint=
+while [ $# -ne 0 ]
+do
+    case "$1" in
+	--help|-h|-\?)	shift; printUsage "$0"; exit 0;;
+	--print|-p)	shift; isPrint=t; status=1;;
+	--invert|-v)	shift; compareOp=-eq;;
+	--)		shift; break;;
+	-*)		{ echo "ERROR: Unknown option \"$1\"!"; echo; printUsage "$0"; } >&2; exit 2;;
+	*)		break;;
+    esac
+done
+if [ $# -eq 0 ]; then
+    printUsage "$0" >&2
+    exit 2
+fi
 
-readonly dirspec="$1"
+status=0
+for dirspec
+do
+    [ -d "$dirspec" ] || continue
 
-shopt -s nullglob dotglob
-f=("${dirspec%/}"/*); ! ((${#f[@]}))
+    f=("${dirspec%/}"/*)
+    if [ ${#f[@]} $compareOp 0 ]; then
+	status=1
+    elif [ "$isPrint" ]; then
+	printf '%s\n' "$dirspec"
+    fi
+done
+exit $status
