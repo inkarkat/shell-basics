@@ -1,21 +1,27 @@
 #!/bin/bash
+shopt -s nullglob dotglob
 
 printUsage()
 {
     cat <<HELPTEXT
-Check whether the passed dirspec does not contain any files (or is not a
-directory, or does not exist). Returns 1 only if it is a directory and contains
+Check whether all of the passed DIRs do not contain any files (or are not a
+directory, or do not exist). Returns 1 only if any is a directory and contains
 at least one file or subdirectory.
 HELPTEXT
-printf 'Usage: %q %s\n' "$(basename "$1")" '[--] DIR [-?|-h|--help]'
+printf 'Usage: %q %s\n' "$(basename "$1")" '[--] DIR [...] [-?|-h|--help]'
 }
 case "$1" in
     --help|-h|-\?)	shift; printUsage "$0"; exit 0;;
     --)			shift;;
 esac
-[ $# -eq 1 ] || { printUsage "$0" >&2; exit 2; }
+if [ $# -eq 0 ]; then
+    printUsage "$0" >&2
+    exit 2
+fi
 
-readonly dirspec="$1"
-
-shopt -s nullglob dotglob
-f=("${dirspec%/}"/*); ! ((${#f[@]}))
+for dirspec
+do
+    f=("${dirspec%/}"/*)
+    ((${#f[@]})) && exit 1
+done
+exit 0
