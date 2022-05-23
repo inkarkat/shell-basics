@@ -4,14 +4,18 @@ shopt -s nullglob dotglob
 printUsage()
 {
     cat <<HELPTEXT
-Check whether all of the passed DIRs do not contain any files (or are not a
-directory, or do not exist). Returns 1 only if any is a directory and contains
-at least one file or subdirectory.
+Check whether all of the passed DIRs do not (with -v|--invert: do) contain any
+files (or are not a directory, or do not exist). Non-existing DIRs and
+non-directories are ignored.
+Returns 1 only if any is a directory and contains at least one (with
+-v|--invert: no) file or subdirectory.
 HELPTEXT
-printf 'Usage: %q %s\n' "$(basename "$1")" '[--] DIR [...] [-?|-h|--help]'
+printf 'Usage: %q %s\n' "$(basename "$1")" '[-v|--invert] [--] DIR [...] [-?|-h|--help]'
 }
+compareOp=-ne
 case "$1" in
     --help|-h|-\?)	shift; printUsage "$0"; exit 0;;
+    --invert|-v)	shift; compareOp=-eq;;
     --)			shift;;
 esac
 if [ $# -eq 0 ]; then
@@ -21,7 +25,9 @@ fi
 
 for dirspec
 do
+    [ -d "$dirspec" ] || continue
+
     f=("${dirspec%/}"/*)
-    ((${#f[@]})) && exit 1
+    [ ${#f[@]} $compareOp 0 ] && exit 1
 done
 exit 0
