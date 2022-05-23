@@ -3,23 +3,40 @@
 printUsage()
 {
     cat <<HELPTEXT
-Print a random line from (one of the) passed file(s).
+Print a random line(s) from (one of the) passed file(s).
 HELPTEXT
-    printf 'Usage: %q %s\n' "$(basename "$1")" '[--] FILE [...] [-?|-h|--help]'
+    printf 'Usage: %q %s\n' "$(basename "$1")" '[-n|--count N] [--] FILE [...] [-?|-h|--help]'
 }
+count=1
 case "$1" in
     --help|-h|-\?)	shift; printUsage "$0"; exit 0;;
+    --count|-n)		shift; count="$1"; shift;;
     --)			shift;;
 esac
 
 if [ $# -eq 0 ]; then
     printUsage "$0"
     exit 2
-elif [ $# -eq 1 ]; then
-    filespec="$1"
-else
-    eval filespec="\$$(($RANDOM % $# + 1))"
 fi
 
-lineNum="$(wc -l "$filespec" | cut -d' ' -f1)" || exit $?
-exec sed -ne "$(($RANDOM % $lineNum + 1))p" "$filespec"
+typeset -A taken=()
+for ((i = 0; i < count; i++))
+do
+    while :
+    do
+	if [ $# -eq 1 ]; then
+	    filespec="$1"
+	else
+	    eval filespec="\$$((RANDOM % $# + 1))"
+	fi
+
+	lineNum="$(wc -l "$filespec" | cut -d' ' -f1)" || exit 3
+	lineNr=$((RANDOM % lineNum + 1))
+	key="${filespec}"$'\n'"$lineNr"
+
+	[ "${taken["$key"]}" ] || break
+    done
+    taken["$key"]=t
+
+    sed -ne "${lineNr}p" "$filespec"
+done
