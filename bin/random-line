@@ -3,9 +3,10 @@
 printUsage()
 {
     cat <<HELPTEXT
-Print a random line(s) from (one of the) passed file(s).
+Print a random line(s) from (one of the) passed FILE(s).
 HELPTEXT
     printf 'Usage: %q %s\n' "$(basename "$1")" '[-n|--count N] [--] FILE [...] [-?|-h|--help]'
+    printf 'Usage: cat FILE [...] | %q %s\n' "$(basename "$1")" '[...] [--] [-] [...]'
 }
 count=1
 case "$1" in
@@ -15,9 +16,16 @@ case "$1" in
 esac
 
 if [ $# -eq 0 ]; then
-    printUsage "$0"
+    printUsage "$0" >&2
     exit 2
+elif [ $# -eq 0 -o "$1" = '-' ]; then
+    TMPFILE="$(mktemp --tmpdir "$(basename -- "$0")-XXXXXX" 2>/dev/null || echo "${TEMP:-/tmp}/$(basename -- "$0").$$$RANDOM")"
+    [ "${DEBUG:-}" ] || trap 'rm -f -- "$TMPFILE" 2>/dev/null' EXIT
+    cat > "$TMPFILE" || exit 3
+    shift
+    set -- "$TMPFILE" "$@"
 fi
+
 
 typeset -A taken=()
 for ((i = 0; i < count; i++))
