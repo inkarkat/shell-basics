@@ -117,14 +117,14 @@ desktopNotify()
     local rawMessage="$message"
     [ "$isRaw" ] || rawMessage="$(printf '%s\n' "$message" | trpango)"
 
-    notify-send --icon dialog-information ${timeout:+--expire-time "${timeout}000"} ${title:+"$title"} "$rawMessage"
+    notify-send --icon dialog-information ${timeout:+--expire-time "${timeout}000"} "${title:-Notification}" "$rawMessage"
 }
 
 guiNotify()
 {
     [ -n "$DISPLAY" ] && exists zenity || return 122
 
-    errorOutput="$(LC_MESSAGES=en_US.UTF-8 zenity --info --title "$title" --no-wrap ${timeout:+--timeout "$timeout"} ${isRaw:+--no-markup} --text "$message" 2>&1 >/dev/null)"
+    errorOutput="$(LC_MESSAGES=en_US.UTF-8 zenity --info --title "${title:-Notification}" --no-wrap ${timeout:+--timeout "$timeout"} ${isRaw:+--no-markup} --text "$message" 2>&1 >/dev/null)"
     case $? in
 	0)  return 0;;
 	1)  # XXX: This can mean that the user canceled the dialog, or that the dialog could not be shown. In the latter case, there's also an error message (e.g. "Gtk-WARNING **: cannot open display"), so use that to differentiate.
