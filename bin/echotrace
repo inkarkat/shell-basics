@@ -7,7 +7,7 @@ printShortUsage()
 {
     # Note: short followed by long option; if the user knows the short one, she can
     # skim the long one.
-    printf 'Usage: [ECHOTRACE_IFS=STRING|newline] [ECHOTRACE_TRACEFILE=FILESPEC|&N] %q %s\n' "$(basename "$1")" '[--eval] [--] [SIMPLECOMMAND ...] [-?|-h|--help]'
+    printf 'Usage: [ECHOTRACE_IFS=STRING|newline] [ECHOTRACE_TRACEFILE=FILESPEC|&N] %q %s\n' "$(basename "$1")" '[-d|--on-debug] [--eval] [--] [SIMPLECOMMAND ...] [-?|-h|--help]'
 }
 printUsage()
 {
@@ -29,6 +29,9 @@ HELPDESCRIPTION
     printShortUsage "$1"
     echo
     cat <<HELPTEXT
+    --on-debug|-d	Only print the execution trace when \$DEBUG contains
+			"echotrace". Else, the COMMAND is just executed as if
+			echotrace weren't prepended.
     --eval		Print the evaluation result instead of the (quoted)
 			eval.
 HELPTEXT
@@ -40,14 +43,25 @@ printer()
 	PRETTYPRINTQUOTEDARGS_PREFIX="$tracePrefix" \
 	exec prettyPrintQuotedArgs -- "$@" >&3
 }
+executor()
+{
+    [ "$1" = eval ] && EXEC=''
+    $EXEC "$@"
+}
 
+isActive=t
 while [ $# -ne 0 ]
 do
     case "$1" in
 	--help|-h|-\?)	shift; printLongUsage "$0"; exit 0;;
+	--on-debug|-d)	shift; case ",${DEBUG:-}," in *,echotrace,*) ;; *) isActive=;; esac;;
 	--eval)		shift
 			if [ "$1" = eval ]; then
 			    shift
+			    executor()
+			    {
+				eval "$@"
+			    }
 			    printer()
 			    {
 				joinBy >&3 --prefix "${tracePrefix}" -- "$ECHOTRACE_IFS" "$@"
@@ -60,6 +74,11 @@ do
     esac
 done
 [ $# -eq 0 ] && exit
+
+if [ ! "$isActive" ]; then
+    executor "$@"
+    exit $?
+fi
 
 case "$ECHOTRACE_TRACEFILE" in
     '')		exec 3>&2;;
