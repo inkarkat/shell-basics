@@ -11,7 +11,7 @@ Write arguments (separated by a space or \$ECHOTRACE_IFS) as an execution trace
 ECHOTRACE_TRACEFILE, like "set -x" would do (but without the execution).
 With --eval, the evaluation result will be printed instead of the (quoted) eval.
 HELPTEXT
-    printf 'Usage: [ECHOTRACE_IFS=STRING|newline] [ECHOTRACE_TRACEFILE=FILESPEC|&N] %q %s\n' "$(basename "$1")" '[--eval] [--] [ARG ...] [-?|-h|--help]'
+    printf 'Usage: [ECHOTRACE_IFS=STRING|newline] [ECHOTRACE_TRACEFILE=FILESPEC|&N] %q %s\n' "$(basename "$1")" '[--eval] [--] [SIMPLECOMMAND ...] [-?|-h|--help]'
 }
 printer()
 {
@@ -20,9 +20,11 @@ printer()
 	exec prettyPrintQuotedArgs -- "$@" >&3
 }
 
-case "$1" in
-    --help|-h|-\?)	shift; printUsage "$0"; exit 0;;
-    --eval)		shift
+while [ $# -ne 0 ]
+do
+    case "$1" in
+	--help|-h|-\?)	shift; printUsage "$0"; exit 0;;
+	--eval)		shift
 			if [ "$1" = eval ]; then
 			    shift
 			    printer()
@@ -31,8 +33,11 @@ case "$1" in
 			    }
 			fi
 			;;
-    --)			shift;;
-esac
+	--)		shift; break;;
+	-*)		{ echo "ERROR: Unknown option \"$1\"!"; echo; printUsage "$0"; } >&2; exit 2;;
+	*)		break;;
+    esac
+done
 [ $# -eq 0 ] && exit
 
 case "$ECHOTRACE_TRACEFILE" in
