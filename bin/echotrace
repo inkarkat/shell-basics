@@ -13,10 +13,24 @@ With --eval, the evaluation result will be printed instead of the (quoted) eval.
 HELPTEXT
     printf 'Usage: [ECHOTRACE_IFS=STRING|newline] [ECHOTRACE_TRACEFILE=FILESPEC|&N] %q %s\n' "$(basename "$1")" '[--eval] [--] [ARG ...] [-?|-h|--help]'
 }
-isEval=
+printer()
+{
+    PRETTYPRINTQUOTEDARGS_IFS="$ECHOTRACE_IFS" \
+	PRETTYPRINTQUOTEDARGS_PREFIX="$tracePrefix" \
+	exec prettyPrintQuotedArgs -- "$@" >&3
+}
+
 case "$1" in
     --help|-h|-\?)	shift; printUsage "$0"; exit 0;;
-    --eval)		shift; [ "$1" = eval ] && isEval=t;;
+    --eval)		shift
+			if [ "$1" = eval ]; then
+			    shift
+			    printer()
+			    {
+				joinBy >&3 --prefix "${tracePrefix}" -- "$ECHOTRACE_IFS" "$@"
+			    }
+			fi
+			;;
     --)			shift;;
 esac
 [ $# -eq 0 ] && exit
@@ -37,12 +51,4 @@ tracePrefix="${nestingPrefix}${PS4:-\$ }"
 
 ECHOTRACE_IFS="${ECHOTRACE_IFS//$'\n'/$'\n'${tracePrefix}}"
 
-if [ "$isEval" ]; then
-    shift
-    joinBy >&3 --prefix "${tracePrefix}" -- "$ECHOTRACE_IFS" "$@"
-    exit
-fi
-
-PRETTYPRINTQUOTEDARGS_IFS="$ECHOTRACE_IFS" \
-    PRETTYPRINTQUOTEDARGS_PREFIX="$tracePrefix" \
-    exec prettyPrintQuotedArgs -- "$@" >&3
+printer "$@"
