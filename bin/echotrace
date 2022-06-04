@@ -3,16 +3,37 @@
 : ${ECHOTRACE_IFS=' '}
 [ "$ECHOTRACE_IFS" = newline ] && ECHOTRACE_IFS=$' \\\n  '
 
+printShortUsage()
+{
+    # Note: short followed by long option; if the user knows the short one, she can
+    # skim the long one.
+    printf 'Usage: [ECHOTRACE_IFS=STRING|newline] [ECHOTRACE_TRACEFILE=FILESPEC|&N] %q %s\n' "$(basename "$1")" '[--eval] [--] [SIMPLECOMMAND ...] [-?|-h|--help]'
+}
 printUsage()
 {
-    cat <<HELPTEXT
+    # This is the short help when launched with no or incorrect arguments.
+    # It is printed to stderr to avoid accidental processing.
+    printShortUsage "$1" >&2
+    printf >&2 '\nTry %q --help for more information.\n' "$(basename "$1")"
+}
+printLongUsage()
+{
+    # This is the long "man page" when launched with the help argument.
+    # It is printed to stdout to allow paging with 'more'.
+    cat <<HELPDESCRIPTION
 Write arguments (separated by a space or \$ECHOTRACE_IFS) as an execution trace
 (i.e. with \$PS4 prepended and indicating the nesting level) to standard error /
 ECHOTRACE_TRACEFILE, like "set -x" would do (but without the execution).
-With --eval, the evaluation result will be printed instead of the (quoted) eval.
+HELPDESCRIPTION
+    echo
+    printShortUsage "$1"
+    echo
+    cat <<HELPTEXT
+    --eval		Print the evaluation result instead of the (quoted)
+			eval.
 HELPTEXT
-    printf 'Usage: [ECHOTRACE_IFS=STRING|newline] [ECHOTRACE_TRACEFILE=FILESPEC|&N] %q %s\n' "$(basename "$1")" '[--eval] [--] [SIMPLECOMMAND ...] [-?|-h|--help]'
 }
+
 printer()
 {
     PRETTYPRINTQUOTEDARGS_IFS="$ECHOTRACE_IFS" \
@@ -23,7 +44,7 @@ printer()
 while [ $# -ne 0 ]
 do
     case "$1" in
-	--help|-h|-\?)	shift; printUsage "$0"; exit 0;;
+	--help|-h|-\?)	shift; printLongUsage "$0"; exit 0;;
 	--eval)		shift
 			if [ "$1" = eval ]; then
 			    shift
