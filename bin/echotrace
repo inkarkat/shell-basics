@@ -7,7 +7,9 @@ printShortUsage()
 {
     # Note: short followed by long option; if the user knows the short one, she can
     # skim the long one.
-    printf 'Usage: [ECHOTRACE_IFS=STRING|newline] [ECHOTRACE_TRACEFILE=FILESPEC|&N] %q %s\n' "$(basename "$1")" '[-d|--on-debug] [--eval] [--] [SIMPLECOMMAND ...] [-?|-h|--help]'
+    printf 'Usage: [ECHOTRACE_IFS=STRING|newline] [ECHOTRACE_TRACEFILE=FILESPEC|&N] %q %s\n' "$(basename "$1")" '[--eval] [--] [SIMPLECOMMAND ...] [-?|-h|--help]'
+    echo
+    printf 'Usage: [ECHOTRACE_IFS=STRING|newline] [ECHOTRACE_TRACEFILE=FILESPEC|&N] ${DEBUG:+%q %s} %s\n' "$(basename "$1")" '-d|--on-debug KEYWORD' '[...] [--] [SIMPLECOMMAND ...]'
 }
 printUsage()
 {
@@ -29,8 +31,9 @@ HELPDESCRIPTION
     printShortUsage "$1"
     echo
     cat <<HELPTEXT
-    --on-debug|-d	Only print the execution trace when \$DEBUG contains
-			"echotrace". Else, the COMMAND is just executed as if
+    --on-debug|-d KEYWORD
+			Only print the execution trace when \$DEBUG contains
+			KEYWORD. Else, the COMMAND is just executed as if
 			echotrace weren't prepended.
     --eval		Print the evaluation result instead of the (quoted)
 			eval.
@@ -54,7 +57,7 @@ while [ $# -ne 0 ]
 do
     case "$1" in
 	--help|-h|-\?)	shift; printLongUsage "$0"; exit 0;;
-	--on-debug|-d)	shift; case ",${DEBUG:-}," in *,echotrace,*) ;; *) isActive=;; esac;;
+	--on-debug|-d)	shift; case ",${DEBUG:-}," in *,${1:?},*) ;; *) isActive=;; esac; shift;;
 	--eval)		shift
 			if [ "$1" = eval ]; then
 			    shift
