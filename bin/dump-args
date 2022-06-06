@@ -1,11 +1,34 @@
 #!/bin/bash
 
+printShortUsage()
+{
+    # Note: short followed by long option; if the user knows the short one, she can
+    # skim the long one.
+    printf 'Usage: %q %s\n' "$(basename "$1")" '[-a|--array NAME] [-v|--verbose] [--] [ARG ...] [-?|-h|--help]'
+}
 printUsage()
 {
-    cat <<HELPTEXT
+    # This is the short help when launched with no or incorrect arguments.
+    # It is printed to stderr to avoid accidental processing.
+    printShortUsage "$1" >&2
+    printf >&2 '\nTry %q --help for more information.\n' "$(basename "$1")"
+}
+printLongUsage()
+{
+    # This is the long "man page" when launched with the help argument.
+    # It is printed to stdout to allow paging with 'more'.
+    cat <<HELPDESCRIPTION
 Just print all supplied command-line arguments to standard error.
+HELPDESCRIPTION
+    echo
+    printShortUsage "$1"
+    echo
+    cat <<HELPTEXT
+    --array|-a NAME	ARG(s) originate from an array named NAME and are
+			printed as such (with 0-based index).
+    --verbose|-v	Print each argument on a separate line and prepend the
+			index.
 HELPTEXT
-    printf 'Usage: %q %s\n' "$(basename "$1")" '[-a|--array NAME] [-v|--verbose] [--] [ARG ...] [-?|-h|--help]'
 }
 defaultPrefix=''
 defaultSuffix=''
@@ -16,7 +39,7 @@ startIndex=1
 while [ $# -ne 0 ]
 do
     case "$1" in
-	--help|-h|-\?)	shift; printUsage "$0"; exit 0;;
+	--help|-h|-\?)	shift; printLongUsage "$0"; exit 0;;
 	--array|-a)	shift; defaultPrefix="$1=("; defaultSuffix=')'; verbosePrefix="$1["; verboseSuffix=']='; startIndex=0; shift;;
 	--verbose|-v)	shift; isVerbose=t;;
 	--)		shift; break;;
