@@ -4,9 +4,9 @@ printShortUsage()
 {
     # Note: short followed by long option; if the user knows the short one, she can
     # skim the long one.
-    printf 'Usage: %q %s\n' "$(basename "$1")" '[-a|--array NAME] [-v|--verbose] [--] [ARG ...] [-?|-h|--help]'
+    printf 'Usage: [DUMPARGS_SINK=FILESPEC|&N] %q %s\n' "$(basename "$1")" '[-a|--array NAME] [-v|--verbose] [--] [ARG ...] [-?|-h|--help]'
     echo
-    printf 'Usage: ${DEBUG:+%q %s} %s\n' "$(basename "$1")" '-d|--on-debug KEYWORD' '[...] [--] [ARG ...]'
+    printf 'Usage: [DUMPARGS_SINK=FILESPEC|&N] ${DEBUG:+%q %s} %s\n' "$(basename "$1")" '-d|--on-debug KEYWORD' '[...] [--] [ARG ...]'
 }
 printUsage()
 {
@@ -20,7 +20,8 @@ printLongUsage()
     # This is the long "man page" when launched with the help argument.
     # It is printed to stdout to allow paging with 'more'.
     cat <<HELPDESCRIPTION
-Just print all supplied command-line arguments to standard error.
+Just print all supplied command-line arguments to standard error /
+\$DUMPARGS_SINK.
 HELPDESCRIPTION
     echo
     printShortUsage "$1"
@@ -52,13 +53,18 @@ do
 	*)		break;;
     esac
 done
+case "$DUMPARGS_SINK" in
+    '')		exec >&2;;
+    \&[0-9])	eval "exec >$DUMPARGS_SINK";;
+    ?*)		exec >>"$DUMPARGS_SINK";;
+esac
 
 if [ "$isVerbose" ]; then
     let argCnt=$startIndex
     while [ $# -gt 0 ]
     do
 	PRETTYPRINTQUOTEDARGS_PREFIX="${verbosePrefix}${argCnt}${verboseSuffix}" \
-	    prettyPrintQuotedArgs -- "$1" >&2
+	    prettyPrintQuotedArgs -- "$1"
 	shift
 	let argCnt+=1
     done
@@ -72,5 +78,5 @@ else
 	printf '%s%s\n' "$defaultPrefix" "$defaultSuffix"
     else
 	exit 1
-    fi >&2
+    fi
 fi
