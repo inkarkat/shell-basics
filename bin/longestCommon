@@ -4,7 +4,7 @@ printShortUsage()
 {
     # Note: short followed by long option; if the user knows the short one, she can
     # skim the long one.
-    printf 'Usage: %q %s\n' "$(basename "$1")" '-p|--get-prefix|-P|--remove-prefix [--] FILE [...] [-?|-h|--help]'
+    printf 'Usage: %q %s\n' "$(basename "$1")" '-p|--get-prefix|-P|--remove-prefix -s|--get-suffix|-S|--remove-suffix [--] FILE [...] [-?|-h|--help]'
     printf 'Usage: cat FILE [...] | %q %s\n' "$(basename "$1")" '... [-]'
 }
 printUsage()
@@ -27,8 +27,12 @@ HELPDESCRIPTION
     cat <<HELPTEXT
     --get-prefix|-p	Print the longest string common to the beginning of all
 			input lines.
+    --get-suffix|-s	Print the longest string common to the end of all input
+			lines.
     --remove-prefix|-P	Remove the longest common prefix from the beginning of
 			all input lines and print the resulting shortened lines.
+    --remove-suffix|-S	Remove the longest common prefix from the end of all
+			input lines and print the resulting shortened lines.
 
 EXIT STATUS:
     0	Complete success.
@@ -47,8 +51,12 @@ do
 	--help|-h|-\?)	shift; printLongUsage "$0"; exit 0;;
 	--get-prefix|-p)
 			shift; action=getPrefix;;
+	--get-suffix|-s)
+			shift; action=getSuffix;;
 	--remove-prefix|-P)
 			shift; action=removePrefix;;
+	--remove-suffix|-S)
+			shift; action=removeSuffix;;
 	--)		shift; break;;
 	-)		break;; # For supporting special - FILE without prior --
 	-*)		{ echo "ERROR: Unknown option \"$1\"!"; echo; printUsage "$0"; } >&2; exit 2;;
@@ -69,6 +77,12 @@ getPrefix()
     sed -n -e '1h' -e 'G; s#\(.*\).*\n\1.*#\1#; h;' -e '${ /^$/q 99; p; }' -- "$@"
 }
 
+getSuffix()
+{
+    set -o pipefail
+    rev "$@" | getPrefix | rev
+}
+
 removePrefix()
 {
     typeset -a lines=()
@@ -81,6 +95,25 @@ removePrefix()
     local prefix status=0
     if prefix="$(printf '%s\n' "${lines[@]}" | getPrefix)"; then
 	printf '%s\n' "${lines[@]#"$prefix"}"
+    else
+	status=$?
+	printf '%s\n' "${lines[@]}"
+	return $status
+    fi
+}
+
+removeSuffix()
+{
+    typeset -a lines=()
+    if [ $# -eq 0 -o "$1" = '-' ]; then
+	readarray -t lines
+    else
+	readarray -t lines < "$@"
+    fi
+
+    local suffix status=0
+    if suffix="$(printf '%s\n' "${lines[@]}" | getSuffix)"; then
+	printf '%s\n' "${lines[@]%"$suffix"}"
     else
 	status=$?
 	printf '%s\n' "${lines[@]}"
