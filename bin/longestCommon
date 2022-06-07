@@ -4,7 +4,7 @@ printShortUsage()
 {
     # Note: short followed by long option; if the user knows the short one, she can
     # skim the long one.
-    printf 'Usage: %q %s\n' "$(basename "$1")" '-p|--get-prefix|-P|--remove-prefix|-s|--get-suffix|-S|--remove-suffix|-b|--get-both|-B|--remove-both [--] FILE [...] [-?|-h|--help]'
+    printf 'Usage: %q %s\n' "$(basename "$1")" '-p|--get-prefix|-P|--remove-prefix|-s|--get-suffix|-S|--remove-suffix|-b|--get-both|-B|--remove-both [--path-components|--separator TEXT] [--] FILE [...] [-?|-h|--help]'
     printf 'Usage: cat FILE [...] | %q %s\n' "$(basename "$1")" '... [-]'
 }
 printUsage()
@@ -37,6 +37,10 @@ HELPDESCRIPTION
 			input lines and print the resulting shortened lines.
     --remove-both|-B	Remove both the longest strings common to the beginning
 			and end of all input lines.
+    --separator TEXT	Common strings always go to the next complete TEXT
+			instead of accepting individual characters.
+    --path-components	Common strings always include complete path components
+			(up to each /).
 
 EXIT STATUS:
     0	Complete success.
@@ -49,6 +53,7 @@ HELPTEXT
 }
 
 action=
+separator=
 while [ $# -ne 0 ]
 do
     case "$1" in
@@ -65,6 +70,9 @@ do
 			shift; action=removeSuffix;;
 	--remove-both|-B)
 			shift; action=removeBoth;;
+	--path-components)
+			shift; separator=/;;
+	--separator)	shift; separator="$1"; shift;;
 	--)		shift; break;;
 	-)		break;; # For supporting special - FILE without prior --
 	-*)		{ echo "ERROR: Unknown option \"$1\"!"; echo; printUsage "$0"; } >&2; exit 2;;
@@ -79,10 +87,15 @@ fi
 
 getPrefix()
 {
-    # Source: https://unix.stackexchange.com/a/67121/18876
-    # Note: For long prefixes (but not too many), the Bash implementation in
-    # https://unix.stackexchange.com/a/18695/18876 might be more efficient.
-    sed -n -e '1h' -e 'G; s#\(.*\).*\n\1.*#\1#; h;' -e '${ /^$/q 99; p; }' -- "$@"
+    if [ -z "$separator" ]; then
+	# Source: https://unix.stackexchange.com/a/67121/18876
+	# Note: For long prefixes (but not too many), the Bash implementation in
+	# https://unix.stackexchange.com/a/18695/18876 might be more efficient.
+	sed -n -e '1h' -e 'G; s#\(.*\).*\n\1.*#\1#; h;' -e '${ /^$/q 99; p; }' -- "$@"
+    else
+	local literalSeparatorPattern="$(printf %s "$separator" | sed -e 's/[][\$*.^#]/\\&/g')"
+	sed -n -e '1h' -e "G; s#\\(.*\\)\\(${literalSeparatorPattern}.*\\)\\?\\n\\1\\(${literalSeparatorPattern}.*\\)\\?\$#\\1#; h;" -e '${ /^$/q 99; p; }' -- "$@"
+    fi
 }
 
 getSuffix()
