@@ -49,3 +49,16 @@ load fixture
     [ $status -eq 0 ]
     [ "$output" = "/path" ]
 }
+
+@test "remove path prefix of single input line is empty" {
+    runWithInput 'foo bar' longestCommon --remove-prefix --path-components
+    [ $status -eq 0 ]
+    [ "$output" = "" ]
+}
+
+@test "remove absolute path component prefix of two input lines" {
+    runWithInput $'/path/to/foo\n/path/to/forbidden/bar' longestCommon --remove-prefix --path-components
+    [ $status -eq 0 ]
+    [ "$output" = "foo
+forbidden/bar" ]
+}
