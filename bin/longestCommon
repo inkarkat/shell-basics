@@ -79,8 +79,17 @@ getPrefix()
 
 getSuffix()
 {
-    set -o pipefail
-    rev "$@" | getPrefix | rev
+    perl -lne '
+if (defined($suffix)) {
+    substr $suffix, 0, 1, "" while (! /\Q$suffix\E$/);
+} else {
+    $suffix = $_;
+}
+END {
+    exit 99 if (defined($suffix) && $suffix eq "");
+    print $suffix;
+}
+' -- "$@"
 }
 
 removePrefix()
