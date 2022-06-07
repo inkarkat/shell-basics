@@ -119,10 +119,15 @@ END {
 
 getBoth()
 {
-    perl -lne '
+    perl -slne '
 if (defined($prefix)) {
-    chop $prefix while (! /^\Q$prefix\E/);
-    substr($suffix, 0, 1, "") while (! /\Q$suffix\E$/);
+    if ($separator eq "") {
+	chop $prefix while (! /^\Q$prefix\E/);
+	substr($suffix, 0, 1, "") while (! /\Q$suffix\E$/);
+    } else {
+	$prefix =~ s#^(.*)(?:\Q$separator\E|^).*?$#\1# while (! /^\Q$prefix\E/);
+	$suffix =~ s#^.*?(?:\Q$separator\E|$)## while (! /\Q$suffix\E$/);
+    }
 
     $currentSuffixStart = length() - length($suffix);
     $suffixStart = $currentSuffixStart if ! defined($suffixStart) || $currentSuffixStart < $suffixStart;
@@ -135,7 +140,7 @@ END {
     $suffix = substr($suffix, length($prefix) - $suffixStart) if ($suffixStart < length($prefix));
     print "$prefix\n$suffix";
 }
-' -- "$@"
+' -- -separator="$separator" -- "$@"
 }
 
 removePrefix()
@@ -195,7 +200,10 @@ removeBoth()
 	local prefix="${data%%$'\n'*}"
 	local suffix="${data#*$'\n'}"
 	lines=("${lines[@]#"$prefix"}")
-	printf '%s\n' "${lines[@]%"$suffix"}"
+	[ -n "$separator" ] && lines=("${lines[@]#$separator}")
+	lines=("${lines[@]%"$suffix"}")
+	[ -n "$separator" ] && lines=("${lines[@]%$separator}")
+	printf '%s\n' "${lines[@]}"
     else
 	status=$?
 	printf '%s\n' "${lines[@]}"
