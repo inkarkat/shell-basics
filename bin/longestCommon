@@ -100,9 +100,13 @@ getPrefix()
 
 getSuffix()
 {
-    perl -lne '
+    perl -slne '
 if (defined($suffix)) {
-    substr($suffix, 0, 1, "") while (! /\Q$suffix\E$/);
+    if ($separator eq "") {
+	substr($suffix, 0, 1, "") while (! /\Q$suffix\E$/);
+    } else {
+	$suffix =~ s#^.*?(?:\Q$separator\E|$)## while (! /\Q$suffix\E$/);
+    }
 } else {
     $suffix = $_;
 }
@@ -110,7 +114,7 @@ END {
     exit 99 if (defined($suffix) && $suffix eq "");
     print $suffix;
 }
-' -- "$@"
+' -- -separator="$separator" -- "$@"
 }
 
 getBoth()
@@ -166,7 +170,9 @@ removeSuffix()
 
     local suffix status=0
     if suffix="$(printf '%s\n' "${lines[@]}" | getSuffix)"; then
-	printf '%s\n' "${lines[@]%"$suffix"}"
+	lines=("${lines[@]%"$suffix"}")
+	[ -n "$separator" ] && lines=("${lines[@]%$separator}")
+	printf '%s\n' "${lines[@]}"
     else
 	status=$?
 	printf '%s\n' "${lines[@]}"
