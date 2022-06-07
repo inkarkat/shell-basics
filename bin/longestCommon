@@ -4,7 +4,7 @@ printShortUsage()
 {
     # Note: short followed by long option; if the user knows the short one, she can
     # skim the long one.
-    printf 'Usage: %q %s\n' "$(basename "$1")" '-p|--get-prefix|-P|--remove-prefix -s|--get-suffix|-S|--remove-suffix [--] FILE [...] [-?|-h|--help]'
+    printf 'Usage: %q %s\n' "$(basename "$1")" '-p|--get-prefix|-P|--remove-prefix|-s|--get-suffix|-S|--remove-suffix|-b|--get-both|-B|--remove-both [--] FILE [...] [-?|-h|--help]'
     printf 'Usage: cat FILE [...] | %q %s\n' "$(basename "$1")" '... [-]'
 }
 printUsage()
@@ -29,10 +29,14 @@ HELPDESCRIPTION
 			input lines.
     --get-suffix|-s	Print the longest string common to the end of all input
 			lines.
+    --get-both|-b	Print the longest strings common to the beginning and
+			end of all input lines (on separate lines).
     --remove-prefix|-P	Remove the longest common prefix from the beginning of
 			all input lines and print the resulting shortened lines.
     --remove-suffix|-S	Remove the longest common prefix from the end of all
 			input lines and print the resulting shortened lines.
+    --remove-both|-B	Remove both the longest strings common to the beginning
+			and end of all input lines.
 
 EXIT STATUS:
     0	Complete success.
@@ -53,10 +57,14 @@ do
 			shift; action=getPrefix;;
 	--get-suffix|-s)
 			shift; action=getSuffix;;
+	--get-both|-b)
+			shift; action=getBoth;;
 	--remove-prefix|-P)
 			shift; action=removePrefix;;
 	--remove-suffix|-S)
 			shift; action=removeSuffix;;
+	--remove-both|-B)
+			shift; action=removeBoth;;
 	--)		shift; break;;
 	-)		break;; # For supporting special - FILE without prior --
 	-*)		{ echo "ERROR: Unknown option \"$1\"!"; echo; printUsage "$0"; } >&2; exit 2;;
@@ -81,13 +89,34 @@ getSuffix()
 {
     perl -lne '
 if (defined($suffix)) {
-    substr $suffix, 0, 1, "" while (! /\Q$suffix\E$/);
+    substr($suffix, 0, 1, "") while (! /\Q$suffix\E$/);
 } else {
     $suffix = $_;
 }
 END {
     exit 99 if (defined($suffix) && $suffix eq "");
     print $suffix;
+}
+' -- "$@"
+}
+
+getBoth()
+{
+    perl -lne '
+if (defined($prefix)) {
+    chop $prefix while (! /^\Q$prefix\E/);
+    substr($suffix, 0, 1, "") while (! /\Q$suffix\E$/);
+
+    $currentSuffixStart = length() - length($suffix);
+    $suffixStart = $currentSuffixStart if ! defined($suffixStart) || $currentSuffixStart < $suffixStart;
+} else {
+    $prefix = $_;
+    $suffix = $_;
+}
+END {
+    exit 99 if (defined($prefix) && $prefix eq "" && $suffix eq "");
+    $suffix = substr($suffix, length($prefix) - $suffixStart) if ($suffixStart < length($prefix));
+    print "$prefix\n$suffix";
 }
 ' -- "$@"
 }
@@ -122,6 +151,29 @@ removeSuffix()
 
     local suffix status=0
     if suffix="$(printf '%s\n' "${lines[@]}" | getSuffix)"; then
+	printf '%s\n' "${lines[@]%"$suffix"}"
+    else
+	status=$?
+	printf '%s\n' "${lines[@]}"
+	return $status
+    fi
+}
+
+removeBoth()
+{
+    typeset -a lines=()
+    if [ $# -eq 0 -o "$1" = '-' ]; then
+	readarray -t lines
+    else
+	readarray -t lines < "$@"
+    fi
+
+    local data status=0
+    if data="$(printf '%s\n' "${lines[@]}" | getBoth && printf X)"; then
+	data="${data%$'\n'X}"
+	local prefix="${data%%$'\n'*}"
+	local suffix="${data#*$'\n'}"
+	lines=("${lines[@]#"$prefix"}")
 	printf '%s\n' "${lines[@]%"$suffix"}"
     else
 	status=$?
