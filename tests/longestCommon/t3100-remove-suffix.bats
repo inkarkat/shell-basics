@@ -35,7 +35,7 @@ old p" ]
 sign" ]
 }
 
-@test "suffix removal of three completely different input lines is identical to inpu and returns 99" {
+@test "suffix removal of three completely different input lines is identical to input and returns 99" {
     runWithInput $'loo\nfox\nfoony' longestCommon --remove-suffix
     [ $status -eq 99 ]
     [ "$output" = $'loo\nfox\nfoony' ]

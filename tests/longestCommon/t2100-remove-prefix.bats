@@ -35,7 +35,7 @@ xy lady" ]
 ony" ]
 }
 
-@test "prefix removal of three completely different input lines is identical to inpu and returns 99" {
+@test "prefix removal of three completely different input lines is identical to input and returns 99" {
     runWithInput $'loo\nfox\nfoony' longestCommon --remove-prefix
     [ $status -eq 99 ]
     [ "$output" = $'loo\nfox\nfoony' ]
