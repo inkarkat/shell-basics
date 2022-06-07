@@ -1,0 +1,214 @@
+#!/bin/bash
+
+printShortUsage()
+{
+    # Note: short followed by long option; if the user knows the short one, she can
+    # skim the long one.
+    printf 'Usage: %q %s\n' "$(basename "$1")" '-p|--get-prefix|-P|--remove-prefix|-s|--get-suffix|-S|--remove-suffix|-b|--get-both|-B|--remove-both [--path-components|--separator TEXT] [--] FILE [...] [-?|-h|--help]'
+    printf 'Usage: cat FILE [...] | %q %s\n' "$(basename "$1")" '... [-]'
+}
+printUsage()
+{
+    # This is the short help when launched with no or incorrect arguments.
+    # It is printed to stderr to avoid accidental processing.
+    printShortUsage "$1" >&2
+    printf >&2 '\nTry %q --help for more information.\n' "$(basename "$1")"
+}
+printLongUsage()
+{
+    # This is the long "man page" when launched with the help argument.
+    # It is printed to stdout to allow paging with 'more'.
+    cat <<HELPDESCRIPTION
+Find / remove the longest prefix / suffix in all input lines.
+HELPDESCRIPTION
+    echo
+    printShortUsage "$1"
+    echo
+    cat <<HELPTEXT
+    --get-prefix|-p	Print the longest string common to the beginning of all
+			input lines.
+    --get-suffix|-s	Print the longest string common to the end of all input
+			lines.
+    --get-both|-b	Print the longest strings common to the beginning and
+			end of all input lines (on separate lines).
+    --remove-prefix|-P	Remove the longest common prefix from the beginning of
+			all input lines and print the resulting shortened lines.
+    --remove-suffix|-S	Remove the longest common prefix from the end of all
+			input lines and print the resulting shortened lines.
+    --remove-both|-B	Remove both the longest strings common to the beginning
+			and end of all input lines.
+    --separator TEXT	Common strings always go to the next complete TEXT
+			instead of accepting individual characters.
+    --path-components	Common strings always include complete path components
+			(up to each /).
+
+EXIT STATUS:
+    0	Complete success.
+    1	Failed to process the input.
+    2	Bad invocation, wrong or missing command-line arguments.
+    3	Internal error or failed assertion.
+    99	There is no common string at all; input data remains unchanged.
+
+HELPTEXT
+}
+
+action=
+separator=
+while [ $# -ne 0 ]
+do
+    case "$1" in
+	--help|-h|-\?)	shift; printLongUsage "$0"; exit 0;;
+	--get-prefix|-p)
+			shift; action=getPrefix;;
+	--get-suffix|-s)
+			shift; action=getSuffix;;
+	--get-both|-b)
+			shift; action=getBoth;;
+	--remove-prefix|-P)
+			shift; action=removePrefix;;
+	--remove-suffix|-S)
+			shift; action=removeSuffix;;
+	--remove-both|-B)
+			shift; action=removeBoth;;
+	--path-components)
+			shift; separator=/;;
+	--separator)	shift; separator="$1"; shift;;
+	--)		shift; break;;
+	-)		break;; # For supporting special - FILE without prior --
+	-*)		{ echo "ERROR: Unknown option \"$1\"!"; echo; printUsage "$0"; } >&2; exit 2;;
+	*)		break;;
+    esac
+done
+if [ -z "$action" ]; then
+    printUsage "$0" >&2
+    exit 2
+fi
+
+
+getPrefix()
+{
+    if [ -z "$separator" ]; then
+	# Source: https://unix.stackexchange.com/a/67121/18876
+	# Note: For long prefixes (but not too many), the Bash implementation in
+	# https://unix.stackexchange.com/a/18695/18876 might be more efficient.
+	sed -n -e '1h' -e 'G; s#\(.*\).*\n\1.*#\1#; h;' -e '${ /^$/q 99; p; }' -- "$@"
+    else
+	local literalSeparatorPattern="$(printf %s "$separator" | sed -e 's/[][\$*.^#]/\\&/g')"
+	sed -n -e '1h' -e "G; s#\\(.*\\)\\(${literalSeparatorPattern}.*\\)\\?\\n\\1\\(${literalSeparatorPattern}.*\\)\\?\$#\\1#; h;" -e '${ /^$/q 99; p; }' -- "$@"
+    fi
+}
+
+getSuffix()
+{
+    perl -slne '
+if (defined($suffix)) {
+    if ($separator eq "") {
+	substr($suffix, 0, 1, "") while (! /\Q$suffix\E$/);
+    } else {
+	$suffix =~ s#^.*?(?:\Q$separator\E|$)## while (! /\Q$suffix\E$/);
+    }
+} else {
+    $suffix = $_;
+}
+END {
+    exit 99 if (defined($suffix) && $suffix eq "");
+    print $suffix;
+}
+' -- -separator="$separator" -- "$@"
+}
+
+getBoth()
+{
+    perl -slne '
+if (defined($prefix)) {
+    if ($separator eq "") {
+	chop $prefix while (! /^\Q$prefix\E/);
+	substr($suffix, 0, 1, "") while (! /\Q$suffix\E$/);
+    } else {
+	$prefix =~ s#^(.*)(?:\Q$separator\E|^).*?$#\1# while (! /^\Q$prefix\E/);
+	$suffix =~ s#^.*?(?:\Q$separator\E|$)## while (! /\Q$suffix\E$/);
+    }
+
+    $currentSuffixStart = length() - length($suffix);
+    $suffixStart = $currentSuffixStart if ! defined($suffixStart) || $currentSuffixStart < $suffixStart;
+} else {
+    $prefix = $_;
+    $suffix = $_;
+}
+END {
+    exit 99 if (defined($prefix) && $prefix eq "" && $suffix eq "");
+    $suffix = substr($suffix, length($prefix) - $suffixStart) if ($suffixStart < length($prefix));
+    print "$prefix\n$suffix";
+}
+' -- -separator="$separator" -- "$@"
+}
+
+removePrefix()
+{
+    typeset -a lines=()
+    if [ $# -eq 0 -o "$1" = '-' ]; then
+	readarray -t lines
+    else
+	readarray -t lines < "$@"
+    fi
+
+    local prefix status=0
+    if prefix="$(printf '%s\n' "${lines[@]}" | getPrefix)"; then
+	lines=("${lines[@]#"$prefix"}")
+	[ -n "$separator" ] && lines=("${lines[@]#$separator}")
+	printf '%s\n' "${lines[@]}"
+    else
+	status=$?
+	printf '%s\n' "${lines[@]}"
+	return $status
+    fi
+}
+
+removeSuffix()
+{
+    typeset -a lines=()
+    if [ $# -eq 0 -o "$1" = '-' ]; then
+	readarray -t lines
+    else
+	readarray -t lines < "$@"
+    fi
+
+    local suffix status=0
+    if suffix="$(printf '%s\n' "${lines[@]}" | getSuffix)"; then
+	lines=("${lines[@]%"$suffix"}")
+	[ -n "$separator" ] && lines=("${lines[@]%$separator}")
+	printf '%s\n' "${lines[@]}"
+    else
+	status=$?
+	printf '%s\n' "${lines[@]}"
+	return $status
+    fi
+}
+
+removeBoth()
+{
+    typeset -a lines=()
+    if [ $# -eq 0 -o "$1" = '-' ]; then
+	readarray -t lines
+    else
+	readarray -t lines < "$@"
+    fi
+
+    local data status=0
+    if data="$(printf '%s\n' "${lines[@]}" | getBoth && printf X)"; then
+	data="${data%$'\n'X}"
+	local prefix="${data%%$'\n'*}"
+	local suffix="${data#*$'\n'}"
+	lines=("${lines[@]#"$prefix"}")
+	[ -n "$separator" ] && lines=("${lines[@]#$separator}")
+	lines=("${lines[@]%"$suffix"}")
+	[ -n "$separator" ] && lines=("${lines[@]%$separator}")
+	printf '%s\n' "${lines[@]}"
+    else
+	status=$?
+	printf '%s\n' "${lines[@]}"
+	return $status
+    fi
+}
+
+$action "$@"
