@@ -1,0 +1,83 @@
+#!/bin/bash
+shopt -qs extglob
+
+printUsage()
+{
+    cat <<HELPTEXT
+Take exit status(es) STATUS [...] from the supplied COMMAND and translate them
+into another status.
+Any other exit status is returned as-is.
+Useful for applications that indicate special situations with particular exit
+statuses but are executed through another command that also indicates situations
+of interest with overlapping exit statuses.
+HELPTEXT
+    echo
+    printf "Usage: %q %s\\n" "$(basename "$1")" '(STATUS|-S|[!]S|S+|S-T|S%T)=(TARGET|+T|-T) [...] [--] COMMAND [ARG ...] [-?|-h|--help]'
+    echo
+    cat <<HELPTEXT
+SEE ALSO:
+- acceptStatus turns multiple statuses into success
+HELPTEXT
+}
+
+typeset -A translations=()
+while [ $# -ne 0 ]
+do
+    case "$1" in
+	--help|-h|-\?)	shift; printUsage "$0"; exit 0;;
+	@(+([0-9])|[-!]+([0-9])|+([0-9])+|+([0-9])[-%]+([0-9]))=*)
+			translations["${1%%=*}"]="${1#*=}"; shift;;
+	--)		shift; break;;
+	-*)		{ echo "ERROR: Unknown option \"$1\"!"; echo; printUsage "$0"; } >&2; exit 2;;
+	*)		break;;
+    esac
+done
+if [ ${#translations[@]} -eq 0 ]; then
+    echo 'ERROR: No STATUS=TARGET passed.'
+    echo
+    printUsage "$0"
+    exit 2
+elif [ $# -eq 0 ]; then
+    echo 'ERROR: No COMMAND passed.'
+    echo
+    printUsage "$0"
+    exit 2
+fi >&2
+
+"$@"
+status=$?
+
+translate()
+{
+    local translation="${translations["$range"]}"
+    case "$translation" in
+	+([0-9]))   exit $translation;;
+	-+([0-9]))  exit $((status - ${translation#-}));;
+	++([0-9]))  exit $((status + ${translation#+}));;
+	*)	    printf >&2 'ERROR: Invalid TARGET argument: %s\n' "$translation"
+		    exit 2
+		    ;;
+    esac
+}
+
+for range in "${!translations[@]}"
+do
+    case "$range" in
+	+([0-9]))	    [ $status -eq $range ] && translate;;
+	-+([0-9]))	    [ $status -le ${range#-} ] && translate;;
+	+([0-9])+)	    [ $status -ge ${range%+} ] && translate;;
+	+([0-9])-+([0-9]))  minStatus=${range%-*}
+			    maxStatus=${range#*-}
+			    [ $status -ge $minStatus -a $status -le $maxStatus ] && translate
+			    ;;
+	+([0-9])%+([0-9]))  minStatus=${range%\%*}
+			    maxStatus=${range#*%}
+			    [ $status -lt $minStatus -o $status -gt $maxStatus ] && translate
+			    ;;
+	!+([0-9]))	    [ $status -ne ${range#!} ] && translate;;
+	*)		    printf >&2 'ERROR: Invalid STATUS argument: %s\n' "$range"
+			    exit 2
+			    ;;
+    esac
+done
+exit $status
