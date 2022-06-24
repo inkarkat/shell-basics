@@ -17,7 +17,7 @@ HELPTEXT
     printf "Usage: [SUCCESS_STATUS=${SUCCESS_STATUS}] %q %s\\n" "$(basename "$1")" 'STATUS|-S|[!]S|S+|S-T|S%T [...] [--] COMMAND [ARG ...] [-?|-h|--help]'
     echo
     cat <<HELPTEXT
-See also: succeedThis, failThis, negatethis
+See also: succeedThis, failThis, negateThis
 See also: fail prints a message if the expectation isn't met and integrates with
 command-alerting, so is meant for interactive use.
 HELPTEXT
