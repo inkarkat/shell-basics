@@ -5,8 +5,8 @@ printUsage()
 {
     cat <<HELPTEXT
 Log COMMAND (in the format TIMESTAMP (PID) COMMAND ...) to standard error if
-debugging is enabled for the caller (DEBUG=CALLER CALLER).
-With DEBUG=debuglog=FILESPEC,CALLER CALLER, will log to FILESPEC instead.
+debugging is enabled for the caller: DEBUG=CALLER CALLER
+With "DEBUG=debuglog=FILESPEC,CALLER CALLER" will log to FILESPEC instead.
 HELPTEXT
     printf 'Usage: %q %s\n' "$(basename "$1")" '[--] COMMAND [...] [-?|-h|--help]'
 }
@@ -15,8 +15,7 @@ case "$1" in
     --)			shift;;
 esac
 
-
-[ "$DEBUG" ] || exec "$@"
+[ -n "$DEBUG" ] || exec "$@"
 
 {
     IFS= read -r -d '' debuglogCmd
