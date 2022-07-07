@@ -5,33 +5,48 @@ printUsage()
 {
     cat <<HELPTEXT
 Log COMMAND (in the format TIMESTAMP (PID) COMMAND ...) to standard error if
-debugging is enabled for the caller: DEBUG=CALLER CALLER
-With "DEBUG=debuglog=FILESPEC,CALLER CALLER" will log to FILESPEC instead.
+debugging is enabled for the caller: DEBUG=DEBUGGEE DEBUGGEE
+With "DEBUG=debuglog=FILESPEC,DEBUGGEE DEBUGGEE" will log to FILESPEC instead.
+With "DEBUG=debuglog DEBUGGEE" will show for what DEBUGGEE it will enable (if
+not actually enabled).
 HELPTEXT
-    printf 'Usage: %q %s\n' "$(basename "$1")" '[--] COMMAND [...] [-?|-h|--help]'
+    printf 'Usage: %q %s\n' "$(basename "$1")" '[--for DEBUGGEE] [--] COMMAND [...] [-?|-h|--help]'
 }
-case "$1" in
-    --help|-h|-\?)	shift; printUsage "$0"; exit 0;;
-    --)			shift;;
-esac
+debuggee=
+while [ $# -ne 0 ]
+do
+    case "$1" in
+	--help|-h|-\?)	shift; printUsage "$0"; exit 0;;
+	--for)		shift; debuggee="${1?}"; shift;;
+	--)		shift; break;;
+	-*)		{ echo "ERROR: Unknown option \"$1\"!"; echo; printUsage "$0"; } >&2; exit 2;;
+	*)		break;;
+    esac
+done
 
 [ -n "$DEBUG" ] || exec "$@"
 
-{
-    IFS= read -r -d '' debuglogCmd
-    IFS= read -r -d '' debuglogSecond
-} < /proc/${PPID}/cmdline
+if [ -z "$debuggee" ]; then
+    {
+	IFS= read -r -d '' debuglogCmd
+	IFS= read -r -d '' debuglogSecond
+    } < /proc/${PPID}/cmdline
+    debuggee="$(commandName --no-interpreter -- "$debuglogCmd" "$debuglogSecond")"
+fi
 
-debuglogCmdName="$(commandName --no-interpreter -- "$debuglogCmd" "$debuglogSecond")"
-case ",${DEBUG:-}," in *,$debuglogCmdName,*)
-    case ",${DEBUG:-}," in
-	*,debuglog=*,*)	debuglogFilespec=",${DEBUG},"; debuglogFilespec="${debuglogFilespec#*,debuglog=}"; debuglogFilespec="${debuglogFilespec%%,*}"
-			log "$debuglogCmdName ($PPID) $*" >> "$debuglogFilespec"
-			;;
-	*)		log "$debuglogCmdName ($PPID) $*" >&2
-			;;
-    esac
-    ;;
+case ",${DEBUG:-}," in
+    *,$debuggee,*)
+	case ",${DEBUG:-}," in
+	    *,debuglog=*,*) debuglogFilespec=",${DEBUG},"; debuglogFilespec="${debuglogFilespec#*,debuglog=}"; debuglogFilespec="${debuglogFilespec%%,*}"
+			    log "$debuggee ($PPID) $*" >> "$debuglogFilespec"
+			    ;;
+	    *)		    log "$debuggee ($PPID) $*" >&2
+			    ;;
+	esac
+	;;
+    *,debuglog,*)
+	printf >&2 'debuglog: Will activate with DEBUG=%q\n' "$debuggee"
+	;;
 esac
 
 exec "$@"

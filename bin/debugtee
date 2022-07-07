@@ -3,16 +3,21 @@
 printUsage()
 {
     cat <<HELPTEXT
-Duplicate standard input to a debug file if debugging is enabled for the caller:
-DEBUG=CALLER CALLER, and print the filespec to standard error at the end.
-With "DEBUG=debugtee=FILESPEC,CALLER CALLER" will log to FILESPEC instead.
+Duplicate standard input to a debug file if debugging is enabled for the
+debuggee: DEBUG=DEBUGGEE DEBUGGEE, and print the filespec to standard error at
+the end.
+With "DEBUG=debugtee=FILESPEC,DEBUGGEE DEBUGGEE" will log to FILESPEC instead.
+With "DEBUG=debugtee DEBUGGEE" will show for what DEBUGGEE it will enable (if
+not actually enabled).
 HELPTEXT
     echo
-    printf 'Usage: cat FILE [...] | %q | COMMAND ...\n' "$(basename "$1")"
-    printf "Usage: cat FILE [...] | eval \${DEBUG:+%q |} 'COMMAND [...]'\\n" "$(basename "$1")"
+    printf 'Usage: cat FILE [...] | %q %s | COMMAND ...\n' "$(basename "$1")" '--for DEBUGGEE'
+    printf "Usage: cat FILE [...] | eval \${DEBUG:+%q %s |} 'COMMAND [...]'\\n" "$(basename "$1")" '--for DEBUGGEE'
 }
+debuggee=
 case "$1" in
     --help|-h|-\?)	shift; printUsage "$0"; exit 0;;
+    --for)		shift; debuggee="${1?}"; shift;;
     --)			shift;;
 esac
 if [ $# -ne 0 ]; then
@@ -32,21 +37,26 @@ finally()
     fi
 }
 
-{
-    IFS= read -r -d '' debugteeCmd
-    IFS= read -r -d '' debugteeSecond
-} < /proc/${PPID}/cmdline
-debugteeCmdName="$(commandName --no-interpreter --undefined debugtee -- "$debugteeCmd" "$debugteeSecond")"
+if [ -z "$debuggee" ]; then
+    {
+	IFS= read -r -d '' debugteeCmd
+	IFS= read -r -d '' debugteeSecond
+    } < /proc/${PPID}/cmdline
+    debuggee="$(commandName --no-interpreter --undefined debugtee -- "$debugteeCmd" "$debugteeSecond")"
+fi
 
 case ",${DEBUG:-}," in
-    *,$debugteeCmdName,*)
+    *,${debuggee},*)
 	case ",${DEBUG:-}," in
 	    *,debugtee=*,*) debugteeFilespec=",${DEBUG},"; debugteeFilespec="${debugteeFilespec#*,debugtee=}"; debugteeFilespec="${debugteeFilespec%%,*}";;
-	    *)		    debugteeFilespec="${debugteeCmdName}.log";;
+	    *)		    debugteeFilespec="${debuggee}.log";;
 	esac
 
 	trap finally EXIT
 	tee --append -- "$debugteeFilespec"
 	;;
+    *,debugtee,*)
+	printf >&2 'debugtee: Will activate with DEBUG=%q\n' "$debuggee"
+	;&
     *)	exec cat
 esac
