@@ -1,0 +1,52 @@
+#!/bin/bash
+
+printUsage()
+{
+    cat <<HELPTEXT
+Duplicate standard input to a debug file if debugging is enabled for the caller:
+DEBUG=CALLER CALLER, and print the filespec to standard error at the end.
+With "DEBUG=debugtee=FILESPEC,CALLER CALLER" will log to FILESPEC instead.
+HELPTEXT
+    echo
+    printf 'Usage: cat FILE [...] | %q | COMMAND ...\n' "$(basename "$1")"
+    printf "Usage: cat FILE [...] | eval \${DEBUG:+%q |} 'COMMAND [...]'\\n" "$(basename "$1")"
+}
+case "$1" in
+    --help|-h|-\?)	shift; printUsage "$0"; exit 0;;
+    --)			shift;;
+esac
+if [ $# -ne 0 ]; then
+    printUsage "$0" >&2
+    exit 2
+fi
+
+[ -n "$DEBUG" ] || exec cat
+
+finally()
+{
+    if [ -s "$debugteeFilespec" ]; then
+	printf >&2 '%s\n' "$debugteeFilespec"
+    elif [ -e "$debugteeFilespec" ]; then
+	# Clean up an empty debug log.
+	rm --force -- "$debugteeFilespec" || :
+    fi
+}
+
+{
+    IFS= read -r -d '' debugteeCmd
+    IFS= read -r -d '' debugteeSecond
+} < /proc/${PPID}/cmdline
+debugteeCmdName="$(commandName --no-interpreter --undefined debugtee -- "$debugteeCmd" "$debugteeSecond")"
+
+case ",${DEBUG:-}," in
+    *,$debugteeCmdName,*)
+	case ",${DEBUG:-}," in
+	    *,debugtee=*,*) debugteeFilespec=",${DEBUG},"; debugteeFilespec="${debugteeFilespec#*,debugtee=}"; debugteeFilespec="${debugteeFilespec%%,*}";;
+	    *)		    debugteeFilespec="${debugteeCmdName}.log";;
+	esac
+
+	trap finally EXIT
+	tee --append -- "$debugteeFilespec"
+	;;
+    *)	exec cat
+esac
