@@ -4,7 +4,7 @@ printShortUsage()
 {
     # Note: short followed by long option; if the user knows the short one, she can
     # skim the long one.
-    printf 'Usage: %q %s\n' "$(basename "$1")" '[-q|--question QUESTION] [-k|--keep-prompt] [-t|--timeout TIMEOUT] [-c|--console|-g|--gui] [--] --yes-no|--ok-cancel|POSITIVE_ENTRY NEGATIVE_ENTRY [-?|-h|--help]'
+    printf 'Usage: %q %s\n' "$(basename "$1")" '[-q|--question QUESTION] [-i|--introduction TEXT] [-k|--keep-prompt] [-t|--timeout TIMEOUT] [-c|--console|-g|--gui] [--] --yes-no|--ok-cancel|POSITIVE_ENTRY NEGATIVE_ENTRY [-?|-h|--help]'
 }
 printUsage()
 {
@@ -27,8 +27,11 @@ HELPDESCRIPTION
     cat <<HELPTEXT
     --question|-q QUESTION
 			Print QUESTION before the choices.
+    --introduction|-i TEXT
+			Print TEXT before QUESTION.
     --keep-prompt|-k	Keep the prompt and chosen answer on the screen instead
-			of clearing it (in the terminal).
+			of clearing it (in the terminal). (An introductory TEXT
+			is always kept.)
     --timeout|-t TIMEOUT
 			Time out and return 123 if the user did not respond
 			within TIMEOUT seconds.
@@ -54,6 +57,7 @@ HELPTEXT
 }
 
 question=
+introduction=
 positiveEntry=
 negativeEntry=
 typeset -a userchoiceArgs=()
@@ -64,6 +68,8 @@ do
     case "$1" in
 	--help|-h|-\?)	shift; printLongUsage "$0"; exit 0;;
 	--question|-q)	shift; question="$1"; shift;;
+	--introduction|-i)
+			shift; introduction="$1"; shift;;
 	--keep-prompt|-k)
 			userchoiceArgs+=("$1"); shift;;
 	--timeout|-t)	userchoiceArgs+=("$1" "$2"); zenityArgs+=(--timeout "$2"); shift; shift;;
@@ -90,8 +96,13 @@ elif [ $# -ne 0 ]; then
     exit 2
 fi >&2
 
+printfToTerm()
+{
+    { printf >/dev/tty "$@"; } 2>/dev/null
+}
 consoleChoice()
 {
+    [ -z "$introduction" ] || printfToTerm '%s\n' "$introduction"
     local reply; reply="$(userchoiceFromList "${userchoiceArgs[@]}" ${question:+--question "$question"} --no-cancel --ignore-case -- "$positiveEntry" "$negativeEntry")"; local status=$?
     case $status in
 	0)  case "$reply" in
@@ -115,7 +126,7 @@ guiChoice()
 	negativeEntry=''
     fi
 
-    zenity "${zenityArgs[@]}" --question --text="${question:-Choose one:}" ${positiveEntry:+--ok-label "${positiveEntry//[][]/}"} ${negativeEntry:+--cancel-label "${negativeEntry//[][]/}"}; local status=$?
+    zenity "${zenityArgs[@]}" --question --text="${introduction}${introduction:+$'\n\n'}${question:-Choose one:}" ${positiveEntry:+--ok-label "${positiveEntry//[][]/}"} ${negativeEntry:+--cancel-label "${negativeEntry//[][]/}"}; local status=$?
     case $status in
 	0)  exit 0;;
 	1)  exit 1;;
