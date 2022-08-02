@@ -44,7 +44,7 @@ See also: collapseToSingleLine takes lines from files / standard input and can
 do wrapping and elaborate line breaking.
 HELPTEXT
 }
-unset delimiter
+unset separator
 prefix=
 suffix=
 emptyText=
@@ -93,7 +93,7 @@ do
 			    printUsage "$0" >&2
 			    exit 2
 			fi
-			delimiter="${1?}"; shift
+			separator="${1?}"; shift
 			readarray -t args
 			set -- "${args[@]}"
 			break
@@ -103,12 +103,12 @@ do
     esac
 done
 
-if [ -z "${delimiter+t}" ]; then
+if [ -z "${separator+t}" ]; then
     if [ $# -eq 0 ]; then
 	printUsage "$0" >&2
 	exit 2
     fi
-    delimiter="${1?}"; shift
+    separator="${1?}"; shift
 fi
 
 if [ "$isOmitEmpty" ]; then
@@ -131,10 +131,10 @@ else
     printf '%s%s' "$prefix" "$1"; shift
     if [ -n "$truncateNum" ] && [ $# -ge $truncateNum ]; then
 	set -- "${@:1:$((truncateNum - 1))}"
-	printf %s "${@/#/$delimiter}"
+	printf %s "${@/#/$separator}"
 	[ -n "$truncateText" ] && printf %s "$truncateText"
     else
-	printf %s "${@/#/$delimiter}"
+	printf %s "${@/#/$separator}"
     fi
     printf '%s\n' "$suffix"
 fi
