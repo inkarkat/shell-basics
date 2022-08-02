@@ -6,7 +6,7 @@ printShortUsage()
 {
     # Note: short followed by long option; if the user knows the short one, she can
     # skim the long one.
-    printf 'Usage: %q %s\n' "$(basename "$1")" '[--prefix PREFIX] [--suffix SUFFIX] [--empty TEXT] [--omit-empty] [--truncate-after "N[ TRAIL-OFF]"] [--summarize-larger "N[ ENTRIES]"] [--] SEPARATOR [ARG ...] [-?|-h|--help]'
+    printf 'Usage: %q %s\n' "$(basename "$1")" '[--prefix PREFIX] [--suffix SUFFIX] [--empty TEXT] [--omit-empty] [--last-separator LAST-SEPARATOR] [--truncate-after "N[ TRAIL-OFF]"] [--summarize-larger "N[ ENTRIES]"] [--] SEPARATOR [ARG ...] [-?|-h|--help]'
     printf 'Usage: cat FILE [...] | %q %s\n' "$(basename "$1")" '[...] - SEPARATOR'
 }
 printUsage()
@@ -34,6 +34,9 @@ HELPDESCRIPTION
     --omit-empty	Do not put a SEPARATOR around completely empty ARGs
 			(empty lines with -), and don't count them for
 			truncation or summary.
+    --last-separator LAST-SEPARATOR
+			Use LAST-SEPARATOR instead of SEPARATOR for joining the
+			second-to-last and last ARGs.
     --truncate-after N[ TRAIL-OFF]
 			After enumerating N ARGs, omit further ARGs and just
 			trail off with ... / TRAIL-OFF.
@@ -45,6 +48,7 @@ do wrapping and elaborate line breaking.
 HELPTEXT
 }
 unset separator
+unset lastSeparator
 prefix=
 suffix=
 emptyText=
@@ -61,6 +65,8 @@ do
 	--suffix)	shift; suffix="$1"; shift;;
 	--empty)	shift; emptyText="$1"; shift;;
 	--omit-empty)	shift; isOmitEmpty=t;;
+	--last-separator)
+			shift; lastSeparator="$1"; shift;;
 	--truncate-after)
 			shift
 			text="${1#+([0-9])}"
@@ -133,6 +139,11 @@ else
 	set -- "${@:1:$((truncateNum - 1))}"
 	printf %s "${@/#/$separator}"
 	[ -n "$truncateText" ] && printf %s "$truncateText"
+    elif [ $# -gt 1 -a -n "${lastSeparator+t}" ]; then
+	lastArg="${!#}"
+	set -- "${@:1:$(($#-1))}"
+	printf %s "${@/#/$separator}"
+	printf %s%s "$lastSeparator" "$lastArg"
     else
 	printf %s "${@/#/$separator}"
     fi
