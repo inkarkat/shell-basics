@@ -6,7 +6,7 @@ printShortUsage()
 {
     # Note: short followed by long option; if the user knows the short one, she can
     # skim the long one.
-    printf 'Usage: %q %s\n' "$(basename "$1")" '[--prefix PREFIX] [--suffix SUFFIX] [--empty TEXT] [--omit-empty] [--truncate-after "N[ TRAIL-OFF]"] [--summarize-larger "N[ ENTRIES]"] [--] SEPARATOR [ARG ...] [-?|-h|--help]'
+    printf 'Usage: %q %s\n' "$(basename "$1")" '[--prefix PREFIX] [--suffix SUFFIX] [--empty TEXT] [--omit-empty] [--last-separator LAST-SEPARATOR] [--truncate-after "N[ TRAIL-OFF]"] [--summarize-larger "N[ ENTRIES]"] [--] SEPARATOR [ARG ...] [-?|-h|--help]'
     printf 'Usage: cat FILE [...] | %q %s\n' "$(basename "$1")" '[...] - SEPARATOR'
 }
 printUsage()
@@ -34,6 +34,9 @@ HELPDESCRIPTION
     --omit-empty	Do not put a SEPARATOR around completely empty ARGs
 			(empty lines with -), and don't count them for
 			truncation or summary.
+    --last-separator LAST-SEPARATOR
+			Use LAST-SEPARATOR instead of SEPARATOR for joining the
+			second-to-last and last ARGs.
     --truncate-after N[ TRAIL-OFF]
 			After enumerating N ARGs, omit further ARGs and just
 			trail off with ... / TRAIL-OFF.
@@ -44,7 +47,8 @@ See also: collapseToSingleLine takes lines from files / standard input and can
 do wrapping and elaborate line breaking.
 HELPTEXT
 }
-unset delimiter
+unset separator
+unset lastSeparator
 prefix=
 suffix=
 emptyText=
@@ -61,6 +65,8 @@ do
 	--suffix)	shift; suffix="$1"; shift;;
 	--empty)	shift; emptyText="$1"; shift;;
 	--omit-empty)	shift; isOmitEmpty=t;;
+	--last-separator)
+			shift; lastSeparator="$1"; shift;;
 	--truncate-after)
 			shift
 			text="${1#+([0-9])}"
@@ -93,7 +99,7 @@ do
 			    printUsage "$0" >&2
 			    exit 2
 			fi
-			delimiter="${1?}"; shift
+			separator="${1?}"; shift
 			readarray -t args
 			set -- "${args[@]}"
 			break
@@ -103,12 +109,12 @@ do
     esac
 done
 
-if [ -z "${delimiter+t}" ]; then
+if [ -z "${separator+t}" ]; then
     if [ $# -eq 0 ]; then
 	printUsage "$0" >&2
 	exit 2
     fi
-    delimiter="${1?}"; shift
+    separator="${1?}"; shift
 fi
 
 if [ "$isOmitEmpty" ]; then
@@ -131,10 +137,15 @@ else
     printf '%s%s' "$prefix" "$1"; shift
     if [ -n "$truncateNum" ] && [ $# -ge $truncateNum ]; then
 	set -- "${@:1:$((truncateNum - 1))}"
-	printf %s "${@/#/$delimiter}"
+	printf %s "${@/#/$separator}"
 	[ -n "$truncateText" ] && printf %s "$truncateText"
+    elif [ $# -gt 1 -a -n "${lastSeparator+t}" ]; then
+	lastArg="${!#}"
+	set -- "${@:1:$(($#-1))}"
+	printf %s "${@/#/$separator}"
+	printf %s%s "$lastSeparator" "$lastArg"
     else
-	printf %s "${@/#/$delimiter}"
+	printf %s "${@/#/$separator}"
     fi
     printf '%s\n' "$suffix"
 fi
