@@ -1,0 +1,48 @@
+#!/bin/bash
+shopt -s nullglob dotglob
+
+printUsage()
+{
+    cat <<HELPTEXT
+Check whether all of the passed FILE(s) (any type, also special or directory) do
+(with -v|--invert: do not) exist.
+With -p|--print also prints those FILE(s) that do (with -v|--invert: do not)
+exist.
+With -P|--print-others also prints those FILE(s) that do not (with -v|--invert:
+do) exist.
+HELPTEXT
+    echo
+    printf 'Usage: %q %s\n' "$(basename "$1")" '[-p|--print|-P|--print-others] [-v|--invert] [--] FILE [...] [-?|-h|--help]'
+}
+inverter=
+isPrint=
+isPrintOthers=
+while [ $# -ne 0 ]
+do
+    case "$1" in
+	--help|-h|-\?)	shift; printUsage "$0"; exit 0;;
+	--print|-p)	shift; isPrint=t;;
+	--print-others|-P)
+			shift; isPrintOthers=t;;
+	--invert|-v)	shift; inverter='!';;
+	--)		shift; break;;
+	-*)		{ echo "ERROR: Unknown option \"$1\"!"; echo; printUsage "$0"; } >&2; exit 2;;
+	*)		break;;
+    esac
+done
+if [ $# -eq 0 ]; then
+    printUsage "$0" >&2
+    exit 2
+fi
+
+status=0
+for filespec
+do
+    if ! [ $inverter -e "$filespec" ]; then
+	status=1
+	[ "$isPrintOthers" ] && printf '%s\n' "$filespec"
+    elif [ "$isPrint" ]; then
+	printf '%s\n' "$filespec"
+    fi
+done
+exit $status
