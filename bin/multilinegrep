@@ -79,7 +79,7 @@ do
 	--block-regexp|-y)	shift; startOfSubsequentLinesAssertion=''; endOfSubsequentLinesAssertion='';;
 	--quiet|--silent|-q)	shift; sedPrint='';;
 	--line-buffered)	shift; sedArgs+=(--unbuffered);;
-	--)			break;;
+	--)			shift; break;;
 	-*)			{ echo "ERROR: Unknown option \"$1\"!"; echo; printUsage "$0"; } >&2; exit 2;;
 	*)			if [ ${#patterns[@]} -eq 0 ]; then
 				    patterns+=("${1:?}")
@@ -152,7 +152,7 @@ if ! exists ifne; then
 elif [ $# -eq 0 ]; then
     ifne -n false | sed -n "${sedArgs[@]}" "${sedProgram[@]}"
 elif ! hasNonEmptyFileArg "$@"; then
-    cat "$@" | ifne -n false | sed -n "${sedArgs[@]}" "${sedProgram[@]}"
+    cat -- "$@" | ifne -n false | sed -n "${sedArgs[@]}" "${sedProgram[@]}"
     typeset -a results=("${PIPESTATUS[@]}")
     if [ ${results[0]} -ne 0 ]; then
 	exit 2
