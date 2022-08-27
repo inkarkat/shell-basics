@@ -1,0 +1,34 @@
+#!/bin/bash
+shopt -qs extglob
+
+printUsage()
+{
+    cat <<HELPTEXT
+Encode an arbitrary STRING for use as a filename; i.e. escape all forbidden
+characters, control the length, so that the result is a valid filename but
+enough uniqueness is kept. The only guarantee is that the same STRING will
+always lead to the same filename.
+HELPTEXT
+    echo
+    printf 'Usage: %q %s\n' "$(basename "$1")" 'STRING [...] [-?|-h|--help]'
+}
+case "$1" in
+    --help|-h|-\?)	shift; printUsage "$0"; exit 0;;
+esac
+if [ $# -eq 0 -o -z "$*" ]; then
+    printUsage "$0" >&2
+    exit 2
+fi
+
+filename="${*//[^A-Za-z0-9]/_}"
+filename="${filename//+(_)/_}"
+filename="${filename#_}"
+filename="${filename%_}"
+if [ ${#filename} -lt 8 -o ${#filename} -gt 64 ]; then
+    # Too short is bad because there's not enough uniqueness; too long makes for
+    # hard to read filenames. Solve both by using the hash of the original
+    # command.
+    printf %s "$*" | sha256sum - | cut --delimiter ' ' --fields 1
+else
+    printf '%s\n' "$filename"
+fi
