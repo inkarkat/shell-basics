@@ -21,3 +21,9 @@ five" ]
     [ $status -eq 0 ]
     [ "$output" = "$(cat "${BATS_TEST_DIRNAME}/counts")" ]
 }
+
+@test "list 7 first and 7 last lines which is more than twice what the file has" {
+    run headtail --lines 7 "${BATS_TEST_DIRNAME}/counts"
+    [ $status -eq 0 ]
+    [ "$output" = "$(cat "${BATS_TEST_DIRNAME}/counts")" ]
+}
