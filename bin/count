@@ -5,7 +5,7 @@ printShortUsage()
 {
     # Note: short followed by long option; if the user knows the short one, she can
     # skim the long one.
-    printf 'Usage: %q %s\n' "$(basename "$1")" '-g|--greater|-s|--smaller|-lt|-le|-eq|-ne|-ge|-gt N -b|--bytes|-m|--chars|-l|--lines|-w|--words [--] FILE [...] [-?|-h|--help]'
+    printf 'Usage: %q %s\n' "$(basename "$1")" '-g|--greater|-s|--smaller|-lt|-le|-eq|-ne|-ge|-gt N -b|--bytes|-m|--chars|-l|--lines|-w|--words [-t|--tee] [--] FILE [...] [-?|-h|--help]'
     printf 'Usage: cat FILE [...] | %q %s\n' "$(basename "$1")" '-g|--greater|-s|--smaller|-lt|-le|-eq|-ne|-ge|-gt N [...] -'
     echo
     printf 'Usage: %q %s\n' "$(basename "$1")" '-g|--greater|-s|--smaller|-lt|-le|-eq|-ne|-ge|-gt N [...] -c|--command "COMMANDLINE" [...] | --exec SIMPLECOMMAND [...] ; [...] [-?|-h|--help]'
@@ -33,6 +33,7 @@ HELPDESCRIPTION
     --chars|-m		Count characters.
     --lines|-l		Count newlines (default).
     --words|-w		Count words.
+    --tee|-t		Keep outputting the input, too.
     --command|-c CMD	Execute CMD as a command-line.
     --exec CMD [...] ;	Execute CMD; all following arguments are taken to be
 			arguments to the CMD until an argument consisting of ';'
@@ -47,6 +48,7 @@ HELPTEXT
 
 num=
 compareOp=
+counter=getCount
 typeset -a wcArg=(--lines)
 typeset -a commands=()
 while [ $# -ne 0 ]
@@ -60,6 +62,10 @@ do
 	--smaller|-s)	shift; num="${1:?}"; shift; compareOp=-lt;;
 	-lt|-le|-eq|-ne|-ge|-gt)
 			compareOp="$1"; shift; num="${1:?}"; shift;;
+	--tee|-t)	shift
+			counter=getTeedCount
+			exec 3>&1
+			;;
 	--command|-c)	shift; commands+=(${commands:+;} "$1"); shift;;
 	--exec)		shift
 			cmd=
@@ -99,13 +105,24 @@ countInput()
     wc "${wcArg[@]}" -- "$@"
 }
 
-count=$(
+getCount()
+{
     if [ ${#commands[@]} -gt 0 ]; then
 	eval "${commands[@]}" | countInput
     else
 	countInput "$@"
     fi
-) || exit 4
+}
+getTeedCount()
+{
+    if [ ${#commands[@]} -gt 0 ]; then
+	eval "${commands[@]}"
+    else
+	cat -- "$@"
+    fi | \
+	tee /dev/fd/3 | countInput
+}
+count=$($counter "$@") || exit 4
 
 count="${count% *}" # Drop any FILE names that wc appends.
 [ $count $compareOp $num ]
