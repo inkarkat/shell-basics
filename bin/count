@@ -5,7 +5,7 @@ printShortUsage()
 {
     # Note: short followed by long option; if the user knows the short one, she can
     # skim the long one.
-    printf 'Usage: %q %s\n' "$(basename "$1")" '-g|--greater|-s|--smaller|-lt|-le|-eq|-ne|-ge|-gt N -b|--bytes|-m|--chars|-l|--lines|-w|--words [-t|--tee] [--] FILE [...] [-?|-h|--help]'
+    printf 'Usage: %q %s\n' "$(basename "$1")" '-g|--greater|-s|--smaller|-lt|-le|-eq|-ne|-ge|-gt N -b|--bytes|-m|--chars|-l|--lines|-w|--words [-p|--print|-t|--tee] [--] FILE [...] [-?|-h|--help]'
     printf 'Usage: cat FILE [...] | %q %s\n' "$(basename "$1")" '-g|--greater|-s|--smaller|-lt|-le|-eq|-ne|-ge|-gt N [...] -'
     echo
     printf 'Usage: %q %s\n' "$(basename "$1")" '-g|--greater|-s|--smaller|-lt|-le|-eq|-ne|-ge|-gt N [...] -c|--command "COMMANDLINE" [...] | --exec SIMPLECOMMAND [...] ; [...] [-?|-h|--help]'
@@ -33,7 +33,10 @@ HELPDESCRIPTION
     --chars|-m		Count characters.
     --lines|-l		Count newlines (default).
     --words|-w		Count words.
-    --tee|-t		Keep outputting the input, too.
+    --print|-p		Output the input if the comparison succeeds; suppress
+			the input if not.
+    --tee|-t		Forward all input as output (regardless of the result of
+			the comparision).
     --command|-c CMD	Execute CMD as a command-line.
     --exec CMD [...] ;	Execute CMD; all following arguments are taken to be
 			arguments to the CMD until an argument consisting of ';'
@@ -49,6 +52,7 @@ HELPTEXT
 num=
 compareOp=
 counter=getCount
+postAction=
 typeset -a wcArg=(--lines)
 typeset -a commands=()
 while [ $# -ne 0 ]
@@ -62,6 +66,10 @@ do
 	--smaller|-s)	shift; num="${1:?}"; shift; compareOp=-lt;;
 	-lt|-le|-eq|-ne|-ge|-gt)
 			compareOp="$1"; shift; num="${1:?}"; shift;;
+	--print|-p)	shift
+			counter=getPrintedCount
+			postAction=printInput
+			;;
 	--tee|-t)	shift
 			counter=getTeedCount
 			exec 3>&1
@@ -122,7 +130,29 @@ getTeedCount()
     fi | \
 	tee /dev/fd/3 | countInput
 }
-count=$($counter "$@") || exit 4
+getPrintedCount()
+{
+    local input; input="$(
+	trap 'printf X' EXIT
+	if [ ${#commands[@]} -gt 0 ]; then
+	    eval "${commands[@]}"
+	else
+	    cat -- "$@"
+	fi
+    )" || return $?
+    printf %s "${input%X}" | countInput || return $?
+    printf %s "$input"
+}
+printInput()
+{
+    local input="${result#*$'\n'}"
+    input="${input%X}"
+    [ -z "$input" ] || printf %s "$input"
+}
 
+result="$($counter "$@")" || exit 4
+count="${result%%$'\n'*}" # Drop possible print output.
 count="${count% *}" # Drop any FILE names that wc appends.
-[ $count $compareOp $num ]
+
+[ $count $compareOp $num ] || exit 1
+$postAction
