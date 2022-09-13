@@ -139,7 +139,7 @@ else
 	set -- "${@:1:$((truncateNum - 1))}"
 	printf %s "${@/#/$separator}"
 	[ -n "$truncateText" ] && printf %s "$truncateText"
-    elif [ $# -gt 1 -a -n "${lastSeparator+t}" ]; then
+    elif [ $# -ge 1 -a -n "${lastSeparator+t}" ]; then
 	lastArg="${!#}"
 	set -- "${@:1:$(($#-1))}"
 	printf %s "${@/#/$separator}"
