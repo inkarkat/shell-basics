@@ -4,7 +4,7 @@ printShortUsage()
 {
     # Note: short followed by long option; if the user knows the short one, she can
     # skim the long one.
-    printf 'Usage: %q %s\n' "$(basename "$1")" '[-s|--skip PATTERN [-s ...]] [-m|--match PATTERN [-m ...]] [-x|--ignore PATTERN [-x ...]] [-i[SUFFIX]|--in-place[=SUFFIX]] [--] [FILE ...] [-?|-h|--help]'
+    printf 'Usage: %q %s\n' "$(basename "$1")" '[-F|--field-separator FS] [-M|--match-field [-]N [-M ...]|-S|--skip-field [-]N [-S ...]] [-s|--skip PATTERN [-s ...]] [-m|--match PATTERN [-m ...]] [-x|--ignore PATTERN [-x ...]] [-i[SUFFIX]|--in-place[=SUFFIX]] [--] [FILE ...] [-?|-h|--help]'
 }
 printUsage()
 {
@@ -28,12 +28,22 @@ Filters FILE(s) (or standard input) so that each line is contained only once (in
 its first occurrence, across all FILEs).
     --in-place[=SUFFIX]|-i[SUFFIX]
 			Edit FILE(s) in place (makes backup if SUFFIX supplied).
+    --field-separator|-F FS Use FS as the input field separator (as with AWK).
     --skip|-s PATTERN	Do not consider the parts of the line that match
 			PATTERN.
     --match|-m PATTERN	Only consider the parts of the line that match PATTERN.
 			Other parts (and those parts that also match --skip
 			PATTERN) are ignored when comparing with other lines for
 			uniqueness.
+    --skip-field|-S [-]N
+			Do not consider the field(s) N (-N counted from behind).
+			Cannot be combined with --skip, --match, or
+			--match-field.
+    --match-field|-M [-]N
+			Only consider the field(s) N (-N counted from behind).
+			Other fields are ignored when comparing for uniqueness.
+			Cannot be combined with --skip, --match, or
+			--match-field.
     --ignore|-x PATTERN	Keep duplicate lines matching PATTERN. For example, use
 			'^[ \\t]\$' to keep all lines that are empty or contain
 			just whitespace.
@@ -42,8 +52,11 @@ HELPTEXT
 }
 
 typeset -a awkCall=(awk)
+typeset -a awkArgs=()
 isInPlace=
 inPlaceExtension=
+typeset -a skippedFields=()
+typeset -a matchedFields=()
 skipPattern=
 matchPattern=
 ignorePattern=
@@ -51,6 +64,9 @@ while [ $# -ne 0 ]
 do
     case "$1" in
 	--help|-h|-\?)		shift; printLongUsage "$0"; exit 0;;
+	--field-separator|-F)	awkArgs+=("$1" "$2"); shift; shift;;
+	--skip-field|-S)	shift; skippedFields+=("$1"); shift;;
+	--match-field|-M)	shift; matchedFields+=("$1"); shift;;
 	--skip|-s)		shift; skipPattern+="${skipPattern:+|}${1:?}"; shift;;
 	--match|-m)		shift; matchPattern+="${matchPattern:+|}${1:?}"; shift;;
 	--ignore|-x)		shift; ignorePattern+="${ignorePattern:+|}${1:?}"; shift;;
@@ -61,16 +77,35 @@ do
 	*)			break;;
     esac
 done
+if [ ${#skippedFields[@]} -gt 0 -a ${#matchedFields[@]} -gt 0 ]; then
+    echo 'ERROR: Cannot combine --skip-field and --match-field.'
+    echo
+    printUsage "$0"
+    exit 2
+elif [ ${#skippedFields[@]} -gt 0 -o ${#matchedFields[@]} -gt 0 ] && [ -n "$skipPattern" -o -n "$matchPattern" ]; then
+    echo 'ERROR: Cannot combine --skip-field / --match-field with --skip / --match.'
+    echo
+    printUsage "$0"
+    exit 2
+fi >&2
 if [ "$isInPlace" ]; then
     awkCall=(gawk -i inplace -v "INPLACE_SUFFIX=$inPlaceExtension" -v "inplace::suffix=$inPlaceExtension")
 fi
 
-
-exec "${awkCall[@]}" \
+IFS=$'\n'
+exec "${awkCall[@]}" "${awkArgs[@]}" \
+    -v "fieldList=${skippedFields[*]//\\/\\\\}${matchedFields[*]//\\/\\\\}" \
+    -v "isSkippedFields=${skippedFields:+t}" \
     -v "skipPattern=${skipPattern//\\/\\\\}" \
     -v "matchPattern=${matchPattern//\\/\\\\}" \
     -v "ignorePattern=${ignorePattern//\\/\\\\}" \
 '
+BEGIN {
+    fieldNum = split(fieldList, fieldArray, "\n")
+    for (f in fieldArray) {
+	fields[fieldArray[f]] = 1
+    }
+}
 {
     if (ignorePattern != "" && $0 ~ ignorePattern) {
 	print
@@ -78,22 +113,32 @@ exec "${awkCall[@]}" \
     }
 
     lineIdentity = $0
-    if (matchPattern != "") {
-	nonMatchNum = split(lineIdentity, ignoredMatches, matchPattern, nonMatches)
-	matchResult = ""
-	for (i = 0; i <= nonMatchNum; ++i) {
-	    matchResult = matchResult nonMatches[i]
+    if (fieldNum > 0) {
+	lineIdentity = ""
+	for (i = 1; i <= NF; ++i) {
+	    negatedI = i - NF - 1
+	    if ((isSkippedFields && ! fields[i] && ! fields[negatedI]) || (! isSkippedFields && (fields[i] || fields[negatedI]))) {
+		lineIdentity = lineIdentity $i FS
+	    }
 	}
-	lineIdentity = matchResult
-    }
+    } else {
+	if (matchPattern != "") {
+	    nonMatchNum = split(lineIdentity, ignoredMatches, matchPattern, nonMatches)
+	    matchResult = ""
+	    for (i = 0; i <= nonMatchNum; ++i) {
+		matchResult = matchResult nonMatches[i]
+	    }
+	    lineIdentity = matchResult
+	}
 
-    if (skipPattern != "" && lineIdentity ~ skipPattern) {
-	matchNum = split(lineIdentity, matches, skipPattern)
-	skipResult = ""
-	for (i = 1; i <= matchNum; ++i) {
-	    skipResult = skipResult matches[i]
+	if (skipPattern != "" && lineIdentity ~ skipPattern) {
+	    matchNum = split(lineIdentity, matches, skipPattern)
+	    skipResult = ""
+	    for (i = 1; i <= matchNum; ++i) {
+		skipResult = skipResult matches[i]
+	    }
+	    lineIdentity = skipResult
 	}
-	lineIdentity = skipResult
     }
 
     if (! seen[lineIdentity]++) {
