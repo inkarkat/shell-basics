@@ -4,7 +4,7 @@ printShortUsage()
 {
     # Note: short followed by long option; if the user knows the short one, she can
     # skim the long one.
-    printf 'Usage: %q %s\n' "$(basename "$1")" '[-F|--field-separator FS] [-M|--match-field [-]N [-M ...]|-S|--skip-field [-]N [-S ...]] [-s|--skip PATTERN [-s ...]] [-m|--match PATTERN [-m ...]] [-x|--ignore PATTERN [-x ...]] [-i[SUFFIX]|--in-place[=SUFFIX]] [--] [FILE ...] [-?|-h|--help]'
+    printf 'Usage: %q %s\n' "$(basename "$1")" '[-F|--field-separator FS] [-M|--match-field [-]N [-M ...]|-S|--skip-field [-]N [-S ...]] [-s|--skip PATTERN [-s ...]] [-m|--match PATTERN [-m ...]] [-x|--ignore PATTERN [-x ...]] [--last|--both] [-i[SUFFIX]|--in-place[=SUFFIX]] [--] [FILE ...] [-?|-h|--help]'
 }
 printUsage()
 {
@@ -44,6 +44,9 @@ its first occurrence, across all FILEs).
 			Other fields are ignored when comparing for uniqueness.
 			Cannot be combined with --skip, --match, or
 			--match-field.
+    --last		Print the last occurrence instead of the first. (This
+			avoids double reversing the input / output.)
+    --both		Print both first and last occurrences of each line.
     --ignore|-x PATTERN	Keep duplicate lines matching PATTERN. For example, use
 			'^[ \\t]\$' to keep all lines that are empty or contain
 			just whitespace.
@@ -53,6 +56,7 @@ HELPTEXT
 
 typeset -a awkCall=(awk)
 typeset -a awkArgs=()
+order=first
 isInPlace=
 inPlaceExtension=
 typeset -a skippedFields=()
@@ -70,6 +74,7 @@ do
 	--skip|-s)		shift; skipPattern+="${skipPattern:+|}${1:?}"; shift;;
 	--match|-m)		shift; matchPattern+="${matchPattern:+|}${1:?}"; shift;;
 	--ignore|-x)		shift; ignorePattern+="${ignorePattern:+|}${1:?}"; shift;;
+	--last|--both)		order="${1#--}"; shift;;
 	-i|--in-place)		isInPlace=t; shift;;
 	-i?*|--in-place=*)	isInPlace=t; inPlaceExtension="${1#-i}"; inPlaceExtension="${inPlaceExtension#--in-place=}"; shift;;
 	--)			shift; break;;
@@ -99,6 +104,7 @@ exec "${awkCall[@]}" "${awkArgs[@]}" \
     -v "skipPattern=${skipPattern//\\/\\\\}" \
     -v "matchPattern=${matchPattern//\\/\\\\}" \
     -v "ignorePattern=${ignorePattern//\\/\\\\}" \
+    -v "order=$order" \
 '
 BEGIN {
     fieldNum = split(fieldList, fieldArray, "\n")
@@ -141,8 +147,41 @@ BEGIN {
 	}
     }
 
-    if (! seen[lineIdentity]++) {
-	print
+    if (order == "first") {
+	if (! seen[lineIdentity]++) {
+	    print
+	}
+    } else {
+	last[lineIdentity] = $0
+	lastNr[lineIdentity] = NR
+
+	if (order == "both" && ! seen[lineIdentity]++) {
+	    first[lineIdentity] = $0
+	    firstNr[lineIdentity] = NR
+	}
+    }
+}
+END {
+    for (id in lastNr) {
+	numbers[lastNr[id]] = id
+    }
+    for (id in firstNr) {
+	numbers[firstNr[id]] = id
+    }
+
+    PROCINFO["sorted_in"] = "@ind_num_asc"
+    for (nr in numbers) {
+	id = numbers[nr]
+	if (id in first) {
+	    print first[id]
+	    delete first[id]
+	} else if (id in last) {
+	    print last[id]
+	    delete last[id]
+	} else {
+	    printf("ASSERT: Cannot find record for line %d\n", id) > "/dev/stderr"
+	    exit 3
+	}
     }
 }
 ' "$@"
