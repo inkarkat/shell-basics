@@ -1,0 +1,156 @@
+#!/bin/bash
+set -o pipefail
+shopt -qs extglob
+
+printShortUsage()
+{
+    # Note: short followed by long option; if the user knows the short one, she can
+    # skim the long one.
+    printf 'Usage: %q %s\n' "$(basename "$1")" '[-T|--title TITLE] [-t|--timeout TIMEOUT] [-c|--console] [-d|--desktop] [-g|--gui] [-l|--login-notification] [--markup] [-1|--stdout|-2|--stderr] [--filter-exec FILTER-COMMAND [...] ; [...]] [--filter-command "FILTER-COMMANDLINE" [--filter-command ...]] -c|--command "COMMANDLINE" [-c ...] | [--] SIMPLECOMMAND [...] [-?|-h|--help]'
+}
+printUsage()
+{
+    # This is the short help when launched with no or incorrect arguments.
+    # It is printed to stderr to avoid accidental processing.
+    printShortUsage "$1" >&2
+    printf >&2 '\nTry %q --help for more information.\n' "$(basename "$1")"
+}
+printLongUsage()
+{
+    # This is the long "man page" when launched with the help argument.
+    # It is printed to stdout to allow paging with 'more'.
+    cat <<HELPDESCRIPTION
+Notify the user about an event (often, from a long-running asynchronous
+background task).
+HELPDESCRIPTION
+    echo
+    printShortUsage "$1"
+    echo
+    cat <<HELPTEXT
+    --title|-T TITLE	Title shown in the heading or window title. Defaults to
+			the COMMAND name.
+    --timeout|-t TIMEOUT
+			Auto-close the notification (if possible) and return 123
+			if the user did not acknowledge within TIMEOUT seconds.
+    --console|-c	Print the notification to the terminal.
+    --desktop|-d	Submit a desktop notification.
+    --gui|-g		Open a GUI dialog (that needs to be acknowledged) with
+			the notification.
+    --login-notification|-l
+			Submit a notification shown at each login until the user
+			acknowledges it.
+    By default, the question is printed to the terminal if output is to it; if
+    the output is redirected or no terminal is connected, the first of the
+    following that succeeds:
+	- a desktop notification
+	- GUI dialog
+	- login notification
+    If none of these work, the command fails with 122.
+    Passed notification sinks override this and are tried in the given order.
+
+    --markup		Interpret output as the simple HTML subset of the pango
+			markup language for styling (where available, else
+			ignored).
+    --stdout|-1		Only consider standard output for notification text.
+    --stderr|-2		Only consider error output for notification text.
+    --filter-command FILTER-CMD
+			Pipe output through FILTER-CMD.
+    --filter-exec FILTER-COMMAND [...] ;
+			Pipe output through FILTER-COMMAND; all following
+			arguments are taken to be arguments to the COMMAND until
+			an argument consisting of ';' is encountered.
+    --command|-c CMD	The command line to be captured. When this is a simple
+			command, it can also be passed as such.
+EXIT STATUS:
+    0	Complete success.
+    2	Bad invocation, wrong or missing command-line arguments.
+    3   Internal error or failed assertion.
+    122 No notification sink is available.
+    123 The user did not acknowledge within the timeout.
+
+Example:
+HELPTEXT
+    printf '%q %s\n' "$(basename "$1")" '"The download is done."'
+}
+
+typeset -a userNotifyArgs=()
+typeset -a userNotifyMarkupArg=(--no-markup)
+typeset -a userNotifyTitleArg=()
+redirPrefix='2>&1'
+redirSuffix=
+isNeedEval=
+typeset -a filterCommands=()
+typeset -a commands=()
+while [ $# -ne 0 ]
+do
+    case "$1" in
+	--help|-h|-\?)	shift; printLongUsage "$0"; exit 0;;
+
+	--markup)	shift; userNotifyMarkupArg=();;
+	-+([cdgl]))	userNotifyArgs+=("$1"); shift;;
+	--@(console|desktop|gui|login-notification))
+			userNotifyArgs+=("$1"); shift;;
+	--timeout|-t)	userNotifyArgs+=("$1" "$2"); shift; shift;;
+	--title|-T)	userNotifyTitleArg=("$1" "$2"); shift; shift;;
+
+	--stdout|-1)	shift; redirPrefix='';;
+	--stderr|-2)	shift; redirPrefix='3>&1 1>&2 2>&3 3>&-'; redirSuffix='3>&1 1>&2 2>&3 3>&-';;
+	--filter-command)
+			shift; filterCommands+=(${filterCommands:+|} "$1"); shift;;
+	--filter-exec)	shift
+			cmd=
+			while [ $# -gt 0 -a "$1" != ';' ]
+			do
+			    printf -v quotedArg '%q' "$1"
+			    cmd="${cmd}${cmd:+ }${quotedArg}"
+			    shift
+			done
+			if [ $# -eq 0 ]; then
+			    echo 'ERROR: --filter-exec command must be concluded with ;!'; echo; printUsage "$0"
+			    exit 2
+			fi >&2
+			shift
+			filterCommands+=(${filterCommands:+|} "$cmd")
+			;;
+	--command|-c)	shift; commands+=(${commands:+;} "$1"); isNeedEval=t; shift;;
+	--)		shift; break;;
+	-*)		{ echo "ERROR: Unknown option \"$1\"!"; echo; printUsage "$0"; } >&2; exit 2;;
+	*)		break;;
+    esac
+done
+if [ $# -ne 0 ]; then
+    if [ "$isNeedEval" ]; then
+	# Combine --command and SIMPLECOMMAND; need to quote SIMPLECOMMAND to
+	# undo the effects of eval.
+	printf -v quotedSimpleCommand '%q ' "$@"
+	commands+=(${commands:+;} "${quotedSimpleCommand% }")
+    else
+	commands=("$@")
+    fi
+fi
+if [ ${#commands[@]} -eq 0 ]; then
+    echo 'ERROR: No COMMAND(s) specified; need to pass -c|--command "COMMANDLINE", or SIMPLECOMMAND.'
+    echo
+    printUsage "$0"
+    exit 2
+fi >&2
+
+if [ ${#userNotifyTitleArg[@]} -eq 0 ]; then
+    commandName="$(commandName --undefined '' --no-interpreter ${isNeedEval:+--eval} "${commands[@]}")"
+    [ -n "$commandName" ] && userNotifyTitleArg=(--title "$commandName")
+fi
+
+execute()
+{
+    if [ "$isNeedEval" ]; then
+	eval "${commands[@]}"
+    else
+	"${commands[@]}"
+    fi
+}
+
+eval "notification=\"\$(execute ${redirPrefix} ${filterCommands:+|}" "${filterCommands[@]}" ")\" ${redirSuffix}"
+
+[ -n "$notification" ] || exit 99
+
+exec userNotify "${userNotifyMarkupArg[@]}" "${userNotifyTitleArg[@]}" "${userNotifyArgs[@]}" -- "$notification"
