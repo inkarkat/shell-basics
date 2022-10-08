@@ -27,7 +27,8 @@ HELPDESCRIPTION
     printShortUsage "$1"
     echo
     cat <<HELPTEXT
-    --title|-T TITLE	Title shown in the heading or window title.
+    --title|-T TITLE	Title shown in the heading or window title. Defaults to
+			the COMMAND name.
     --timeout|-t TIMEOUT
 			Auto-close the notification (if possible) and return 123
 			if the user did not acknowledge within TIMEOUT seconds.
@@ -74,6 +75,7 @@ HELPTEXT
 
 typeset -a userNotifyArgs=()
 typeset -a userNotifyMarkupArg=(--no-markup)
+typeset -a userNotifyTitleArg=()
 redirPrefix='2>&1'
 redirSuffix=
 isNeedEval=
@@ -88,9 +90,8 @@ do
 	-+([cdgl]))	userNotifyArgs+=("$1"); shift;;
 	--@(console|desktop|gui|login-notification))
 			userNotifyArgs+=("$1"); shift;;
-	-[Tt])		userNotifyArgs+=("$1" "$2"); shift; shift;;
-	--@(title|timeout))
-			userNotifyArgs+=("$1" "$2"); shift; shift;;
+	--timeout|-t)	userNotifyArgs+=("$1" "$2"); shift; shift;;
+	--title|-T)	userNotifyTitleArg=("$1" "$2"); shift; shift;;
 
 	--stdout|-1)	shift; redirPrefix='';;
 	--stderr|-2)	shift; redirPrefix='3>&1 1>&2 2>&3 3>&-'; redirSuffix='3>&1 1>&2 2>&3 3>&-';;
@@ -134,6 +135,11 @@ if [ ${#commands[@]} -eq 0 ]; then
     exit 2
 fi >&2
 
+if [ ${#userNotifyTitleArg[@]} -eq 0 ]; then
+    commandName="$(commandName --undefined '' --no-interpreter ${isNeedEval:+--eval} "${commands[@]}")"
+    [ -n "$commandName" ] && userNotifyTitleArg=(--title "$commandName")
+fi
+
 execute()
 {
     if [ "$isNeedEval" ]; then
@@ -147,4 +153,4 @@ eval "notification=\"\$(execute ${redirPrefix} ${filterCommands:+|}" "${filterCo
 
 [ -n "$notification" ] || exit 99
 
-exec userNotify "${userNotifyMarkupArg[@]}" "${userNotifyArgs[@]}" -- "$notification"
+exec userNotify "${userNotifyMarkupArg[@]}" "${userNotifyTitleArg[@]}" "${userNotifyArgs[@]}" -- "$notification"
