@@ -3,10 +3,11 @@
 printUsage()
 {
     cat <<HELPTEXT
-Duplicate standard input to a debug file if debugging is enabled for the
-debuggee: DEBUG=DEBUGGEE DEBUGGEE, and print the filespec to standard error at
-the end.
-With "DEBUG=debugtee=FILESPEC,DEBUGGEE DEBUGGEE" will log to FILESPEC instead.
+Duplicate standard input to a debug file (DEBUGGEE.log) if debugging is enabled
+for the debuggee: DEBUG=DEBUGGEE DEBUGGEE, and print the filespec to standard
+error at the end.
+With "DEBUG=debugtee=FILESPEC,DEBUGGEE DEBUGGEE" will log to a custom FILESPEC
+instead.
 With "DEBUG=debugtee DEBUGGEE" will show for what DEBUGGEE it will enable (if
 not actually enabled).
 HELPTEXT
