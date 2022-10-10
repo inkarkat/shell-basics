@@ -32,7 +32,7 @@ fi
 finally()
 {
     if [ -s "$debugteeFilespec" ]; then
-	printf >&2 '%s\n' "$debugteeFilespec"
+	printf >&2 "%sDebugtee'd to %q\\n" "$PS4" "$debugteeFilespec"
     elif [ -e "$debugteeFilespec" ]; then
 	# Clean up an empty debug log.
 	rm --force -- "$debugteeFilespec" || :
