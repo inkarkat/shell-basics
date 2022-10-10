@@ -3,16 +3,18 @@
 printUsage()
 {
     cat <<HELPTEXT
-Duplicate standard input to a debug file if debugging is enabled for the
-debuggee: DEBUG=DEBUGGEE DEBUGGEE, and print the filespec to standard error at
-the end.
-With "DEBUG=debugtee=FILESPEC,DEBUGGEE DEBUGGEE" will log to FILESPEC instead.
+Duplicate standard input to a debug file (DEBUGGEE.log) if debugging is enabled
+for the debuggee: DEBUG=DEBUGGEE DEBUGGEE, and print the filespec to standard
+error at the end. If --for DEBUGGEE is not specified, will take the name of the
+parent process.
+With "DEBUG=debugtee=FILESPEC,DEBUGGEE DEBUGGEE" will log to a custom FILESPEC
+instead.
 With "DEBUG=debugtee DEBUGGEE" will show for what DEBUGGEE it will enable (if
 not actually enabled).
 HELPTEXT
     echo
-    printf 'Usage: cat FILE [...] | %q %s | COMMAND ...\n' "$(basename "$1")" '--for DEBUGGEE'
-    printf "Usage: cat FILE [...] | eval \${DEBUG:+%q %s |} 'COMMAND [...]'\\n" "$(basename "$1")" '--for DEBUGGEE'
+    printf 'Usage: cat FILE [...] | %q %s | COMMAND ...\n' "$(basename "$1")" '[--for DEBUGGEE]'
+    printf "Usage: cat FILE [...] | eval \${DEBUG:+%q %s |} 'COMMAND [...]'\\n" "$(basename "$1")" '[--for DEBUGGEE]'
 }
 debuggee=
 case "$1" in
@@ -30,7 +32,7 @@ fi
 finally()
 {
     if [ -s "$debugteeFilespec" ]; then
-	printf >&2 '%s\n' "$debugteeFilespec"
+	printf >&2 "%sDebugtee'd to %q\\n" "$PS4" "$debugteeFilespec"
     elif [ -e "$debugteeFilespec" ]; then
 	# Clean up an empty debug log.
 	rm --force -- "$debugteeFilespec" || :
@@ -48,8 +50,10 @@ fi
 case ",${DEBUG:-}," in
     *,${debuggee},*)
 	case ",${DEBUG:-}," in
-	    *,debugtee=*,*) debugteeFilespec=",${DEBUG},"; debugteeFilespec="${debugteeFilespec#*,debugtee=}"; debugteeFilespec="${debugteeFilespec%%,*}";;
-	    *)		    debugteeFilespec="${debuggee}.log";;
+	    *,debugtee=*,*) filespec=",${DEBUG},"; filespec="${filespec#*,debugtee=}"; filespec="${filespec%%,*}"
+			    debugteeFilespec="$(realpath --no-symlinks -- "$filespec")" || debugteeFilespec="$filespec"
+			    ;;
+	    *)		    debugteeFilespec="${PWD}/${debuggee}.log";;
 	esac
 
 	trap finally EXIT
