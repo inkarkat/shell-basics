@@ -70,7 +70,7 @@ EXIT STATUS:
 
 Example:
 HELPTEXT
-    printf '%q %s\n' "$(basename "$1")" '"The download is done."'
+    printf '%q %s\n' "$(basename "$1")" '--console --gui -- showFilesInUse --what "temp dir" -- /tmp'
 }
 
 typeset -a userNotifyArgs=()
