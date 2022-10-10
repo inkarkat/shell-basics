@@ -50,8 +50,10 @@ fi
 case ",${DEBUG:-}," in
     *,${debuggee},*)
 	case ",${DEBUG:-}," in
-	    *,debugtee=*,*) debugteeFilespec=",${DEBUG},"; debugteeFilespec="${debugteeFilespec#*,debugtee=}"; debugteeFilespec="${debugteeFilespec%%,*}";;
-	    *)		    debugteeFilespec="${debuggee}.log";;
+	    *,debugtee=*,*) filespec=",${DEBUG},"; filespec="${filespec#*,debugtee=}"; filespec="${filespec%%,*}"
+			    debugteeFilespec="$(realpath --no-symlinks -- "$filespec")" || debugteeFilespec="$filespec"
+			    ;;
+	    *)		    debugteeFilespec="${PWD}/${debuggee}.log";;
 	esac
 
 	trap finally EXIT
