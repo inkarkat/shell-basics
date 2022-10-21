@@ -46,7 +46,7 @@ HELPTEXT
 }
 
 isSingle=
-action=ext
+output=ext
 insertion=
 defaultExtension=
 while [ $# -ne 0 ]
@@ -54,13 +54,13 @@ do
     case "$1" in
 	--help|-h|-\?)	shift; printLongUsage "$0"; exit 0;;
 	--single|-1)	shift; isSingle=t;;
-	--strip|-d)	shift; action=strip;;
-	--basename|-b)	shift; action=basename;;
-	--split|-s)	shift; action=split;;
-	--split-all|-3)	shift; action=splitall;;
-	--splice|-c)	shift; action=splice; insertion="$1"; shift;;
-	--default|-f)	shift; action=default; defaultExtension="${1:?}"; shift;;
-	--modify|-m)	shift; action=modify; defaultExtension="${1:?}"; shift;;
+	--strip|-d)	shift; output=strip;;
+	--basename|-b)	shift; output=basename;;
+	--split|-s)	shift; output=split;;
+	--split-all|-3)	shift; output=splitall;;
+	--splice|-c)	shift; output=splice; insertion="$1"; shift;;
+	--default|-f)	shift; output=default; defaultExtension="${1:?}"; shift;;
+	--modify|-m)	shift; output=modify; defaultExtension="${1:?}"; shift;;
 	--)		shift; break;;
 	-*)		{ echo "ERROR: Unknown option \"$1\"!"; echo; printUsage "$0"; } >&2; exit 2;;
 	*)		break;;
@@ -99,7 +99,7 @@ else
     ext="$defaultExtension"
 fi
 
-case "$action" in
+case "$output" in
     default)	printf '%s.%s\n' "$name" "$ext";;
     ext)	printf '%s\n' "$ext";;
     strip)	printf '%s\n' "$name";;
@@ -108,5 +108,5 @@ case "$action" in
     splitall)	printf '%s\n%s\n%s\n' "$(dirname -- "$name")" "$(basename -- "$name")" "$ext";;
     splice)	printf '%s%s%s\n' "$name" "$insertion" "${ext:+.}$ext";;
     modify)	printf '%s.%s\n' "$name" "$defaultExtension";;
-    *)          printf >&2 'ASSERT: Invalid action: %s\n' "$action"; exit 2;;
+    *)          printf >&2 'ASSERT: Invalid output: %s\n' "$output"; exit 2;;
 esac
