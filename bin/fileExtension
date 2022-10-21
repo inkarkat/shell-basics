@@ -4,7 +4,7 @@ printShortUsage()
 {
     # Note: short followed by long option; if the user knows the short one, she can
     # skim the long one.
-    printf 'Usage: %q %s\n' "$(basename "$1")" '[-1|--single] [-d|--strip|-b|--basename|-s|--split|-3|--split-all|-c INSERTION|--splice INSERTION|-f EXT|--default EXT|-m|--modify EXT] [--] FILENAME [DEFAULT-EXT] [-?|-h|--help]'
+    printf 'Usage: %q %s\n' "$(basename "$1")" '[-1|--single] [-d|--strip|-s|--split|-3|--split-all] [-b|--basename] [-c|--splice INSERTION] [-f|--default EXT|-m|--modify EXT] [--] FILENAME [DEFAULT-EXT] [-?|-h|--help]'
 }
 printUsage()
 {
@@ -25,20 +25,23 @@ HELPDESCRIPTION
     printShortUsage "$1"
     cat <<HELPTEXT
     --single|-1	Just parse a single .extension (instead of a maximum of three).
-    --strip|-d	the extension is removed instead and the bare (path +) name
-		without extension is printed
-    --basename|-b
-		both path and extension are removed; the bare name without path
-		and extension is printed
-    --split|-s	both (path +) name and extension are printed on separate lines,
-		e.g. for parsing via read
+    --strip|-d	The extension is removed instead and the bare (path +) name
+		without extension is printed.
+    --split|-s	Both (path +) name and extension are printed on separate lines,
+		e.g. for parsing via read.
     --split-all|-3
-		path (. if none), name, and extension are printed on separate
-		lines
-    --splice|-c	INSERTION is inserted at the end of the file name, before the
-		extension(s)
+		Path (. if none), name, and extension are printed on separate
+		lines.
+The following options can be used alone or combined with oneof the above output
+modifications:
+    --basename|-b
+		Both path and extension are removed; the bare name without path
+		and extension is printed.
+    --splice|-c	INSERTION
+		INSERTION is inserted at the end of the file name, before the
+		extension(s).
     --default|-f EXT
-		Just append EXT to FILENAME if it doesn't have one yet.
+		Append EXT to FILENAME if it doesn't have one yet.
     --modify|-m EXT
 		Change any existing file extension to EXT.
 HELPTEXT
@@ -46,7 +49,8 @@ HELPTEXT
 }
 
 isSingle=
-action=ext
+typeset -a actions=()
+output=ext
 insertion=
 defaultExtension=
 while [ $# -ne 0 ]
@@ -54,13 +58,13 @@ do
     case "$1" in
 	--help|-h|-\?)	shift; printLongUsage "$0"; exit 0;;
 	--single|-1)	shift; isSingle=t;;
-	--strip|-d)	shift; action=strip;;
-	--basename|-b)	shift; action=basename;;
-	--split|-s)	shift; action=split;;
-	--split-all|-3)	shift; action=splitall;;
-	--splice|-c)	shift; action=splice; insertion="$1"; shift;;
-	--default|-f)	shift; action=default; defaultExtension="${1:?}"; shift;;
-	--modify|-m)	shift; action=modify; defaultExtension="${1:?}"; shift;;
+	--strip|-d)	shift; output=strip;;
+	--basename|-b)	shift; output=strip; actions+=(keepBasename);;
+	--split|-s)	shift; output=split;;
+	--split-all|-3)	shift; output=splitall;;
+	--splice|-c)	shift; insertion="$1"; shift; output=asIs; actions+=(splice);;
+	--default|-f)	shift; defaultExtension="${1:?}"; shift; output=asIs; actions+=(defaultExtension);;
+	--modify|-m)	shift; defaultExtension="${1:?}"; shift; output=asIs; actions+=(modifyExtension);;
 	--)		shift; break;;
 	-*)		{ echo "ERROR: Unknown option \"$1\"!"; echo; printUsage "$0"; } >&2; exit 2;;
 	*)		break;;
@@ -99,14 +103,38 @@ else
     ext="$defaultExtension"
 fi
 
-case "$action" in
-    default)	printf '%s.%s\n' "$name" "$ext";;
+
+keepBasename()
+{
+    name="$(basename -- "$name")"
+}
+
+splice()
+{
+    name="${name}${insertion}"
+}
+
+defaultExtension()
+{
+    : ${ext:=$defaultExtension}
+}
+
+modifyExtension()
+{
+    ext="$defaultExtension"
+}
+
+for action in "${actions[@]}"
+do
+    $action || exit $?
+done
+
+case "${output:-ext}" in
+    asIs)	printf '%s%s\n' "$name" "${ext:+.}$ext";;
     ext)	printf '%s\n' "$ext";;
     strip)	printf '%s\n' "$name";;
     basename)	printf '%s\n' "$(basename -- "$name")";;
     split)	printf '%s\n%s\n' "$name" "$ext";;
     splitall)	printf '%s\n%s\n%s\n' "$(dirname -- "$name")" "$(basename -- "$name")" "$ext";;
-    splice)	printf '%s%s%s\n' "$name" "$insertion" "${ext:+.}$ext";;
-    modify)	printf '%s.%s\n' "$name" "$defaultExtension";;
-    *)          printf >&2 'ASSERT: Invalid action: %s\n' "$action"; exit 2;;
+    *)          printf >&2 'ASSERT: Invalid output: %s\n' "$output"; exit 2;;
 esac
