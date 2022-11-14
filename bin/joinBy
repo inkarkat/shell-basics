@@ -45,6 +45,11 @@ HELPDESCRIPTION
 			summarize as N elements / ENTRIES.
 See also: collapseToSingleLine takes lines from files / standard input and can
 do wrapping and elaborate line breaking.
+
+EXIT STATUS:
+    0	Complete success.
+    2	Bad invocation, wrong or missing command-line arguments.
+    99	No ARGs at all and no alternative --empty TEXT given.
 HELPTEXT
 }
 unset separator
@@ -127,8 +132,12 @@ if [ "$isOmitEmpty" ]; then
 fi
 
 if [ $# -eq 0 ]; then
-    [ -n "$emptyText" ] && printf '%s%s%s\n' "$prefix" "$emptyText" "$suffix"
-    exit
+    if [ -n "$emptyText" ]; then
+	printf '%s%s%s\n' "$prefix" "$emptyText" "$suffix"
+	exit
+    else
+	exit 99
+    fi
 fi
 
 if [ -n "$summarizeNum" ] && [ $# -gt $summarizeNum ]; then
