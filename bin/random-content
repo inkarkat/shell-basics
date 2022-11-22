@@ -3,18 +3,33 @@
 printUsage()
 {
     cat <<HELPTEXT
-Generate random content.
+Generate random content (binary, or chosen format).
 Size is 256 characters by default; you can pass a different number.
 HELPTEXT
-    printf 'Usage: %q %s\n' "$(basename "$1")" '[-s|--size N[SUFFIX]] [-?|-h|--help]'
+    printf 'Usage: %q %s\n' "$(basename "$1")" '[-s|--size N[SUFFIX]] [-f|--format base64] [-?|-h|--help]'
 }
 
+formatterFactor=
+typeset -a formatter=()
 size=256
 while [ $# -ne 0 ]
 do
     case "$1" in
 	--help|-h|-\?)	shift; printUsage "$0"; exit 0;;
 	--size|-s)	shift; size=$(printf %s "${1:?}" | numfmt --from=iec) || exit $?; shift;;
+	--format|-f)	shift
+			case "$1" in
+			    base64)
+				formatter=(base64 --wrap 0)
+				formatterFactor='4 / 3'
+				;;
+			    *)	printf >&2 'ERROR: Invalid format: %s\n' "$1"
+				echo >&2
+				printUsage "$0" >&2
+				exit 2
+			esac
+			shift
+			;;
 	--)		shift; break;;
 	-*)		{ echo "ERROR: Unknown option \"$1\"!"; echo; printUsage "$0"; } >&2; exit 2;;
 	*)		break;;
@@ -23,6 +38,10 @@ done
 if [ $# -ne 0 ]; then
     printUsage "$0" >&2
     exit 2
+fi
+
+if [ -n "$formatterFactor" ]; then
+    eval "size=$((size / ${formatterFactor//\//*}))"
 fi
 
 if exists jot; then
@@ -37,4 +56,4 @@ else
     }
 fi
 
-createRandomContent
+eval createRandomContent "${formatter:+|}" '"${formatter[@]}"'
