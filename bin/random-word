@@ -1,5 +1,17 @@
 #!/bin/bash
 
+printUsage()
+{
+    cat <<HELPTEXT
+Pick a random (English) word from a word list.
+HELPTEXT
+    echo
+    printf 'Usage: %q %s\n' "$(basename "$1")" '[-?|-h|--help]'
+}
+case "$1" in
+    --help|-h|-\?)	shift; printUsage "$0"; exit 0;;
+esac
+
 for source in ~/.vim/data/fake/words_large /usr/share/dict/words
 do
     [ -r "$source" ] && break
