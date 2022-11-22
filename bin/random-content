@@ -6,7 +6,7 @@ printUsage()
 Generate random content (binary, or chosen format).
 Size is 256 characters by default; you can pass a different number.
 HELPTEXT
-    printf 'Usage: %q %s\n' "$(basename "$1")" '[-s|--size N[SUFFIX]] [-f|--format base64] [-?|-h|--help]'
+    printf 'Usage: %q %s\n' "$(basename "$1")" '[-s|--size N[SUFFIX]] [-f|--format base64|hex] [-?|-h|--help]'
 }
 
 formatterFactor=
@@ -22,6 +22,10 @@ do
 			    base64)
 				formatter=(base64 --wrap 0)
 				formatterFactor='4 / 3'
+				;;
+			    hex)
+				formatter=(hexdump --format '"%02x"')
+				formatterFactor=2
 				;;
 			    *)	printf >&2 'ERROR: Invalid format: %s\n' "$1"
 				echo >&2
