@@ -1,0 +1,40 @@
+#!/bin/bash
+
+printUsage()
+{
+    cat <<HELPTEXT
+Generate random content.
+Size is 256 characters by default; you can pass a different number.
+HELPTEXT
+    printf 'Usage: %q %s\n' "$(basename "$1")" '[-s|--size N[SUFFIX]] [-?|-h|--help]'
+}
+
+size=256
+while [ $# -ne 0 ]
+do
+    case "$1" in
+	--help|-h|-\?)	shift; printUsage "$0"; exit 0;;
+	--size|-s)	shift; size=$(printf %s "${1:?}" | numfmt --from=iec) || exit $?; shift;;
+	--)		shift; break;;
+	-*)		{ echo "ERROR: Unknown option \"$1\"!"; echo; printUsage "$0"; } >&2; exit 2;;
+	*)		break;;
+    esac
+done
+if [ $# -ne 0 ]; then
+    printUsage "$0" >&2
+    exit 2
+fi
+
+if exists jot; then
+    createRandomContent()
+    {
+	jot -r -n -s '' -c $size
+    }
+else
+    createRandomContent()
+    {
+	head --bytes $size /dev/urandom
+    }
+fi
+
+createRandomContent
