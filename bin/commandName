@@ -2,6 +2,7 @@
 shopt -qs extglob
 
 : ${COMMANDNAME_INTERPRETERS='perl|python?(3)|ruby'}
+# COMMANDNAME_WRAPPERS='wrapper1|wrapper2'
 : ${COMMANDNAME_SHELLS='?(ba|da|[cakz])sh'}
 : ${COMMANDNAME_EXTENSIONS='?(.exe)'}
 
@@ -64,6 +65,22 @@ done
 
 dropInterpreter()
 {
+    case "$commandFilespec" in
+	@(${COMMANDNAME_WRAPPERS}))
+	    shift
+	    while [ $# -gt 0 ] && [[ "$1" =~ ^- ]]
+	    do
+		# Remove any -s|--short|-- arguments. Note: This isn't perfect,
+		# as we cannot handle command-line parameters this way.
+		shift
+	    done
+	    commandFilespec="$(basename -- "$1")"
+	    # Recursive removal of additional wrapper(s) or interpreters inside
+	    # the COMMAND.
+	    [ $# -eq 0 ] || dropInterpreter "$@"
+	    return
+	    ;;
+    esac
     case "${commandFilespec,,}" in
 	@(${COMMANDNAME_INTERPRETERS})${COMMANDNAME_EXTENSIONS})
 	    commandFilespec="$(basename -- "${2:-$1}")"
