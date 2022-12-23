@@ -7,7 +7,7 @@ printShortUsage()
 {
     # Note: short followed by long option; if the user knows the short one, she can
     # skim the long one.
-    printf 'Usage: %q %s\n' "$(basename "$1")" '[-n|--lines=NUM] [-D|--duplicate-if-short] [-s|--separator HEAD-TAIL-SEPARATOR] [-q|--quiet|--silent|-v|--verbose] [--] [FILE ...] [-?|-h|--help]'
+    printf 'Usage: %q %s\n' "$(basename "$1")" '[-n|--lines=NUM] [-D|--duplicate-if-short] [-s|--separator HEAD-TAIL-SEPARATOR|--separator-cutline|--separator-cut-what WHAT] [-q|--quiet|--silent|-v|--verbose] [--] [FILE ...] [-?|-h|--help]'
     printf 'Usage: cat FILE [...] | %q %s\n' "$(basename "$1")" '[...] [-]'
 }
 printUsage()
@@ -39,6 +39,13 @@ HELPDESCRIPTION
 			NUM+1 one instead. Inside, {} is replaced with the
 			number (2 or more, because a single would-be omitted
 			line does not print the separator) of omitted lines.
+    --separator-cutline
+			Print a separator in the form of a cutline between the
+			first and last lines.
+    --separator-cut-what WHAT
+			Print a separator in the form of a cutline with WHAT in
+			the middle. If WHAT contains {}, it is replaced with the
+			number of omitted lines.
     --quiet|-q		Do not precede each FILE with a header.
     --verbose|-v	Precede with header even if processing just one FILE.
     By default, each FILE is precedes with a header giving the file name if more
@@ -64,6 +71,18 @@ do
 	--duplicate-if-short)
 			shift; isDuplicateIfShort=t;;
 	--separator|-s)	shift; separator="$1"; shift;;
+	--separator-cutline)
+			shift
+			printf -v cutlineHalf "%$(((${COLUMNS:-80} - 8) / 2))s" '~'; printf -v cutlineHalf %s "${cutlineHalf// /\~}"
+			separator="${cutlineHalf} [...] ${cutlineHalf}"
+			;;
+	--separator-cut-what)
+			shift
+			whatLength=${#1}; [[ "$1" =~ '{}' ]] && let whatLength+=4 # Make space for up to 999999.
+			printf -v cutlineHalf "%$(((${COLUMNS:-80} - 4 - whatLength) / 2))s" '~'; printf -v cutlineHalf %s "${cutlineHalf// /\~}"
+			separator="${cutlineHalf} [${1}] ${cutlineHalf}"
+			shift
+			;;
 	--silent|--quiet|-q)
 			shift; header=no;;
 	--verbose|-v)	shift; header=yes;;
