@@ -1,6 +1,9 @@
 #!/bin/bash
 
+: ${USERCHOICEFROMLIST_ENTRY_PREFIX:= (}
 : ${USERCHOICEFROMLIST_ENTRY_SEPARATOR:= / }
+: ${USERCHOICEFROMLIST_ENTRY_SUFFIX:=)}
+
 printShortUsage()
 {
     # Note: short followed by long option; if the user knows the short one, she can
@@ -183,7 +186,7 @@ do
     fi
 done
 
-chosenAccelerator="$(userchoice --valid "[${cancelKey}${accelerators}]" -n 1 -p "${question}${question:+ (}${acceleratedEntryEnumeration}${cancelKey:+${USERCHOICEFROMLIST_ENTRY_SEPARATOR}<Esc> to cancel}${question:+)}? " "${userchoiceArgs[@]}")"; status=$?
+chosenAccelerator="$(userchoice --valid "[${cancelKey}${accelerators}]" -n 1 -p "${question}${question:+$USERCHOICEFROMLIST_ENTRY_PREFIX}${acceleratedEntryEnumeration}${cancelKey:+${USERCHOICEFROMLIST_ENTRY_SEPARATOR}<Esc> to cancel}${question:+$USERCHOICEFROMLIST_ENTRY_SUFFIX}? " "${userchoiceArgs[@]}")"; status=$?
 if [ $status -gt 128 ]; then
     exit 123
 elif [ $status -gt 0 ]; then
