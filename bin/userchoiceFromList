@@ -186,6 +186,13 @@ do
     fi
 done
 
+if [[ "$USERCHOICEFROMLIST_ENTRY_SEPARATOR" =~ $'\n' ]] && [[ "$acceleratedEntryEnumeration" =~ $'\t' ]]; then
+    # DWIM: Columnate if entries are on separate lines and have tabs - any
+    # original alignment likely has been disturbed by the addition of the
+    # accelerators.
+    acceleratedEntryEnumeration="$(printf '%s\n' "$acceleratedEntryEnumeration" | column -s $'\t' -t --keep-empty-lines)"
+fi
+
 chosenAccelerator="$(userchoice --valid "[${cancelKey}${accelerators}]" -n 1 -p "${question}${question:+$USERCHOICEFROMLIST_ENTRY_PREFIX}${acceleratedEntryEnumeration}${cancelKey:+${USERCHOICEFROMLIST_ENTRY_SEPARATOR}<Esc> to cancel}${question:+$USERCHOICEFROMLIST_ENTRY_SUFFIX}? " "${userchoiceArgs[@]}")"; status=$?
 if [ $status -gt 128 ]; then
     exit 123
