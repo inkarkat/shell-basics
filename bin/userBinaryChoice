@@ -40,8 +40,8 @@ HELPDESCRIPTION
     By default, the question is printed to the terminal if output is to it; if
     the output is redirected or no terminal is connected, a GUI dialog is
     attempted. If that also doesn't work, the command fails with 122.
-    --yes-no		Use [O]k and [C]ancel.
-    --ok-cancel		Use [Y]es and [N]o.
+    --yes-no		Use [Y]es and [N]o.
+    --ok-cancel		Use [O]k and [C]ancel.
 
 EXIT STATUS:
     0	POSITIVE_ENTRY was chosen.
