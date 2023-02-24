@@ -34,7 +34,7 @@ HELPTEXT
 setupCaptureAndViewing()
 {
     viewer=("$@")
-    TMPFILE="$(mktemp --tmpdir "$(basename -- "$0")-XXXXXX" 2>/dev/null || echo "${TEMP:-/tmp}/$(basename -- "$0").$$$RANDOM")"
+    TMPFILE="$(mktemp --tmpdir "$(basename -- "$0")-XXXXXX" 2>/dev/null || echo "${TMPDIR:-/tmp}/$(basename -- "$0").$$$RANDOM")"
     trap 'set +x; exec 42>&-; viewTrace' EXIT
     exec 42>"$TMPFILE"
     BASH_XTRACEFD=42

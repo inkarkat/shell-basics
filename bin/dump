@@ -1,5 +1,6 @@
 #!/bin/bash
-TMPFILE=${TEMP:-/tmp}/$(basename "$0").$$
+
+TMPFILE="$(mktemp --tmpdir "$(basename -- "$0")-XXXXXX" 2>/dev/null || echo "${TMPDIR:-/tmp}/$(basename -- "$0").$$$RANDOM")"
 echo "command-line arguments: $@" > "${TMPFILE}"
 echo "command-line arguments \$0: \"$0\"" >> "${TMPFILE}"
 let argCnt=1
