@@ -28,6 +28,11 @@ HELPDESCRIPTION
     printShortUsage "$1"
     echo
     cat <<HELPTEXT
+SEE ALSO:
+- expandglob directly matches a passed GLOB (unlike here just a single one) for
+  full filespecs on the file system; FILESPECs do not have to be passed, but it
+  cannot just cover the filename or subpaths.
+
 EXIT STATUS:
     0	(At least one) match.
 	No GLOB (but existing FILESPEC(s)) is passed.
