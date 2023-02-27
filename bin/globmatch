@@ -1,17 +1,38 @@
 #!/bin/bash
 shopt -qs extglob # Enable extended file pattern matching operators from ksh (?(pattern-list), !(pattern-list), ...) in Bash.
 
+printShortUsage()
+{
+    # Note: short followed by long option; if the user knows the short one, she can
+    # skim the long one.
+    printf 'Usage: %q %s\n' "$(basename "$1")" "[-s|--subpath] [-l|--files-matching|-1|--first-matching|-L|--files-not-matching] ['GLOB' ...] -- FILESPEC [...] [-?|-h|--help]"
+    printf 'Usage: %q %s\n' "$(basename "$1")" "[...] 'GLOB' FILESPEC [...] [-?|-h|--help]"
+}
 printUsage()
 {
-    cat <<HELPTEXT
+    # This is the short help when launched with no or incorrect arguments.
+    # It is printed to stderr to avoid accidental processing.
+    printShortUsage "$1" >&2
+    printf >&2 '\nTry %q --help for more information.\n' "$(basename "$1")"
+}
+printLongUsage()
+{
+    # This is the long "man page" when launched with the help argument.
+    # It is printed to stdout to allow paging with 'more'.
+    cat <<HELPDESCRIPTION
 Test whether the passed (anchored, extended) GLOB(s) match either the (full
 passed, also subpaths with -s|--subpath) path or just the filename of the passed
 FILESPEC(s).
-Returns 0 if (at least one) match and 1 if no matches.
-Returns 0 if no GLOB (but existing FILESPEC(s)) is passed.
+HELPDESCRIPTION
+    echo
+    printShortUsage "$1"
+    echo
+    cat <<HELPTEXT
+EXIT STATUS:
+    0	(At least one) match.
+	No GLOB (but existing FILESPEC(s)) is passed.
+    1	No matches.
 HELPTEXT
-    printf 'Usage: %q %s\n' "$(basename "$1")" "[-s|--subpath] [-l|--files-matching|-1|--first-matching|-L|--files-not-matching] ['GLOB' ...] -- FILESPEC [...] [-?|-h|--help]"
-    printf 'Usage: %q %s\n' "$(basename "$1")" "[...] 'GLOB' FILESPEC [...] [-?|-h|--help]"
 }
 if [ $# -eq 0 ]; then
     printUsage "$0" >&2
@@ -25,7 +46,7 @@ typeset -a globs=()
 while [ $# -ne 0 ]
 do
     case "$1" in
-	--help|-h|-\?)		    shift; printUsage "$0"; exit 0;;
+	--help|-h|-\?)		    shift; printLongUsage "$0"; exit 0;;
 	--subpath|-s)		    shift; isMatchSubPaths=t;;
 	--files-matching|-l)	    shift; isPrintMatching=t;;
 	--first-matching|-1)	    shift; isPrintFirstMatching=t;;
