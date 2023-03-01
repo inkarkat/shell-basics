@@ -76,7 +76,7 @@ if [ ${#globs[@]} -eq 0 ]; then
 
     for filespec
     do
-	[ -e "$filespec" ] && exit 0
+	[ -e "$filespec" -o  -h "$filespec" ] && exit 0
     done
     exit 1
 elif [ $# -eq 0 ]; then
