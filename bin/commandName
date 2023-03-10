@@ -123,6 +123,7 @@ if [ "$isEval" ]; then
     set -o noglob
     readonly COMMAND_SEPARATOR_COLLECTION=';&|'
     netCommandLine="$(printf '%s\n' "${1:-${undefined}}" | sed \
+	-e 1!d \
 	-e "s/^[[:space:]]*\\([[:alpha:]_][[:alnum:]_]\\+=\\(\\\\[[:space:]]\\|[^[:space:]\\\\]\\)*[[:space:]]\\+\\)*\\(\"\\([^\"]\\+\\)\"\\|'\\([^']\\+\\)'\\|\\([^${COMMAND_SEPARATOR_COLLECTION}]\\+\\)\\)\\([${COMMAND_SEPARATOR_COLLECTION}].*\\)\\?$/\\4\\5\\6/" \
 	-e t \
 	-e "s#.*#${literalReplacement//#/\\#}#" \
