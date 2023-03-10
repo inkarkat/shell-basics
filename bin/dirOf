@@ -1,0 +1,32 @@
+#!/bin/bash
+
+printUsage()
+{
+    cat <<HELPTEXT
+Strip last component from file name unless it's already a directory.
+In other words, it returns the dir itself unlike dirname which returns the
+parent directory.
+HELPTEXT
+    echo
+    printf 'Usage: %q %s\n' "$(basename "$1")" '[-z|--zero] [--] NAME [...] [-?|-h|--help]'
+}
+
+dirnameArgs=()
+while [ $# -ne 0 ]
+do
+    case "$1" in
+	--help|-h|-\?)	shift; printUsage "$0"; exit 0;;
+	--zero|-z)	dirnameArgs+=("$1"); shift;;
+	--)		shift; break;;
+	-*)		{ echo "ERROR: Unknown option \"$1\"!"; echo; printUsage "$0"; } >&2; exit 2;;
+	*)		break;;
+    esac
+done
+typeset -a filespecs=()
+for name
+do
+    [ -d "$name" ] \
+	&& filespecs+=("${name%/}/.") \
+	|| filespecs+=("$name")
+done
+exec dirname "${dirnameArgs[@]}" -- "${filespecs[@]}"
