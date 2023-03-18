@@ -126,6 +126,9 @@ guiChoice()
 	negativeEntry=''
     fi
 
+    < <(displayresolution --primary) IFS=' ' read -r xres yres
+    [ -z "$xres" ] || zenityArgs+=(--width $((xres / 4)))
+
     zenity "${zenityArgs[@]}" --question --text="${introduction}${introduction:+$'\n\n'}${question:-Choose one:}" ${positiveEntry:+--ok-label "${positiveEntry//[][]/}"} ${negativeEntry:+--cancel-label "${negativeEntry//[][]/}"}; local status=$?
     case $status in
 	0)  exit 0;;
