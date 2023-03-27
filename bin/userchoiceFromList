@@ -79,6 +79,7 @@ printIfDefined()
 }
 
 question='Choose one:'
+timeoutText=
 isIgnoreCase=
 isAcceptSingle=
 noEntriesMessage=
@@ -109,8 +110,8 @@ do
 	--select|-s)	shift; selection="$1"; shift;;
 	--keep-prompt|-k)
 			userchoiceArgs+=("$1"); shift;;
-	-[tu])		userchoiceArgs+=("$1" "$2"); shift; shift;;
-	--timeout)	userchoiceArgs+=(-t "$2"); shift; shift;;
+	-u)		userchoiceArgs+=("$1" "$2"); shift; shift;;
+	--timeout|-t)	shift; timeoutPlural=s; [ "$1" = 1 ] && timeoutPlural=; timeoutText="Within $1 second${timeoutPlural}: "; userchoiceArgs+=(-t "$1"); shift;;
 	--)		shift; break;;
 	-*)		{ echo "ERROR: Unknown option \"$1\"!"; echo; printUsage "$0"; } >&2; exit 2;;
 	*)		break;;
@@ -193,7 +194,7 @@ if [[ "$USERCHOICEFROMLIST_ENTRY_SEPARATOR" =~ $'\n' ]] && [[ "$acceleratedEntry
     acceleratedEntryEnumeration="$(printf '%s\n' "$acceleratedEntryEnumeration" | column -s $'\t' -t --keep-empty-lines)"
 fi
 
-chosenAccelerator="$(userchoice --valid "[${cancelKey}${accelerators}]" -n 1 -p "${question}${question:+$USERCHOICEFROMLIST_ENTRY_PREFIX}${acceleratedEntryEnumeration}${cancelKey:+${USERCHOICEFROMLIST_ENTRY_SEPARATOR}<Esc> to cancel}${question:+$USERCHOICEFROMLIST_ENTRY_SUFFIX}? " "${userchoiceArgs[@]}")"; status=$?
+chosenAccelerator="$(userchoice --valid "[${cancelKey}${accelerators}]" -n 1 -p "${question}${question:+$USERCHOICEFROMLIST_ENTRY_PREFIX}${timeoutText}${acceleratedEntryEnumeration}${cancelKey:+${USERCHOICEFROMLIST_ENTRY_SEPARATOR}<Esc> to cancel}${question:+$USERCHOICEFROMLIST_ENTRY_SUFFIX}? " "${userchoiceArgs[@]}")"; status=$?
 if [ $status -gt 128 ]; then
     exit 123
 elif [ $status -gt 0 ]; then

@@ -57,6 +57,7 @@ HELPTEXT
 }
 
 question=
+timeoutText=
 introduction=
 positiveEntry=
 negativeEntry=
@@ -72,7 +73,10 @@ do
 			shift; introduction="$1"; shift;;
 	--keep-prompt|-k)
 			userchoiceArgs+=("$1"); shift;;
-	--timeout|-t)	userchoiceArgs+=("$1" "$2"); zenityArgs+=(--timeout "$2"); shift; shift;;
+	--timeout|-t)	userchoiceArgs+=("$1" "$2"); zenityArgs+=(--timeout "$2"); shift
+			timeoutPlural=s; [ "$1" = 1 ] && timeoutPlural=; timeoutText="(within $1 second${timeoutPlural})"
+			shift
+			;;
 	--console|-c)	shift; outputDevice=console;;
 	--gui|-g)	shift; outputDevice=gui;;
 	--yes-no)	shift; positiveEntry='[Y]es'; negativeEntry='[N]o';;
@@ -103,6 +107,7 @@ printfToTerm()
 consoleChoice()
 {
     [ -z "$introduction" ] || printfToTerm '%s\n' "$introduction"
+    # Note: userchoiceFromList handles a timeoutText for --timeout on its own.
     local reply; reply="$(userchoiceFromList "${userchoiceArgs[@]}" ${question:+--question "$question"} --no-cancel --ignore-case -- "$positiveEntry" "$negativeEntry")"; local status=$?
     case $status in
 	0)  case "$reply" in
@@ -129,7 +134,7 @@ guiChoice()
     < <(displayresolution --primary) IFS=' ' read -r xres yres
     [ -z "$xres" ] || zenityArgs+=(--width $((xres / 4)))
 
-    zenity "${zenityArgs[@]}" --question --text="${introduction}${introduction:+$'\n\n'}${question:-Choose one:}" ${positiveEntry:+--ok-label "${positiveEntry//[][]/}"} ${negativeEntry:+--cancel-label "${negativeEntry//[][]/}"}; local status=$?
+    zenity "${zenityArgs[@]}" --question --text="${introduction}${introduction:+$'\n\n'}${question:-Choose one:}${timeoutText:+ }${timeoutText}" ${positiveEntry:+--ok-label "${positiveEntry//[][]/}"} ${negativeEntry:+--cancel-label "${negativeEntry//[][]/}"}; local status=$?
     case $status in
 	0)  exit 0;;
 	1)  exit 1;;
