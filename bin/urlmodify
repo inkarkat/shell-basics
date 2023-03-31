@@ -4,7 +4,7 @@ printShortUsage()
 {
     # Note: short followed by long option; if the user knows the short one, she can
     # skim the long one.
-    printf 'Usage: %q %s\n' "$(basename "$1")" '[(+|-)(protocol|domain|port|path|query|fragment) ...] [--protocol VAL|--domain VAL|--port VAL|--path VAL|--query VAL|--fragment VAL) ...] URL [-?|-h|--help]'
+    printf 'Usage: %q %s\n' "$(basename "$1")" '[-s|--separator SEP] [(+|-)(protocol|domain|port|path|query|fragment) ...] [--protocol VAL|--domain VAL|--port VAL|--path VAL|--query VAL|--fragment VAL) ...] URL [-?|-h|--help]'
 }
 printUsage()
 {
@@ -24,6 +24,7 @@ HELPDESCRIPTION
     printShortUsage "$1"
     echo
     cat <<HELPTEXT
+    --separator|-s SEP	Separate each URL part with SEP.
 Individual PARTs can be selected (from a baseline of no parts) via +PART /
 deselected (from all parts on offer) via -PART.
 HELPTEXT
@@ -37,10 +38,12 @@ unset portOverride
 unset pathOverride
 unset queryOverride
 unset fragmentOverride
+separator=
 while [ $# -gt 0 ]
 do
     case "$1" in
 	--help|-h|-\?)	shift; printLongUsage "$0"; exit 0;;
+	--separator|-s)	shift; separator="${1?}"; shift;;
 	--protocol)	shift; protocolOverride="${1?}"; shift;;
 	--domain)	shift; domainOverride="${1?}"; shift;;
 	--port)		shift; portOverride="${1?}"; shift;;
@@ -89,5 +92,15 @@ fragment="${BASH_REMATCH[11]}"
 [ -z "${queryOverride+t}" ] || query="$queryOverride"
 [ -z "${fragmentOverride+t}" ] || fragment="$fragmentOverride"
 
-protocolSuffix='://'; [ "${!parts[*]}" = protocol ] && protocolSuffix=''
-printf '%s%s%s%s%s%s%s%s%s%s\n' "$protocol" "${protocol:+$protocolSuffix}" "$domain" "${port:+:}" "$port" "$path" "${query:+?}" "$query" "${fragment:+#}" "$fragment"
+protocolSuffix='://'; [ "${!parts[*]}" = protocol -o -n "$separator" ] && protocolSuffix=''
+portPrefix=':'; [ "${!parts[*]}" = port -o -n "$separator" ] && portPrefix=''
+queryPrefix='?'; [ "${!parts[*]}" = query -o -n "$separator" ] && queryPrefix=''
+fragmentPrefix='?'; [ "${!parts[*]}" = fragment -o -n "$separator" ] && fragmentPrefix=''
+
+printf '%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s\n' \
+    "$protocol" "${protocol:+$protocolSuffix}" "${parts[protocol]:+$separator}" \
+    "$domain" "${parts[domain]:+$separator}" \
+    "${port:+$portPrefix}" "$port" "${parts[port]:+$separator}" \
+    "$path" "${parts[path]:+$separator}" \
+    "${query:+$queryPrefix}" "$query" "${parts[query]:+$separator}" \
+    "${fragment:+$fragmentPrefix}" "$fragment"
