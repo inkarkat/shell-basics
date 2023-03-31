@@ -1,0 +1,106 @@
+#!/bin/bash
+
+printShortUsage()
+{
+    # Note: short followed by long option; if the user knows the short one, she can
+    # skim the long one.
+    printf 'Usage: %q %s\n' "$(basename "$1")" '[-s|--separator SEP] [(+|-)(protocol|domain|port|path|query|fragment) ...] [--protocol VAL|--domain VAL|--port VAL|--path VAL|--query VAL|--fragment VAL) ...] URL [-?|-h|--help]'
+}
+printUsage()
+{
+    # This is the short help when launched with no or incorrect arguments.
+    # It is printed to stderr to avoid accidental processing.
+    printShortUsage "$1" >&2
+    printf >&2 '\nTry %q --help for more information.\n' "$(basename "$1")"
+}
+printLongUsage()
+{
+    # This is the long "man page" when launched with the help argument.
+    # It is printed to stdout to allow paging with 'more'.
+    cat <<HELPDESCRIPTION
+Modify or extract parts of the passed URL.
+HELPDESCRIPTION
+    echo
+    printShortUsage "$1"
+    echo
+    cat <<HELPTEXT
+    --separator|-s SEP	Separate each URL part with SEP.
+Individual PARTs can be selected (from a baseline of no parts) via +PART /
+deselected (from all parts on offer) via -PART.
+HELPTEXT
+}
+
+isFirst=t
+declare -A parts=([protocol]=t [domain]=t [port]=t [path]=t [query]=t [fragment]=t)
+unset protocolOverride
+unset domainOverride
+unset portOverride
+unset pathOverride
+unset queryOverride
+unset fragmentOverride
+separator=
+while [ $# -gt 0 ]
+do
+    case "$1" in
+	--help|-h|-\?)	shift; printLongUsage "$0"; exit 0;;
+	--separator|-s)	shift; separator="${1?}"; shift;;
+	--protocol)	shift; protocolOverride="${1?}"; shift;;
+	--domain)	shift; domainOverride="${1?}"; shift;;
+	--port)		shift; portOverride="${1?}"; shift;;
+	--path)		shift; pathOverride="${1?}"; shift;;
+	--query)	shift; queryOverride="${1?}"; shift;;
+	--fragment)	shift; fragmentOverride="${1?}"; shift;;
+	+*)		[ "$isFirst" ] && parts=()
+			parts["${1:1}"]=t
+			shift
+			;;
+	-[^-]?*)	unset "parts[${1:1}]"; shift;;
+	-*)		{ echo "ERROR: Unknown option \"$1\"!"; echo; printUsage "$0"; } >&2; exit 2;;
+	*)		break;;
+    esac
+    isFirst=
+done
+if [ $# -ne 1 ]; then
+    echo 'ERROR: No URL passed.'
+    echo
+    printUsage "$0"
+    exit 2
+fi >&2
+
+if ! [[ "$1" =~ ^(([a-z]*)://)?([[:alnum:].-]+)(:([[:digit:]]+))?((/[^	 \<\>\'\"?#]*)(\?([^	 \<\>\'\"#]*))?(#([^	 \<\>\'\"]*))?)$ ]]; then
+    printf 'ERROR: Not a valid URL: %s\n' "$1"
+    exit 1
+fi
+protocol="${BASH_REMATCH[2]}"
+domain="${BASH_REMATCH[3]}"
+port="${BASH_REMATCH[5]}"
+path="${BASH_REMATCH[7]}"
+query="${BASH_REMATCH[9]}"
+fragment="${BASH_REMATCH[11]}"
+
+[ "${parts[protocol]}" ] || protocol=''
+[ "${parts[domain]}" ] || domain=''
+[ "${parts[port]}" ] || port=''
+[ "${parts[path]}" ] || path=''
+[ "${parts[query]}" ] || query=''
+[ "${parts[fragment]}" ] || fragment=''
+
+[ -z "${protocolOverride+t}" ] || protocol="$protocolOverride"
+[ -z "${domainOverride+t}" ] || domain="$domainOverride"
+[ -z "${portOverride+t}" ] || port="$portOverride"
+[ -z "${pathOverride+t}" ] || path="$pathOverride"
+[ -z "${queryOverride+t}" ] || query="$queryOverride"
+[ -z "${fragmentOverride+t}" ] || fragment="$fragmentOverride"
+
+protocolSuffix='://'; [ "${!parts[*]}" = protocol -o -n "$separator" ] && protocolSuffix=''
+portPrefix=':'; [ "${!parts[*]}" = port -o -n "$separator" ] && portPrefix=''
+queryPrefix='?'; [ "${!parts[*]}" = query -o -n "$separator" ] && queryPrefix=''
+fragmentPrefix='?'; [ "${!parts[*]}" = fragment -o -n "$separator" ] && fragmentPrefix=''
+
+printf '%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s\n' \
+    "$protocol" "${protocol:+$protocolSuffix}" "${parts[protocol]:+$separator}" \
+    "$domain" "${parts[domain]:+$separator}" \
+    "${port:+$portPrefix}" "$port" "${parts[port]:+$separator}" \
+    "$path" "${parts[path]:+$separator}" \
+    "${query:+$queryPrefix}" "$query" "${parts[query]:+$separator}" \
+    "${fragment:+$fragmentPrefix}" "$fragment"
