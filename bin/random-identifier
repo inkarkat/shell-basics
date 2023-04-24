@@ -9,6 +9,7 @@ HELPTEXT
     printf 'Usage: %q %s\n' "$(basename "$1")" '[-s|--characters SET] [N] [-?|-h|--help]'
 }
 
+generator=randomTr
 characterSet='_A-Z-a-z-0-9'
 while [ $# -ne 0 ]
 do
@@ -27,6 +28,9 @@ case $# in
     *)	printUsage "$0"; exit 2;;
 esac >&2
 
-< /dev/urandom tr -dc "$characterSet" \
-    | head -c${count:?}
-echo
+randomTr()
+{
+    < /dev/urandom tr -dc "$characterSet"
+}
+
+$generator | head -c${count:?}; echo
