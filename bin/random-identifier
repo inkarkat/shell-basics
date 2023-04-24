@@ -6,7 +6,7 @@ printUsage()
 Generate an identifier from random \w word characters.
 Length is 16 characters by default; you can pass a different number.
 HELPTEXT
-    printf 'Usage: %q %s\n' "$(basename "$1")" '[-s|--characters SET] [N] [-?|-h|--help]'
+    printf 'Usage: %q %s\n' "$(basename "$1")" '[-b|--base64|-s|--characters SET] [N] [-?|-h|--help]'
 }
 
 generator=randomTr
@@ -15,6 +15,7 @@ while [ $# -ne 0 ]
 do
     case "$1" in
 	--help|-h|-\?)	shift; printUsage "$0"; exit 0;;
+	--base64|-b)	shift; generator=randomBase64;;
 	--characters|-s)
 			shift; characterSet="${1:?}"; shift;;
 	--)		shift; break;;
@@ -30,7 +31,14 @@ esac >&2
 
 randomTr()
 {
-    < /dev/urandom tr -dc "$characterSet"
+    < /dev/urandom tr -dc "$characterSet" \
+	| head -c${count:?}; echo
 }
 
-$generator | head -c${count:?}; echo
+randomBase64()
+{
+    dd if=/dev/urandom bs=$((((10 * count + 5) * 3 / 4) / 10)) count=1 status=none \
+	| base64
+}
+
+$generator
