@@ -6,11 +6,27 @@ printUsage()
 Generate an identifier from random \w word characters.
 Length is 16 characters by default; you can pass a different number.
 HELPTEXT
-    printf 'Usage: %q %s\n' "$(basename "$1")" '[N] [-?|-h|--help]'
+    printf 'Usage: %q %s\n' "$(basename "$1")" '[-s|--characters SET] [N] [-?|-h|--help]'
 }
 
-case "$1" in
-    --help|-h|-\?)	shift; printUsage "$0"; exit 0;;
-esac
+characterSet='_A-Z-a-z-0-9'
+while [ $# -ne 0 ]
+do
+    case "$1" in
+	--help|-h|-\?)	shift; printUsage "$0"; exit 0;;
+	--characters|-s)
+			shift; characterSet="${1:?}"; shift;;
+	--)		shift; break;;
+	-*)		{ echo "ERROR: Unknown option \"$1\"!"; echo; printUsage "$0"; } >&2; exit 2;;
+	*)		break;;
+    esac
+done
+case $# in
+    0)	count=16;;
+    1)	count="${1:?}"; shift;;
+    *)	printUsage "$0"; exit 2;;
+esac >&2
 
-< /dev/urandom tr -dc _A-Z-a-z-0-9 | head -c${1:-16}; echo
+< /dev/urandom tr -dc "$characterSet" \
+    | head -c${count:?}
+echo
