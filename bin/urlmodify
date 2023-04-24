@@ -4,7 +4,7 @@ printShortUsage()
 {
     # Note: short followed by long option; if the user knows the short one, she can
     # skim the long one.
-    printf 'Usage: %q %s\n' "$(basename "$1")" '[-s|--separator SEP] [(+|-)(protocol|domain|port|path|query|fragment) ...] [--protocol VAL|--domain VAL|--port VAL|--path VAL|--query VAL|--fragment VAL) ...] URL [-?|-h|--help]'
+    printf 'Usage: %q %s\n' "$(basename "$1")" '[-s|--separator SEP] [(+|-)(protocol|domain|port|path|query|fragment) ...] [--protocol VAL|--domain VAL|--port VAL|--path VAL|--query VAL|--fragment VAL) ...] [--] URL [-?|-h|--help]'
 }
 printUsage()
 {
@@ -55,6 +55,7 @@ do
 			shift
 			;;
 	-[^-]?*)	unset "parts[${1:1}]"; shift;;
+	--)		shift; break;;
 	-*)		{ echo "ERROR: Unknown option \"$1\"!"; echo; printUsage "$0"; } >&2; exit 2;;
 	*)		break;;
     esac
