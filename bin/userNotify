@@ -58,6 +58,8 @@ EXIT STATUS:
     3   Internal error or failed assertion.
     122 No notification sink is available.
     123 The user did not acknowledge within the timeout.
+    99 / \$USERPROMPT_EXIT_STATUS_NO_TERM if input cannot be read from the
+	terminal.
 
 Example:
 HELPTEXT

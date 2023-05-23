@@ -68,6 +68,8 @@ EXIT STATUS
     123 The user did not respond within the timeout.
     124 There are no entries available and --no-entries-message is given.
     125 No entries were selected due to cancelling via <Esc>.
+    99 / \$USERQUERY_EXIT_STATUS_NO_TERM if input cannot be read from the
+	terminal.
 HELPTEXT
 }
 

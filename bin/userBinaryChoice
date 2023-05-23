@@ -50,6 +50,8 @@ EXIT STATUS:
     3   Internal error or failed assertion.
     122 No GUI is available and the output is not to the terminal.
     123 The user did not respond within the timeout.
+    99 / \$USERQUERY_EXIT_STATUS_NO_TERM if input cannot be read from the
+	terminal.
 
 Example:
 HELPTEXT

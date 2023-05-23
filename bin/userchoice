@@ -7,6 +7,13 @@ printUsage()
 Query the user with READ-ARGS (e.g. -n 1 -p 'Type letter: ') from the terminal,
 until the pressed key matches the VALID-RESPONSE-GLOB (e.g. '[a-z]|.') or it
 times out.
+
+EXIT STATUS
+    0	Complete success.
+    2	Bad invocation, wrong or missing command-line arguments.
+    99 / \$USERQUERY_EXIT_STATUS_NO_TERM if input cannot be read from the
+	terminal.
+    >128 read timed out
 HELPTEXT
     echo
     printf 'Usage: choice="$(%q %s)"\n' "$(basename "$1")" '-v|--valid VALID-RESPONSE-GLOB [-k|--keep-prompt] [READ-ARGS ...]'
