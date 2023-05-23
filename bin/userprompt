@@ -69,5 +69,5 @@ status=0
 { exec 0<"${USERQUERY_INPUT:-/dev/tty}"; } 2>/dev/null || exit $USERPROMPT_EXIT_STATUS_NO_TERM
 read -r -s -N 1 "${readArgs[@]}"
 [ $? -gt 128 ] && status=123
-printf >/dev/tty %s "$clearPromptSequence"
+{ printf >/dev/tty %s "$clearPromptSequence"; } 2>/dev/null
 exit $status
