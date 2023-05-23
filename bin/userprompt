@@ -1,5 +1,7 @@
 #!/bin/bash
 
+: ${USERPROMPT_EXIT_STATUS_NO_TERM:=99}
+
 printShortUsage()
 {
     # Note: short followed by long option; if the user knows the short one, she can
@@ -33,6 +35,8 @@ EXIT STATUS:
     0	Complete success.
     2	Bad invocation, wrong or missing command-line arguments.
     123 The user did not acknowledge within the timeout.
+    $USERPROMPT_EXIT_STATUS_NO_TERM / \$USERPROMPT_EXIT_STATUS_NO_TERM if input cannot be read from the
+	terminal.
 
 Example:
 HELPTEXT
@@ -62,7 +66,8 @@ promptText="${1-Press any key to continue${timeoutValue:+ (or wait $timeoutValue
 readArgs+=(-p "$promptText")
 
 status=0
-</dev/tty read -r -s -N 1 "${readArgs[@]}"
+{ exec 0<"${USERQUERY_INPUT:-/dev/tty}"; } 2>/dev/null || exit $USERPROMPT_EXIT_STATUS_NO_TERM
+read -r -s -N 1 "${readArgs[@]}"
 [ $? -gt 128 ] && status=123
 printf >/dev/tty %s "$clearPromptSequence"
 exit $status
