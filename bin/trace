@@ -47,7 +47,7 @@ viewTrace()
 }
 case "$1" in
     --help|-h|-\?)	shift; printLongUsage "$0"; exit 0;;
-    --paginate|-p)		shift; setupCaptureAndViewing "${PAGER:-less}" --RAW-CONTROL-CHARS --;;
+    --paginate|-p)	shift; setupCaptureAndViewing "${PAGER:-less}" --RAW-CONTROL-CHARS --;;
     --inbox)		shift; setupCaptureAndViewing inbox --base trace --;;
 esac
 
@@ -59,6 +59,11 @@ if [ "$program" = '.' ]; then
     program="$1"; shift
 fi
 
-BASH_ARGV0="$program"	# Bash 5+ only
-set -x
-. "$program" "$@"
+if [ "$(type -t "$program")" = function ]; then
+    set -x
+    "$program" "$@"
+else
+    BASH_ARGV0="$program"	# Bash 5+ only
+    set -x
+    source "$program" "$@"
+fi
