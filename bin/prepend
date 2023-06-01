@@ -9,7 +9,7 @@ HELPTEXT
     echo
     printf 'Usage: %q %s\n' "$(basename "$1")" '[--] LINE [...] FILE [-?|-h|--help]'
     echo
-    printf 'Usage: echo LINE | %q %s\n' "$(basename "$1")" '- FILE'
+    printf 'Usage: { echo LINE(s); ...; } | %q %s\n' "$(basename "$1")" '- FILE'
 }
 typeset -a lines=()
 requiredArgNum=2
