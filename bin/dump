@@ -1,7 +1,7 @@
 #!/bin/bash
 
 TMPFILE="$(mktemp --tmpdir "$(basename -- "$0")-XXXXXX" 2>/dev/null || echo "${TMPDIR:-/tmp}/$(basename -- "$0").$$$RANDOM")"
-echo "command-line arguments: $@" > "${TMPFILE}"
+echo "command-line arguments: $*" > "${TMPFILE}"
 echo "command-line arguments \$0: \"$0\"" >> "${TMPFILE}"
 let argCnt=1
 while [ $# -gt 0 ]
@@ -12,4 +12,4 @@ do
 done
 echo "STDIN:" >> "${TMPFILE}"
 cat >> "${TMPFILE}"
-echo "Dumped contents to \"${TMPFILE}\"."
+echo >&2 "Dumped contents to $TMPFILE"
