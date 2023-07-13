@@ -88,7 +88,7 @@ dropInterpreter()
 	@(${COMMANDNAME_SHELLS})${COMMANDNAME_EXTENSIONS})
 	    commandFilespec="$(basename -- "${2:-$1}")"
 
-	    if commandStringIdx=$(INDEX_UNTIL=-- index -c "$@") && [ $((commandStringIdx + 1)) -le $# ]; then
+	    if commandStringIdx=$(INDEX_UNTIL=-- indexGlob '-*([a-zA-Z])c*([a-zA-Z])' "$@") && [ $((commandStringIdx + 1)) -le $# ]; then
 		typeset -a commandArguments=(${@:$((commandStringIdx + 2)):1})	# The -c command_string is a single argument, we need to split that into individual arguments, and also evaluate shell stuff.
 		commandFilespec="$(basename -- "${commandArguments[0]}")"
 		# Recursive removal of another interpreter inside the COMMAND,
