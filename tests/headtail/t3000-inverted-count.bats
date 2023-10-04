@@ -33,3 +33,9 @@ SEVEN" ]
     [ $status -eq 0 ]
     [ "$output" = "" ]
 }
+
+@test "list all but 0 first and 0 last lines from file prints the whole file" {
+    run headtail --lines -0 "${BATS_TEST_DIRNAME}/counts"
+    [ $status -eq 0 ]
+    [ "$output" = "$(cat "${BATS_TEST_DIRNAME}/counts")" ]
+}

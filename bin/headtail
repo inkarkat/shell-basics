@@ -68,6 +68,7 @@ do
 	--lines|-n)	shift
 			case "$1" in
 			    +(0))	shift; algorithm=blackhole;;
+			    -+(0))	shift; algorithm=passThrough;;
 			    -+([0-9]))	lines="${1#-}"; shift; algorithm=allButHeadTail;;
 			    +([0-9]))	lines="$1"; shift;;
 			    *)		printf '%s: invalid number of lines: %s\n' "$(basename "$0")" "$1"; exit 2;;
@@ -104,6 +105,13 @@ blackhole()
     # We can use head (or tail) as the only functionality is the file header;
     # the contents are all suppressed by the line count 0.
     head --lines=0 "${headerArgs[@]}" "$@"
+}
+
+passThrough()
+{
+    # We can use head (or tail) as the only functionality is the file header;
+    # the contents are all suppressed by the line count 0.
+    head --lines=-0 "${headerArgs[@]}" "$@"
 }
 
 headTail()
