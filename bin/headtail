@@ -7,7 +7,7 @@ printShortUsage()
 {
     # Note: short followed by long option; if the user knows the short one, she can
     # skim the long one.
-    printf 'Usage: %q %s\n' "$(basename "$1")" '[-n|--lines=NUM] [-D|--duplicate-if-short] [-s|--separator HEAD-TAIL-SEPARATOR|--separator-cutline|--separator-cut-what WHAT] [-q|--quiet|--silent|-v|--verbose] [--] [FILE ...] [-?|-h|--help]'
+    printf 'Usage: %q %s\n' "$(basename "$1")" '[-n|--lines=[-]NUM] [-D|--duplicate-if-short] [-s|--separator HEAD-TAIL-SEPARATOR|--separator-cutline|--separator-cut-what WHAT] [-q|--quiet|--silent|-v|--verbose] [--] [FILE ...] [-?|-h|--help]'
     printf 'Usage: cat FILE [...] | %q %s\n' "$(basename "$1")" '[...] [-]'
 }
 printUsage()
@@ -29,7 +29,9 @@ HELPDESCRIPTION
     printShortUsage "$1"
     echo
     cat <<HELPTEXT
-    --lines|-n NUM	Print NUM lines instead of the default ${DEFAULT_LINES}.
+    --lines|-n [-]NUM	Print NUM lines instead of the default ${DEFAULT_LINES};
+			with the leading '-', print all but NUM lines of each
+			file.
     --duplicate-if-short|-D
 			Always print 2 * (${DEFAULT_LINES} / the number of input lines
 			(whichever is smaller)), duplicating lines if necessary.
@@ -66,6 +68,8 @@ do
 	--lines|-n)	shift
 			case "$1" in
 			    +(0))	shift; algorithm=blackhole;;
+			    -+(0))	shift; algorithm=passThrough;;
+			    -+([0-9]))	lines="${1#-}"; shift; algorithm=allButHeadTail;;
 			    +([0-9]))	lines="$1"; shift;;
 			    *)		printf '%s: invalid number of lines: %s\n' "$(basename "$0")" "$1"; exit 2;;
 			esac
@@ -101,6 +105,13 @@ blackhole()
     # We can use head (or tail) as the only functionality is the file header;
     # the contents are all suppressed by the line count 0.
     head --lines=0 "${headerArgs[@]}" "$@"
+}
+
+passThrough()
+{
+    # We can use head (or tail) as the only functionality is the file header;
+    # the contents are all suppressed by the line count 0.
+    head --lines=-0 "${headerArgs[@]}" "$@"
 }
 
 headTail()
@@ -154,6 +165,35 @@ FNR == (lines + 1) {
 }
 END {
     printHeadTail()
+}
+' "$@"
+}
+
+allButHeadTail()
+{
+    exec awk \
+	-v "lines=$lines" \
+	-v "header=$header" \
+'
+FNR == 1 {
+    bufCnt = 0
+
+    if (header == "yes" || header == "auto" && ARGC > 2) {
+	printf (ARGIND > 1 ? "\n" : "") "==> %s <==\n", (FILENAME == "-" ? "standard input" : FILENAME)
+    }
+}
+FNR <= lines {
+    next
+}
+{
+    if (bufCnt < lines) {
+	lastNr = bufCnt
+	buf[bufCnt++] = $0
+    } else {
+	lastNr = (++lastNr % lines)
+	print buf[lastNr]
+	buf[lastNr] = $0
+    }
 }
 ' "$@"
 }
