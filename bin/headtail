@@ -53,16 +53,19 @@ HELPDESCRIPTION
 HELPTEXT
 }
 
+algorithm=headTail
 lines=$DEFAULT_LINES
 isDuplicateIfShort=
 separator=
 header=auto
+typeset -a headerArgs=()
 while [ $# -ne 0 ]
 do
     case "$1" in
 	--help|-h|-\?)	shift; printLongUsage "$0"; exit 0;;
 	--lines|-n)	shift
 			case "$1" in
+			    +(0))	shift; algorithm=blackhole;;
 			    +([0-9]))	lines="$1"; shift;;
 			    *)		printf '%s: invalid number of lines: %s\n' "$(basename "$0")" "$1"; exit 2;;
 			esac
@@ -84,8 +87,8 @@ do
 			shift
 			;;
 	--silent|--quiet|-q)
-			shift; header=no;;
-	--verbose|-v)	shift; header=yes;;
+			headerArgs+=("$1"); shift; header=no;;
+	--verbose|-v)	headerArgs+=("$1"); shift; header=yes;;
 	--)		shift; break;;
 	-)		break;;
 	-*)		{ echo "ERROR: Unknown option \"$1\"!"; echo; printUsage "$0"; } >&2; exit 2;;
@@ -93,11 +96,20 @@ do
     esac
 done
 
-exec awk \
-    -v "lines=$lines" \
-    -v "isDuplicateIfShort=$isDuplicateIfShort" \
-    -v "separator=${separator//\\/\\\\}" \
-    -v "header=$header" \
+blackhole()
+{
+    # We can use head (or tail) as the only functionality is the file header;
+    # the contents are all suppressed by the line count 0.
+    head --lines=0 "${headerArgs[@]}" "$@"
+}
+
+headTail()
+{
+    exec awk \
+	-v "lines=$lines" \
+	-v "isDuplicateIfShort=$isDuplicateIfShort" \
+	-v "separator=${separator//\\/\\\\}" \
+	-v "header=$header" \
 '
 function printHeadTail(      omittedNum, start, i)
 {
@@ -144,3 +156,6 @@ END {
     printHeadTail()
 }
 ' "$@"
+}
+
+$algorithm "$@"

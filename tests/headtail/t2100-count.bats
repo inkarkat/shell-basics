@@ -27,3 +27,9 @@ five" ]
     [ $status -eq 0 ]
     [ "$output" = "$(cat "${BATS_TEST_DIRNAME}/counts")" ]
 }
+
+@test "list 0 first and 0 last lines from file" {
+    run headtail --lines 0 "${BATS_TEST_DIRNAME}/counts"
+    [ $status -eq 0 ]
+    [ "$output" = "" ]
+}
