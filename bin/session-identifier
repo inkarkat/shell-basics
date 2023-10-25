@@ -1,0 +1,71 @@
+#!/bin/bash
+
+printUsage()
+{
+    cat <<HELPTEXT
+Generate a (hexadecimal or base64-encoded) session identifier for the current
+system session (valid until the next reboot) / based on the passed COMMAND(s)
+output.
+Length is 16 characters by default; you can pass a different number (up to 64).
+HELPTEXT
+    echo
+    printf 'Usage: %q %s\n' "$(basename "$1")" '[-b|--base64] [[-n|--count] N] [-c|--command "COMMANDLINE" [-c ...] | [--] SIMPLECOMMAND [...]] [-?|-h|--help]'
+}
+
+renderer=directDigest
+count=16
+isNeedEval=
+typeset -a commands=()
+while [ $# -ne 0 ]
+do
+    case "$1" in
+	--help|-h|-\?)	shift; printUsage "$0"; exit 0;;
+	--base64|-b)	shift; renderer='base64Encoded';;
+	--count|-n)	shift; count="${1:?}"; shift;;
+
+	--command|-c)	shift; commands+=(${commands:+;} "$1"); isNeedEval=t; shift;;
+	--)		shift; break;;
+	-*)		{ echo "ERROR: Unknown option \"$1\"!"; echo; printUsage "$0"; } >&2; exit 2;;
+	*)		break;;
+    esac
+done
+if [ $# -ne 0 ]; then
+    if [ "$isNeedEval" ]; then
+	# Combine --command and SIMPLECOMMAND; need to quote SIMPLECOMMAND to
+	# undo the effects of eval.
+	printf -v quotedSimpleCommand '%q ' "$@"
+	commands+=(${commands:+;} "${quotedSimpleCommand% }")
+    else
+	commands=("$@")
+    fi
+fi
+if [ ${#commands[@]} -eq 0 ]; then
+    commands=('readableHostname --long; uptime --since')
+    isNeedEval=t
+fi
+
+sessionIdentifier="$(
+    if [ "$isNeedEval" ]; then
+	eval "${commands[@]}"
+    else
+	"${commands[@]}"
+    fi
+)" || exit $?
+[ -n "$sessionIdentifier" ] || exit 3
+
+directDigest()
+{
+    head -c "$count" \
+	&& printf '\n'
+}
+
+base64Encoded()
+{
+    head -c "$((((10 * count + 5) * 3 / 4) / 10))" \
+	| base64
+}
+
+printf '%s\n' "$sessionIdentifier" \
+    | sha256sum \
+    | field 1 \
+    | $renderer
