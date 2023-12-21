@@ -1,20 +1,40 @@
 #!/bin/bash
 shopt -qs extglob
 
-printUsage()
+printShortUsage()
 {
-    cat <<HELPTEXT
-Expect the supplied COMMAND to fail [with STATUS]. Complains on standard error
-if this is not the case and returns 125 then; else returns 0.
-See also: acceptStatus can take multiple statuses, is silent and meant for
-scripting.
-HELPTEXT
+    # Note: short followed by long option; if the user knows the short one, she can
+    # skim the long one.
     printf 'Usage: %q %s\n' "$(basename "$1")" '[--|STATUS|-S|[!]S|S+|S-T|S%T] COMMAND [ARG ...] [-?|-h|--help]'
 }
+printUsage()
+{
+    # This is the short help when launched with no or incorrect arguments.
+    # It is printed to stderr to avoid accidental processing.
+    printShortUsage "$1" >&2
+    printf >&2 '\nTry %q --help for more information.\n' "$(basename "$1")"
+}
+printLongUsage()
+{
+    # This is the long "man page" when launched with the help argument.
+    # It is printed to stdout to allow paging with 'more'.
+    cat <<HELPDESCRIPTION
+Expect the supplied COMMAND to fail [with STATUS]. Complains on standard error
+if this is not the case and returns 125 then; else returns 0.
+HELPDESCRIPTION
+    echo
+    printShortUsage "$1"
+    echo
+    cat <<HELPTEXT
+SEE ALSO:
+- acceptStatus can take multiple statuses, is silent and meant for scripting.
+HELPTEXT
+}
+
 expectedStatus=
 expectedRange=
 case "$1" in
-    --help|-h|-\?)	shift; printUsage "$0"; exit 0;;
+    --help|-h|-\?)	shift; printLongUsage "$0"; exit 0;;
     +(0))		echo >&2 'ERROR: Cannot fail with status 0.'; exit 2;;
     +([0-9]))		expectedStatus="$1"; shift;;
     [-!]+([0-9])|+([0-9])+|+([0-9])[-%]+([0-9]))

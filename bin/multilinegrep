@@ -35,8 +35,9 @@ HELPDESCRIPTION
 			of lines but the begin and end of the entire PATTERN can
 			start / end anywhere in the line.
 
-See also: pcregrep and pcre2grep -M|--multiline can match (like --block-regexp)
-with a Perl-compatible regexp syntax.
+SEE ALSO:
+- pcregrep and pcre2grep -M|--multiline can match (like --block-regexp) with a
+  Perl-compatible regexp syntax.
 
 EXIT STATUS:
     0	Line(s) are selected.

@@ -43,8 +43,9 @@ HELPDESCRIPTION
     --summarize-larger N[ ENTRIES]
 			If there are more than N ARGs, do not print any and just
 			summarize as N elements / ENTRIES.
-See also: collapseToSingleLine takes lines from files / standard input and can
-do wrapping and elaborate line breaking.
+SEE ALSO:
+- collapseToSingleLine takes lines from files / standard input and can do
+  wrapping and elaborate line breaking.
 
 EXIT STATUS:
     0	Complete success.

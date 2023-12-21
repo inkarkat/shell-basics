@@ -1,20 +1,37 @@
 #!/bin/bash
 shopt -qs extglob
 
+printShortUsage()
+{
+    # Note: short followed by long option; if the user knows the short one, she can
+    # skim the long one.
+    printf 'Usage: %q %s\n' "$(basename "$1")" '[--] COMMAND [ARG ...] [-?|-h|--help]'
+}
 printUsage()
 {
-    cat <<HELPTEXT
+    # This is the short help when launched with no or incorrect arguments.
+    # It is printed to stderr to avoid accidental processing.
+    printShortUsage "$1" >&2
+    printf >&2 '\nTry %q --help for more information.\n' "$(basename "$1")"
+}
+printLongUsage()
+{
+    # This is the long "man page" when launched with the help argument.
+    # It is printed to stdout to allow paging with 'more'.
+    cat <<HELPDESCRIPTION
 Succeed the supplied command, regardless of its actual exit status.
-HELPTEXT
+HELPDESCRIPTION
     echo
-    printf 'Usage: %q %s\n' "$(basename "$1")" '[--] COMMAND [ARG ...] [-?|-h|--help]'
+    printShortUsage "$1"
     echo
     cat <<HELPTEXT
-See also: failThis, negateThis, acceptStatus
+SEE ALSO:
+- failThis, negateThis, acceptStatus
 HELPTEXT
 }
+
 case "$1" in
-    --help|-h|-\?)	shift; printUsage "$0"; exit 0;;
+    --help|-h|-\?)	shift; printLongUsage "$0"; exit 0;;
     --)			shift;;
 esac
 if [ $# -eq 0 ]; then
