@@ -1,0 +1,189 @@
+#!/bin/bash
+
+printShortUsage()
+{
+    # Note: short followed by long option; if the user knows the short one, she can
+    # skim the long one.
+    printf 'Usage: cat FILE [...] | %q %s\n' "$(basename "$1")" '[--prefix PREFIX] [--suffix SUFFIX] [--empty TEXT] [--omit-empty] [--begin-sequence|-b ; SEP1 [SEP2 ...] ;] [--end-sequence|-e ; [... SEPn-1] SEPn ;] [--repeat-sequence|-r ; SEP1 [SEP2 ...] ;]'
+    printf 'Usage: %q %s\n' "$(basename "$1")" '[...] [--] [ARG ...] [-?|-h|--help]'
+}
+printUsage()
+{
+    # This is the short help when launched with no or incorrect arguments.
+    # It is printed to stderr to avoid accidental processing.
+    printShortUsage "$1" >&2
+    printf >&2 '\nTry %q --help for more information.\n' "$(basename "$1")"
+}
+printLongUsage()
+{
+    # This is the long "man page" when launched with the help argument.
+    # It is printed to stdout to allow paging with 'more'.
+    cat <<HELPDESCRIPTION
+Join all ARGs with the passed separators.
+HELPDESCRIPTION
+    echo
+    printShortUsage "$1"
+    echo
+    cat <<HELPTEXT
+    --prefix PREFIX	Put PREFIX before anything else.
+    --suffix SUFFIX	Append SUFFIX at the end.
+    --empty TEXT	Print TEXT instead of nothing when there are no ARGs at
+			all.
+    --omit-empty	Do not put a SEPARATOR around completely empty ARGs
+			(empty lines with -), and don't count them for
+			truncation or summary.
+    --default-separator|-D SEPARATOR
+			Use SEPARATOR when no other rule applies. A space is
+			used by default.
+    --begin-sequence|-b ; SEP1 [SEP2 ...] ;
+			Use SEP to join the first two ARGs, SEP2 to join the
+			next, and so on. Takes precedence over an overlapping
+			end-sequence.
+    --end-sequence|-e ; [... SEPn-1] SEPn ;
+			Use SEPn to join the last two ARGs, SEPn-1 to join the
+			previous, and so on.
+    --repeat-sequence|-r ; SEP1 [SEP2 ...] ;
+			Use SEP to join the first two ARGs, SEP2 to join the
+			next, and so on. Once all SEPs are used, start over
+			again (until the end or the start of the end-sequence).
+			Starts after a begin sequence.
+SEE ALSO:
+- joinBy joins ARGs with mostly just a single separator, but allowing truncation
+  and summarizing.
+- collapseToSingleLine takes lines from files / standard input and can do
+  wrapping and elaborate line breaking.
+
+EXIT STATUS:
+    0	Complete success.
+    2	Bad invocation, wrong or missing command-line arguments.
+    99	No ARGs at all and no alternative --empty TEXT given.
+HELPTEXT
+}
+
+prefix=
+suffix=
+emptyText=
+isOmitEmpty=
+defaultSeparator=' '
+typeset -a beginSequence=()
+typeset -a endSequence=()
+typeset -a repeatSequence=()
+hasArgs=
+while [ $# -ne 0 ]
+do
+    case "$1" in
+	--help|-h|-\?)	shift; printLongUsage "$0"; exit 0;;
+	--prefix)	shift; prefix="$1"; shift;;
+	--suffix)	shift; suffix="$1"; shift;;
+	--empty)	shift; emptyText="$1"; shift;;
+	--omit-empty)	shift; isOmitEmpty=t;;
+	--default-separator|-D)
+			shift; defaultSeparator="${1?}"; shift;;
+	--begin-sequence|-b)
+			shift
+			sep="${1:?}"; shift
+			until [ "$1" = "$sep" ]
+			do
+			    if [ $# -eq 0 ]; then
+				printf "ERROR: Missing concluding '%s' after '%s' separator.\\n" "$sep" '-b|--begin-sequence'
+				echo
+				printUsage "$0"
+				exit 2
+			    fi >&2
+			    beginSequence+=("$1"); shift
+			done
+			shift
+			;;
+	--end-sequence|-e)
+			shift
+			sep="${1:?}"; shift
+			until [ "$1" = "$sep" ]
+			do
+			    if [ $# -eq 0 ]; then
+				printf "ERROR: Missing concluding '%s' after '%s' separator.\\n" "$sep" '-e|--end-sequence'
+				echo
+				printUsage "$0"
+				exit 2
+			    fi >&2
+			    endSequence+=("$1"); shift
+			done
+			shift
+			;;
+	--repeat-sequence|-r)
+			shift
+			sep="${1:?}"; shift
+			until [ "$1" = "$sep" ]
+			do
+			    if [ $# -eq 0 ]; then
+				printf "ERROR: Missing concluding '%s' after '%s' separator.\\n" "$sep" '-r|--repeat-sequence'
+				echo
+				printUsage "$0"
+				exit 2
+			    fi >&2
+			    repeatSequence+=("$1"); shift
+			done
+			shift
+			;;
+	--)		shift; hasArgs=t; break;;
+	-*)		{ echo "ERROR: Unknown option \"$1\"!"; echo; printUsage "$0"; } >&2; exit 2;;
+	*)		break;;
+    esac
+done
+if [ $# -eq 0 ] && [ ! "$hasArgs" ]; then
+    readarray -t args
+    set -- "${args[@]}"
+fi
+
+if [ "$isOmitEmpty" ]; then
+    typeset -a args=()
+    for arg
+    do
+	[ -n "$arg" ] && args+=("$arg")
+    done
+    set -- "${args[@]}"
+fi
+
+if [ $# -eq 0 ]; then
+    if [ -n "$emptyText" ]; then
+	printf '%s%s%s\n' "$prefix" "$emptyText" "$suffix"
+	exit
+    else
+	exit 99
+    fi
+fi
+
+typeset -a separators=()
+if [ ${#repeatSequence[@]} -eq 0 ]; then
+    for ((i = 1; i < $#; i++))
+    do
+	separators+=("$defaultSeparator")
+    done
+else
+    for ((i = 0; i < ${#beginSequence[@]}; i++))
+    do
+	separators+=("${beginSequence[$i]}")
+    done
+    for ((j = 1; i + j < $#; j++))
+    do
+	separators+=("${repeatSequence[$(((j - 1) % ${#repeatSequence[@]}))]}")
+    done
+fi
+for ((i = 0; i < ${#endSequence[@]}; i++))
+do
+    index=$(($# - ${#endSequence[@]} + i - 1))
+    [ $index -ge 0 ] && separators[$index]="${endSequence[$i]}"
+done
+for ((i = 0; i < ${#beginSequence[@]}; i++))
+do
+    separators[$i]="${beginSequence[$i]}"
+done
+[ $((${#separators[@]} + 1)) -ge $# ] || { printf >&2 'ASSERT: Not enough separators (%d) for %d arguments.\n' ${#separators[@]} $#; exit 3; }
+
+printf %s%s "$prefix" "$1"; shift
+while [ $# -ne 0 ]
+do
+    sep="${separators[0]}"
+    separators=("${separators[@]:1}")
+    printf %s%s "$sep" "$1"; shift
+done
+printf '%s\n' "$suffix"
