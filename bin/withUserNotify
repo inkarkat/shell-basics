@@ -2,11 +2,13 @@
 set -o pipefail
 shopt -qs extglob
 
+: ${WITHUSERNOTIFY_EXEC_END=;}
+
 printShortUsage()
 {
     # Note: short followed by long option; if the user knows the short one, she can
     # skim the long one.
-    printf 'Usage: %q %s\n' "$(basename "$1")" '[-T|--title TITLE] [-t|--timeout TIMEOUT] [-c|--console] [-d|--desktop] [-g|--gui] [-l|--login-notification] [--markup] [-1|--stdout|-2|--stderr] [--filter-exec FILTER-COMMAND [...] ; [...]] [--filter-command "FILTER-COMMANDLINE" [--filter-command ...]] -c|--command "COMMANDLINE" [-c ...] | [--] SIMPLECOMMAND [...] [-?|-h|--help]'
+    printf 'Usage: %q %s\n' "$(basename "$1")" "[-T|--title TITLE] [-t|--timeout TIMEOUT] [-c|--console] [-d|--desktop] [-g|--gui] [-l|--login-notification] [--markup] [-1|--stdout|-2|--stderr] [--filter-exec FILTER-COMMAND [...] $WITHUSERNOTIFY_EXEC_END [...]] [--filter-command \"FILTER-COMMANDLINE\" [--filter-command ...]] -c|--command \"COMMANDLINE\" [-c ...] | [--] SIMPLECOMMAND [...] [-?|-h|--help]"
 }
 printUsage()
 {
@@ -55,10 +57,10 @@ HELPDESCRIPTION
     --stderr|-2		Only consider error output for notification text.
     --filter-command FILTER-CMD
 			Pipe output through FILTER-CMD.
-    --filter-exec FILTER-COMMAND [...] ;
+    --filter-exec FILTER-COMMAND [...] $WITHUSERNOTIFY_EXEC_END
 			Pipe output through FILTER-COMMAND; all following
 			arguments are taken to be arguments to the COMMAND until
-			an argument consisting of ';' is encountered.
+			an argument consisting of '${WITHUSERNOTIFY_EXEC_END}' is encountered.
     --command|-c CMD	The command line to be captured. When this is a simple
 			command, it can also be passed as such.
 EXIT STATUS:
@@ -99,14 +101,14 @@ do
 			shift; filterCommands+=(${filterCommands:+|} "$1"); shift;;
 	--filter-exec)	shift
 			cmd=
-			while [ $# -gt 0 -a "$1" != ';' ]
+			while [ $# -gt 0 -a "$1" != "$WITHUSERNOTIFY_EXEC_END" ]
 			do
 			    printf -v quotedArg '%q' "$1"
 			    cmd="${cmd}${cmd:+ }${quotedArg}"
 			    shift
 			done
 			if [ $# -eq 0 ]; then
-			    echo 'ERROR: --filter-exec command must be concluded with ;!'; echo; printUsage "$0"
+			    echo "ERROR: --filter-exec command must be concluded with '${WITHUSERNOTIFY_EXEC_END}'"; echo; printUsage "$0"
 			    exit 2
 			fi >&2
 			shift

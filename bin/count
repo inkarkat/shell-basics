@@ -1,6 +1,8 @@
 #!/bin/bash
 set -o pipefail
 
+: ${COUNT_EXEC_END=;}
+
 printShortUsage()
 {
     # Note: short followed by long option; if the user knows the short one, she can
@@ -8,7 +10,7 @@ printShortUsage()
     printf 'Usage: %q %s\n' "$(basename "$1")" '-g|--greater|-s|--smaller|-lt|-le|-eq|-ne|-ge|-gt N -b|--bytes|-m|--chars|-l|--lines|-w|--words [-p|--print|-t|--tee] [--] FILE [...] [-?|-h|--help]'
     printf 'Usage: cat FILE [...] | %q %s\n' "$(basename "$1")" '-g|--greater|-s|--smaller|-lt|-le|-eq|-ne|-ge|-gt N [...] -'
     echo
-    printf 'Usage: %q %s\n' "$(basename "$1")" '-g|--greater|-s|--smaller|-lt|-le|-eq|-ne|-ge|-gt N [...] -c|--command "COMMANDLINE" [...] | --exec SIMPLECOMMAND [...] ; [...] [-?|-h|--help]'
+    printf 'Usage: %q %s\n' "$(basename "$1")" "-g|--greater|-s|--smaller|-lt|-le|-eq|-ne|-ge|-gt N [...] -c|--command \"COMMANDLINE\" [...] | --exec SIMPLECOMMAND [...] $COUNT_EXEC_END [...] [-?|-h|--help]"
 }
 printUsage()
 {
@@ -38,8 +40,8 @@ HELPDESCRIPTION
     --tee|-t		Forward all input as output (regardless of the result of
 			the comparision).
     --command|-c CMD	Execute CMD as a command-line.
-    --exec CMD [...] ;	Execute CMD; all following arguments are taken to be
-			arguments to the CMD until an argument consisting of ';'
+    --exec CMD [...] $COUNT_EXEC_END	Execute CMD; all following arguments are taken to be
+			arguments to the CMD until an argument consisting of '${COUNT_EXEC_END}'
 			is encountered.
 EXIT STATUS:
     0	Complete success.
@@ -77,14 +79,14 @@ do
 	--command|-c)	shift; commands+=(${commands:+;} "$1"); shift;;
 	--exec)		shift
 			cmd=
-			while [ $# -gt 0 -a "$1" != ';' ]
+			while [ $# -gt 0 -a "$1" != "$COUNT_EXEC_END" ]
 			do
 			    printf -v quotedArg '%q' "$1"
 			    cmd="${cmd}${cmd:+ }${quotedArg}"
 			    shift
 			done
 			if [ $# -eq 0 ]; then
-			    echo 'ERROR: --exec command must be concluded with ;!'; echo; printUsage "$0"
+			    echo "ERROR: --exec command must be concluded with '${COUNT_EXEC_END}'"; echo; printUsage "$0"
 			    exit 2
 			fi >&2
 			shift
