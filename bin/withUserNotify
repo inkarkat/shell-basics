@@ -8,7 +8,7 @@ printShortUsage()
 {
     # Note: short followed by long option; if the user knows the short one, she can
     # skim the long one.
-    printf 'Usage: %q %s\n' "$(basename "$1")" "[-T|--title TITLE] [-t|--timeout TIMEOUT] [-c|--console] [-d|--desktop] [-g|--gui] [-l|--login-notification] [--markup] [-1|--stdout|-2|--stderr] [--filter-exec FILTER-COMMAND [...] $WITHUSERNOTIFY_EXEC_END [...]] [--filter-command \"FILTER-COMMANDLINE\" [--filter-command ...]] -c|--command \"COMMANDLINE\" [-c ...] | [--] SIMPLECOMMAND [...] [-?|-h|--help]"
+    printf 'Usage: %q %s\n' "$(basename "$1")" "[-T|--title TITLE] [-t|--timeout TIMEOUT] [-c|--console] [-d|--desktop] [-g|--gui] [-l|--login-notification] [--markup] [-1|--stdout|-2|--stderr] [--filter-exec FILTER-COMMAND [...] $WITHUSERNOTIFY_EXEC_END [...]] [--filter-command \"FILTER-COMMANDLINE\" [--filter-command ...]] -c|--command \"COMMANDLINE\" [-c ...] | --exec SIMPLECOMMAND [...] ${WITHUSERNOTIFY_EXEC_END} [--exec ...] | [--] SIMPLECOMMAND [...] [-?|-h|--help]"
 }
 printUsage()
 {
@@ -63,6 +63,9 @@ HELPDESCRIPTION
 			an argument consisting of '${WITHUSERNOTIFY_EXEC_END}' is encountered.
     --command|-c CMD	The command line to be captured. When this is a simple
 			command, it can also be passed as such.
+    --exec CMD [...] ${WITHUSERNOTIFY_EXEC_END}	Execute CMD; all following arguments are taken to be
+			arguments to the CMD until an argument consisting of
+			'${WITHUSERNOTIFY_EXEC_END}' is encountered.
 EXIT STATUS:
     0	Complete success.
     2	Bad invocation, wrong or missing command-line arguments.
@@ -115,6 +118,22 @@ do
 			filterCommands+=(${filterCommands:+|} "$cmd")
 			;;
 	--command|-c)	shift; commands+=(${commands:+;} "$1"); isNeedEval=t; shift;;
+	--exec)		shift
+			cmd=
+			while [ $# -gt 0 -a "$1" != "$WITHUSERNOTIFY_EXEC_END" ]
+			do
+			    printf -v quotedArg '%q' "$1"
+			    cmd="${cmd}${cmd:+ }${quotedArg}"
+			    shift
+			done
+			if [ $# -eq 0 ]; then
+			    echo "ERROR: --exec command must be concluded with '${WITHUSERNOTIFY_EXEC_END}'"; echo; printUsage "$0"
+			    exit 2
+			fi >&2
+			shift
+			commands+=(${commands:+;} "$cmd")
+			isNeedEval=t
+			;;
 	--)		shift; break;;
 	-*)		{ echo "ERROR: Unknown option \"$1\"!"; echo; printUsage "$0"; } >&2; exit 2;;
 	*)		break;;
@@ -131,7 +150,7 @@ if [ $# -ne 0 ]; then
     fi
 fi
 if [ ${#commands[@]} -eq 0 ]; then
-    echo 'ERROR: No COMMAND(s) specified; need to pass -c|--command "COMMANDLINE", or SIMPLECOMMAND.'
+    echo "ERROR: No COMMAND(s) specified; need to pass -c|--command \"COMMANDLINE\", or --exec SIMPLECOMMAND [...] $WITHUSERNOTIFY_EXEC_END or SIMPLECOMMAND."
     echo
     printUsage "$0"
     exit 2
