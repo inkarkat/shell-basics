@@ -10,7 +10,7 @@ printShortUsage()
     printf 'Usage: %q %s\n' "$(basename "$1")" '-g|--greater|-s|--smaller|-lt|-le|-eq|-ne|-ge|-gt N -b|--bytes|-m|--chars|-l|--lines|-w|--words [-p|--print|-t|--tee] [--] FILE [...] [-?|-h|--help]'
     printf 'Usage: cat FILE [...] | %q %s\n' "$(basename "$1")" '-g|--greater|-s|--smaller|-lt|-le|-eq|-ne|-ge|-gt N [...] -'
     echo
-    printf 'Usage: %q %s\n' "$(basename "$1")" "-g|--greater|-s|--smaller|-lt|-le|-eq|-ne|-ge|-gt N [...] -c|--command \"COMMANDLINE\" [...] | --exec SIMPLECOMMAND [...] $COUNT_EXEC_END [...] [-?|-h|--help]"
+    printf 'Usage: %q %s\n' "$(basename "$1")" "-g|--greater|-s|--smaller|-lt|-le|-eq|-ne|-ge|-gt N [...] -c|--command \"COMMANDLINE\" [-c ...] | --exec SIMPLECOMMAND [...] $COUNT_EXEC_END [--exec ...] [-?|-h|--help]"
 }
 printUsage()
 {
