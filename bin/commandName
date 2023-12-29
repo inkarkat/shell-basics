@@ -110,13 +110,14 @@ dropInterpreter()
     esac
 }
 
+# First eat individual preceding VAR=VAL arguments.
+while [[ "$1" =~ ^[[:alpha:]_][[:alnum:]_]+=(\\[[:space:]]|[^[:space:]\\])*$ ]]; do shift; done
+
 if [ "$isEval" ]; then
     literalReplacement="$undefined"
     literalReplacement="${literalReplacement//\\/\\\\}"
     literalReplacement="${literalReplacement//&/\\&}"
 
-    # First eat individual preceding VAR=VAL arguments.
-    while [[ "$1" =~ ^[[:alpha:]_][[:alnum:]_]+=(\\[[:space:]]|[^[:space:]\\])*$ ]]; do shift; done
 
     # Extract COMMAND from preceding VAR=VAL inside the first remaining
     # argument.
@@ -149,8 +150,6 @@ if [ "$isEval" ]; then
 	# Drop the literal "$@" argument to avoid that it gets reported.
 	shift
     fi
-else
-    while [[ "$1" =~ ^[[:alpha:]_][[:alnum:]_]+= ]]; do shift; done
 fi
 commandFilespec="$(basename -- "${1:-${undefined}}")"
 [ "$isDropInterpreter" ] && dropInterpreter "$@"
