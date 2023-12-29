@@ -110,47 +110,58 @@ dropInterpreter()
     esac
 }
 
-# First eat individual preceding VAR=VAL arguments.
-while [[ "$1" =~ ^[[:alpha:]_][[:alnum:]_]+=(\\[[:space:]]|[^[:space:]\\])*$ ]]; do shift; done
+while :	# Note: Use endless loop with break at the end to emulate goto; we cannot use a function, as we need to modify $@.
+do
+    # First eat individual preceding VAR=VAL arguments.
+    while [[ "$1" =~ ^[[:alpha:]_][[:alnum:]_]+=(\\[[:space:]]|[^[:space:]\\])*$ ]]; do shift; done
 
-if [ "$isEval" ]; then
-    literalReplacement="$undefined"
-    literalReplacement="${literalReplacement//\\/\\\\}"
-    literalReplacement="${literalReplacement//&/\\&}"
+    if [ "$isEval" ]; then
+	literalReplacement="$undefined"
+	literalReplacement="${literalReplacement//\\/\\\\}"
+	literalReplacement="${literalReplacement//&/\\&}"
 
 
-    # Extract COMMAND from preceding VAR=VAL inside the first remaining
-    # argument.
-    set -o noglob
-    readonly COMMAND_SEPARATOR_COLLECTION=';&|'
-    netCommandLine="$(printf '%s\n' "${1:-${undefined}}" | sed \
-	-e 1!d \
-	-e "s/^[[:space:]]*\\([[:alpha:]_][[:alnum:]_]\\+=\\(\\\\[[:space:]]\\|[^[:space:]\\\\]\\)*[[:space:]]\\+\\)*\\(\"\\([^\"]\\+\\)\"\\|'\\([^']\\+\\)'\\|\\([^${COMMAND_SEPARATOR_COLLECTION}]\\+\\)\\)\\([${COMMAND_SEPARATOR_COLLECTION}].*\\)\\?$/\\4\\5\\6/" \
-	-e t \
-	-e "s#.*#${literalReplacement//#/\\#}#" \
-	-e q
-    )"
+	# Extract COMMAND from preceding VAR=VAL inside the first remaining
+	# argument.
+	set -o noglob
+	COMMAND_SEPARATOR_COLLECTION=';&|'
+	netCommandLine="$(printf '%s\n' "${1:-${undefined}}" | sed \
+	    -e 1!d \
+	    -e "s/^[[:space:]]*\\([[:alpha:]_][[:alnum:]_]\\+=\\(\\\\[[:space:]]\\|[^[:space:]\\\\]\\)*[[:space:]]\\+\\)*\\(\"\\([^\"]\\+\\)\"\\|'\\([^']\\+\\)'\\|\\([^${COMMAND_SEPARATOR_COLLECTION}]\\+\\)\\)\\([${COMMAND_SEPARATOR_COLLECTION}].*\\)\\?$/\\4\\5\\6/" \
+	    -e t \
+	    -e "s#.*#${literalReplacement//#/\\#}#" \
+	    -e q
+	)"
 
-    # The eval may fail, e.g. with
-    # $ commandName --eval 'ls -t @(server|client)*.log?(.[0-9])'
-    #	-> ls -t @(server
-    # because of the incomplete glob. Therefore, error messages should be
-    # suppressed. As set -o noglob doesn't help, try removing arguments from the
-    # back for as long as possible and retry.
-    set -- '"$@"'   # Trick: To keep a "$@" argument intact, set the current arguments to that as a literal string.
-    until eval "set -- $netCommandLine" 2>/dev/null
-    do
-	if [ "${netCommandLine/ //}" = "$netCommandLine" ]; then
-	    break
-	else
-	    netCommandLine="${netCommandLine% *}"
+	# DWIM: Drop the chdir in a "cd DIR && COMMAND" or "cd DIR; COMMAND" commandline.
+	if [[ "$netCommandLine" =~ ^cd[[:space:]] ]] && [[ "$*" =~ \&\&|\;[[:space:]]*([^[:space:]].*)$ ]]; then
+	    set -- "${BASH_REMATCH[1]}"
+	    continue
 	fi
-    done
-    if [ "$1" = '"$@"' ]; then
-	# Drop the literal "$@" argument to avoid that it gets reported.
-	shift
+
+	# The eval may fail, e.g. with
+	# $ commandName --eval 'ls -t @(server|client)*.log?(.[0-9])'
+	#	-> ls -t @(server
+	# because of the incomplete glob. Therefore, error messages should be
+	# suppressed. As set -o noglob doesn't help, try removing arguments from the
+	# back for as long as possible and retry.
+	set -- '"$@"'   # Trick: To keep a "$@" argument intact, set the current arguments to that as a literal string.
+	until eval "set -- $netCommandLine" 2>/dev/null
+	do
+	    if [ "${netCommandLine/ //}" = "$netCommandLine" ]; then
+		break
+	    else
+		netCommandLine="${netCommandLine% *}"
+	    fi
+	done
+	if [ "$1" = '"$@"' ]; then
+	    # Drop the literal "$@" argument to avoid that it gets reported.
+	    shift
+	fi
     fi
-fi
+    break
+done
+
 commandFilespec="$(basename -- "${1:-${undefined}}")"
 [ "$isDropInterpreter" ] && dropInterpreter "$@"
 
