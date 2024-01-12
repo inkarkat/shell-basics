@@ -83,7 +83,6 @@ typeset -a userNotifyMarkupArg=(--no-markup)
 typeset -a userNotifyTitleArg=()
 redirPrefix='2>&1'
 redirSuffix=
-isNeedEval=
 typeset -a filterCommands=()
 typeset -a commands=()
 while [ $# -ne 0 ]
@@ -117,7 +116,7 @@ do
 			shift
 			filterCommands+=(${filterCommands:+|} "$cmd")
 			;;
-	--command|-c)	shift; commands+=(${commands:+;} "$1"); isNeedEval=t; shift;;
+	--command|-c)	shift; commands+=(${commands:+;} "$1"); shift;;
 	--exec)		shift
 			cmd=
 			while [ $# -gt 0 -a "$1" != "$WITHUSERNOTIFY_EXEC_END" ]
@@ -132,7 +131,6 @@ do
 			fi >&2
 			shift
 			commands+=(${commands:+;} "$cmd")
-			isNeedEval=t
 			;;
 	--)		shift; break;;
 	-*)		{ echo "ERROR: Unknown option \"$1\"!"; echo; printUsage "$0"; } >&2; exit 2;;
@@ -140,14 +138,10 @@ do
     esac
 done
 if [ $# -ne 0 ]; then
-    if [ "$isNeedEval" ]; then
-	# Combine --command and SIMPLECOMMAND; need to quote SIMPLECOMMAND to
-	# undo the effects of eval.
-	printf -v quotedSimpleCommand '%q ' "$@"
-	commands+=(${commands:+;} "${quotedSimpleCommand% }")
-    else
-	commands=("$@")
-    fi
+    # Combine --command and SIMPLECOMMAND; need to quote SIMPLECOMMAND to
+    # undo the effects of eval.
+    printf -v quotedSimpleCommand '%q ' "$@"
+    commands+=(${commands:+;} "${quotedSimpleCommand% }")
 fi
 if [ ${#commands[@]} -eq 0 ]; then
     echo "ERROR: No COMMAND(s) specified; need to pass -c|--command \"COMMANDLINE\", or --exec SIMPLECOMMAND [...] $WITHUSERNOTIFY_EXEC_END or SIMPLECOMMAND."
@@ -157,20 +151,11 @@ if [ ${#commands[@]} -eq 0 ]; then
 fi >&2
 
 if [ ${#userNotifyTitleArg[@]} -eq 0 ]; then
-    commandName="$(commandName --undefined '' --no-interpreter ${isNeedEval:+--eval} "${commands[@]}")"
+    commandName="$(commandName --undefined '' --no-interpreter --eval "${commands[@]}")"
     [ -n "$commandName" ] && userNotifyTitleArg=(--title "$commandName")
 fi
 
-execute()
-{
-    if [ "$isNeedEval" ]; then
-	eval "${commands[@]}"
-    else
-	"${commands[@]}"
-    fi
-}
-
-eval "notification=\"\$(execute ${redirPrefix} ${filterCommands:+|}" "${filterCommands[@]}" ")\" ${redirSuffix}"
+eval "notification=\"\$(${commands[*]} ${redirPrefix} ${filterCommands:+|}" "${filterCommands[@]}" ")\" ${redirSuffix}"
 
 [ -n "$notification" ] || exit 99
 

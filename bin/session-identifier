@@ -14,7 +14,6 @@ HELPTEXT
 
 renderer=directDigest
 count=16
-isNeedEval=
 typeset -a commands=()
 while [ $# -ne 0 ]
 do
@@ -23,34 +22,23 @@ do
 	--base64|-b)	shift; renderer='base64Encoded';;
 	--count|-n)	shift; count="${1:?}"; shift;;
 
-	--command|-c)	shift; commands+=(${commands:+;} "$1"); isNeedEval=t; shift;;
+	--command|-c)	shift; commands+=(${commands:+;} "$1"); shift;;
 	--)		shift; break;;
 	-*)		{ echo "ERROR: Unknown option \"$1\"!"; echo; printUsage "$0"; } >&2; exit 2;;
 	*)		break;;
     esac
 done
 if [ $# -ne 0 ]; then
-    if [ "$isNeedEval" ]; then
-	# Combine --command and SIMPLECOMMAND; need to quote SIMPLECOMMAND to
-	# undo the effects of eval.
-	printf -v quotedSimpleCommand '%q ' "$@"
-	commands+=(${commands:+;} "${quotedSimpleCommand% }")
-    else
-	commands=("$@")
-    fi
+    # Combine --command and SIMPLECOMMAND; need to quote SIMPLECOMMAND to
+    # undo the effects of eval.
+    printf -v quotedSimpleCommand '%q ' "$@"
+    commands+=(${commands:+;} "${quotedSimpleCommand% }")
 fi
 if [ ${#commands[@]} -eq 0 ]; then
     commands=('readableHostname --long; uptime --since')
-    isNeedEval=t
 fi
 
-sessionIdentifier="$(
-    if [ "$isNeedEval" ]; then
-	eval "${commands[@]}"
-    else
-	"${commands[@]}"
-    fi
-)" || exit $?
+sessionIdentifier="$(eval "${commands[@]}")" || exit $?
 [ -n "$sessionIdentifier" ] || exit 3
 
 directDigest()
