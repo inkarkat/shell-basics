@@ -1,5 +1,7 @@
 #!/bin/bash
 
+: ${SESSIONIDENTIFIER_COMMAND_JOINER=;}
+
 printUsage()
 {
     cat <<HELPTEXT
@@ -14,7 +16,7 @@ HELPTEXT
 
 renderer=directDigest
 count=16
-typeset -a commands=()
+commands=
 while [ $# -ne 0 ]
 do
     case "$1" in
@@ -22,7 +24,7 @@ do
 	--base64|-b)	shift; renderer='base64Encoded';;
 	--count|-n)	shift; count="${1:?}"; shift;;
 
-	--command|-c)	shift; commands+=(${commands:+;} "$1"); shift;;
+	--command|-c)	shift; commands+="${commands:+ $SESSIONIDENTIFIER_COMMAND_JOINER }$1"; shift;;
 	--)		shift; break;;
 	-*)		{ echo "ERROR: Unknown option \"$1\"!"; echo; printUsage "$0"; } >&2; exit 2;;
 	*)		break;;
@@ -32,13 +34,13 @@ if [ $# -ne 0 ]; then
     # Combine --command and SIMPLECOMMAND; need to quote SIMPLECOMMAND to
     # undo the effects of eval.
     printf -v quotedSimpleCommand '%q ' "$@"
-    commands+=(${commands:+;} "${quotedSimpleCommand% }")
+    commands+="${commands:+ $SESSIONIDENTIFIER_COMMAND_JOINER }${quotedSimpleCommand% }"
 fi
-if [ ${#commands[@]} -eq 0 ]; then
-    commands=('readableHostname --long; uptime --since')
+if [ -z "$commands" ]; then
+    commands='readableHostname --long; uptime --since'
 fi
 
-sessionIdentifier="$(eval "${commands[@]}")" || exit $?
+sessionIdentifier="$(eval "$commands")" || exit $?
 [ -n "$sessionIdentifier" ] || exit 3
 
 directDigest()

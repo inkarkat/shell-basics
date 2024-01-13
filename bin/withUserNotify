@@ -2,6 +2,8 @@
 set -o pipefail
 shopt -qs extglob
 
+: ${WITHUSERNOTIFY_COMMAND_JOINER=;}
+: ${WITHUSERNOTIFY_FILTERCOMMAND_JOINER=|}
 : ${WITHUSERNOTIFY_EXEC_END=;}
 
 printShortUsage()
@@ -83,8 +85,8 @@ typeset -a userNotifyMarkupArg=(--no-markup)
 typeset -a userNotifyTitleArg=()
 redirPrefix='2>&1'
 redirSuffix=
-typeset -a filterCommands=()
-typeset -a commands=()
+filterCommands=
+commands=
 while [ $# -ne 0 ]
 do
     case "$1" in
@@ -100,7 +102,7 @@ do
 	--stdout|-1)	shift; redirPrefix='';;
 	--stderr|-2)	shift; redirPrefix='3>&1 1>&2 2>&3 3>&-'; redirSuffix='3>&1 1>&2 2>&3 3>&-';;
 	--filter-command)
-			shift; filterCommands+=(${filterCommands:+|} "$1"); shift;;
+			shift; filterCommands+="${filterCommands:+ $WITHUSERNOTIFY_FILTERCOMMAND_JOINER }$1"; shift;;
 	--filter-exec)	shift
 			cmd=
 			while [ $# -gt 0 -a "$1" != "$WITHUSERNOTIFY_EXEC_END" ]
@@ -114,9 +116,9 @@ do
 			    exit 2
 			fi >&2
 			shift
-			filterCommands+=(${filterCommands:+|} "$cmd")
+			filterCommands+="${filterCommands:+ $WITHUSERNOTIFY_FILTERCOMMAND_JOINER }${cmd}"
 			;;
-	--command|-c)	shift; commands+=(${commands:+;} "$1"); shift;;
+	--command|-c)	shift; commands+="${commands:+ $WITHUSERNOTIFY_COMMAND_JOINER }$1"; shift;;
 	--exec)		shift
 			cmd=
 			while [ $# -gt 0 -a "$1" != "$WITHUSERNOTIFY_EXEC_END" ]
@@ -130,7 +132,7 @@ do
 			    exit 2
 			fi >&2
 			shift
-			commands+=(${commands:+;} "$cmd")
+			commands+="${commands:+ $WITHUSERNOTIFY_COMMAND_JOINER }${cmd}"
 			;;
 	--)		shift; break;;
 	-*)		{ echo "ERROR: Unknown option \"$1\"!"; echo; printUsage "$0"; } >&2; exit 2;;
@@ -141,9 +143,9 @@ if [ $# -ne 0 ]; then
     # Combine --command and SIMPLECOMMAND; need to quote SIMPLECOMMAND to
     # undo the effects of eval.
     printf -v quotedSimpleCommand '%q ' "$@"
-    commands+=(${commands:+;} "${quotedSimpleCommand% }")
+    commands+="${commands:+ $WITHUSERNOTIFY_COMMAND_JOINER }${quotedSimpleCommand% }"
 fi
-if [ ${#commands[@]} -eq 0 ]; then
+if [ -z "$commands" ]; then
     echo "ERROR: No COMMAND(s) specified; need to pass -c|--command \"COMMANDLINE\", or --exec SIMPLECOMMAND [...] $WITHUSERNOTIFY_EXEC_END or SIMPLECOMMAND."
     echo
     printUsage "$0"
@@ -151,11 +153,11 @@ if [ ${#commands[@]} -eq 0 ]; then
 fi >&2
 
 if [ ${#userNotifyTitleArg[@]} -eq 0 ]; then
-    commandName="$(commandName --undefined '' --no-interpreter --eval "${commands[@]}")"
+    commandName="$(commandName --undefined '' --no-interpreter --eval "$commands")"
     [ -n "$commandName" ] && userNotifyTitleArg=(--title "$commandName")
 fi
 
-eval "notification=\"\$(${commands[*]} ${redirPrefix} ${filterCommands:+|}" "${filterCommands[@]}" ")\" ${redirSuffix}"
+eval "notification=\"\$(${commands} ${redirPrefix} ${filterCommands:+|}" "$filterCommands" ")\" ${redirSuffix}"
 
 [ -n "$notification" ] || exit 99
 
