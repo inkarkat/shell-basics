@@ -2,6 +2,8 @@
 shopt -qs extglob
 
 DEFAULT_LINES=5
+: ${HEADTAIL_LINENUM_MARKER='{}'}
+lineNumMarker="$HEADTAIL_LINENUM_MARKER"; unset HEADTAIL_LINENUM_MARKER
 
 printShortUsage()
 {
@@ -38,16 +40,16 @@ HELPDESCRIPTION
     --separator|-s HEAD-TAIL-SEPARATOR
 			Print HEAD-TAIL-SEPARATOR between the first and last
 			lines. If only one line would be omitted, print the
-			NUM+1 one instead. Inside, {} is replaced with the
+			NUM+1 one instead.${lineNumMarker:+ Inside, $lineNumMarker is replaced with the
 			number (2 or more, because a single would-be omitted
-			line does not print the separator) of omitted lines.
+			line does not print the separator) of omitted lines.}
     --separator-cutline
 			Print a separator in the form of a cutline between the
 			first and last lines.
     --separator-cut-what WHAT
 			Print a separator in the form of a cutline with WHAT in
-			the middle. If WHAT contains {}, it is replaced with the
-			number of omitted lines.
+			the middle.${lineNumMarker:+ If WHAT contains ${lineNumMarker}, it is replaced with the
+			number of omitted lines.}
     --quiet|-q		Do not precede each FILE with a header.
     --verbose|-v	Precede with header even if processing just one FILE.
     By default, each FILE is precedes with a header giving the file name if more
@@ -85,7 +87,7 @@ do
 			;;
 	--separator-cut-what)
 			shift
-			whatLength=${#1}; [[ "$1" =~ '{}' ]] && let whatLength+=4 # Make space for up to 999999.
+			whatLength=${#1}; [[ "$1" =~ "$lineNumMarker" ]] && let whatLength+=4 # Make space for up to 999999.
 			printf -v cutlineHalf "%$(((${COLUMNS:-80} - 4 - whatLength) / 2))s" '~'; printf -v cutlineHalf %s "${cutlineHalf// /\~}"
 			separator="${cutlineHalf} [${1}] ${cutlineHalf}"
 			shift
@@ -120,16 +122,18 @@ headTail()
 	-v "lines=$lines" \
 	-v "isDuplicateIfShort=$isDuplicateIfShort" \
 	-v "separator=${separator//\\/\\\\}" \
+	-v "lineNumMarker=${lineNumMarker//\\/\\\\}" \
 	-v "header=$header" \
 '
-function printHeadTail(      omittedNum, start, i)
+function printHeadTail(      literalLineNumPattern, omittedNum, start, i)
 {
+    literalLineNumPattern = gensub(/[][\\$*+?{}.|()^]/, "\\\\&", "g", lineNumMarker)
     if (bufCnt > lines && separator != "") {
 	omittedNum = (bufCnt - lines)
 	if (omittedNum == 1) {
 	    print plusOneLine
-	} else if (separator ~ /\{\}/) {
-	    print gensub(/\{\}/, omittedNum, "g", separator)
+	} else if (separator ~ literalLineNumPattern) {
+	    print gensub(literalLineNumPattern, omittedNum, "g", separator)
 	} else {
 	    print separator
 	}
