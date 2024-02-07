@@ -8,7 +8,7 @@ printShortUsage()
 {
     # Note: short followed by long option; if the user knows the short one, she can
     # skim the long one.
-    printf 'Usage: choice="$(%q %s)"\n' "$(basename "$1")" '[-q|--question QUESTION] [--no-cancel] [-i|--ignore-case] [--accept-single [--auto-selected-entry-message MSG]] [--no-entries-message MSG] [--selection-message MSG] [--interactive-selection-message MSG] [-s|--select SELECTION] [-k|--keep-prompt] [-t|--timeout TIMEOUT] [-u FD] [--] ENTRIES [...] [-?|-h|--help]'
+    printf 'Usage: choice="$(%q %s)"\n' "$(basename "$1")" '[-q|--question QUESTION] [--introduction TEXT] [--no-cancel] [-i|--ignore-case] [--accept-single [--auto-selected-entry-message MSG]] [--no-entries-message MSG] [--selection-message MSG] [--interactive-selection-message MSG] [-s|--select SELECTION] [-k|--keep-prompt] [-t|--timeout TIMEOUT] [-u FD] [--] ENTRIES [...] [-?|-h|--help]'
 }
 printUsage()
 {
@@ -32,6 +32,10 @@ HELPDESCRIPTION
     cat <<HELPTEXT
     --question|-q QUESTION
 			Print QUESTION before the choices.
+    --introduction TEXT
+			Print TEXT before QUESTION if an interactive selection
+			happens (on auto-selection this is skipped). This will
+			be kept even without --keep-prompt.
     --no-cancel		Do not allow canceling via <Esc>; the script must be
 			aborted via Ctrl-C or killed.
     --ignore-case|-i	Accept both lower- and uppercase accelerator letters.
@@ -87,6 +91,7 @@ printIfDefined()
 
 question='Choose one:'
 timeoutText=
+introduction=
 isIgnoreCase=
 isAcceptSingle=
 noEntriesMessage=
@@ -101,6 +106,7 @@ do
     case "$1" in
 	--help|-h|-\?)	shift; printLongUsage "$0"; exit 0;;
 	--question|-q)	shift; question="$1"; shift;;
+	--introduction) shift; introduction="$1"; shift;;
 	--no-cancel)	shift; cancelKey='';;
 	--ignore-case|-i)
 			shift; isIgnoreCase=t;;
@@ -201,6 +207,7 @@ if [[ "$USERCHOICEFROMLIST_ENTRY_SEPARATOR" =~ $'\n' ]] && [[ "$acceleratedEntry
     acceleratedEntryEnumeration="$(printf '%s\n' "$acceleratedEntryEnumeration" | column -s $'\t' -t --keep-empty-lines)"
 fi
 
+[ -z "$introduction" ] || printfToTerm '%s\n' "$introduction"
 chosenAccelerator="$(userchoice --valid "[${cancelKey}${accelerators}]" -n 1 -p "${question}${question:+$USERCHOICEFROMLIST_ENTRY_PREFIX}${timeoutText}${acceleratedEntryEnumeration}${cancelKey:+${USERCHOICEFROMLIST_ENTRY_SEPARATOR}<Esc> to cancel}${question:+$USERCHOICEFROMLIST_ENTRY_SUFFIX}? " "${userchoiceArgs[@]}")"; status=$?
 if [ $status -gt 128 ]; then
     exit 123
