@@ -73,11 +73,16 @@ EXIT STATUS
 HELPTEXT
 }
 
+printfToTerm()
+{
+    { printf >/dev/tty "$@"; } 2>/dev/null
+}
+
 printIfDefined()
 {
     local message="$1"; shift
     [ -z "$message" ] && return 1
-    printf >&2 "${message}\\n" "$@"
+    printfToTerm "${message}\\n" "$@"
 }
 
 question='Choose one:'
