@@ -28,7 +28,8 @@ HELPDESCRIPTION
     --question|-q QUESTION
 			Print QUESTION before the choices.
     --introduction|-i TEXT
-			Print TEXT before QUESTION.
+			Print TEXT before QUESTION. This will be kept even
+			without --keep-prompt.
     --keep-prompt|-k	Keep the prompt and chosen answer on the screen instead
 			of clearing it (in the terminal). (An introductory TEXT
 			is always kept.)
@@ -72,7 +73,7 @@ do
 	--help|-h|-\?)	shift; printLongUsage "$0"; exit 0;;
 	--question|-q)	shift; question="$1"; shift;;
 	--introduction|-i)
-			shift; introduction="$1"; shift;;
+			shift; introduction="$1"; shift; userchoiceArgs+=(--introduction "$introduction");;
 	--keep-prompt|-k)
 			userchoiceArgs+=("$1"); shift;;
 	--timeout|-t)	userchoiceArgs+=("$1" "$2"); zenityArgs+=(--timeout "$2"); shift
@@ -108,7 +109,6 @@ printfToTerm()
 }
 consoleChoice()
 {
-    [ -z "$introduction" ] || printfToTerm '%s\n' "$introduction"
     # Note: userchoiceFromList handles a timeoutText for --timeout on its own.
     local reply; reply="$(userchoiceFromList "${userchoiceArgs[@]}" ${question:+--question "$question"} --no-cancel --ignore-case -- "$positiveEntry" "$negativeEntry")"; local status=$?
     case $status in
