@@ -5,7 +5,7 @@ printShortUsage()
 {
     # Note: short followed by long option; if the user knows the short one, she can
     # skim the long one.
-    printf 'Usage: %q %s\n' "$(basename "$1")" "[-s|--subpath] [-l|--files-matching|-1|--first-matching|-L|--files-not-matching] ['GLOB' ...] -- FILESPEC [...] [-?|-h|--help]"
+    printf 'Usage: %q %s\n' "$(basename "$1")" "[-d|--directories] [-s|--subpath] [-l|--files-matching|-1|--first-matching|-L|--files-not-matching] ['GLOB' ...] -- FILESPEC [...] [-?|-h|--help]"
     printf 'Usage: %q %s\n' "$(basename "$1")" "[...] 'GLOB' FILESPEC [...] [-?|-h|--help]"
 }
 printUsage()
@@ -20,15 +20,17 @@ printLongUsage()
     # This is the long "man page" when launched with the help argument.
     # It is printed to stdout to allow paging with 'more'.
     cat <<HELPDESCRIPTION
-Test whether the passed (anchored, extended) GLOB(s) match either the (full
-passed, also subpaths with -s|--subpath) path or just the filename of the passed
-FILESPEC(s).
+Test whether the passed (anchored, extended) GLOB(s) match either the path or
+just the filename of the passed FILESPEC(s).
 HELPDESCRIPTION
     echo
     printShortUsage "$1"
     echo
     cat <<HELPTEXT
-SEE ALSO:
+    --directories|-d	Also match directories (without trailing /; e.g. foo in
+			foo/bar/file).
+    --subpath|-s	Also match subpaths (e.g. bar/file in foo/bar/file) in
+			addition to the full passed path. SEE ALSO:
 - expandglob directly matches a passed GLOB (unlike here just a single one) for
   full filespecs on the file system; FILESPECs do not have to be passed, but it
   cannot just cover the filename or subpaths.
@@ -43,6 +45,7 @@ if [ $# -eq 0 ]; then
     printUsage "$0" >&2
     exit 2
 fi
+isMatchDirectories=
 isMatchSubPaths=
 isPrintMatching=
 isPrintFirstMatching=
@@ -52,6 +55,7 @@ while [ $# -ne 0 ]
 do
     case "$1" in
 	--help|-h|-\?)		    shift; printLongUsage "$0"; exit 0;;
+	--directories|-d)	    shift; isMatchDirectories=t;;
 	--subpath|-s)		    shift; isMatchSubPaths=t;;
 	--files-matching|-l)	    shift; isPrintMatching=t;;
 	--first-matching|-1)	    shift; isPrintFirstMatching=t;;
@@ -98,6 +102,16 @@ do
 	case "$filespec" in
 	    @($g)) found=t; break;;
 	esac
+	if [ "$isMatchDirectories" ]; then
+	    case "$filespec" in
+		@($g)/*) found=t; break;;
+	    esac
+	    if [ "$isMatchSubPaths" ]; then
+		case "$filespec" in
+		    */@($g)/*) found=t; break;;
+		esac
+	    fi
+	fi
 	if [ "$isMatchSubPaths" ]; then
 	    case "$filespec" in
 		*/@($g)) found=t; break;;
