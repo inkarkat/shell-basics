@@ -46,7 +46,7 @@ bashQuote()
 }
 
 
-read -r line
+IFS=$'\n' read -r line
 eval "set -- $line"
 isFirst=t
 for arg
