@@ -31,8 +31,8 @@ fi
 posixQuote()
 {
     case "$1" in
-	*[$'\\ `\'\"\n\r\t\v?*[]!+']*) printf %s "'${1//\'/\'\\\'\'}'";;
-	*)	printf %s "$1";;
+	*[$'\n\r\t\v']*)	printf %s "'${1//\'/\'\\\'\'}'";;
+	*)			bashQuote "$1";;
     esac
 }
 bashQuote()
