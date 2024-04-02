@@ -120,6 +120,12 @@ do
 	literalReplacement="${literalReplacement//\\/\\\\}"
 	literalReplacement="${literalReplacement//&/\\&}"
 
+	# Handle special passing of COMMANDa variants made via my addAliasSupport
+	if [[ "$1" =~ ^'bash -ic unset\ MYLOGO\;\ set\ +m\;\ cmd=\$1\;\ shift\;\ eval\ \"\$cmd\ \\\"\\\$@\\\"\" bash '(.*)$ ]]; then
+	    # What follows the "bash" is the actual command-line, as a single argument.
+	    # Therefore, it needs to be word-split again.
+	    eval "set -- ${BASH_REMATCH[1]}"
+	fi
 
 	# Extract COMMAND from preceding VAR=VAL inside the first remaining
 	# argument.
