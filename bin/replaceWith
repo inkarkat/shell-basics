@@ -4,7 +4,7 @@ printShortUsage()
 {
     # Note: short followed by long option; if the user knows the short one, she can
     # skim the long one.
-    printf 'Usage: %q %s\n' "$(basename "$1")" '[--] ARG REPLACEMENT|(OLD=NEW|^=PREFIX|+=SUFFIX [...]) [-?|-h|--help]'
+    printf 'Usage: %q %s\n' "$(basename "$1")" '[-P|--keep-prefix-pattern PATTERN] [-S|--keep-suffix-pattern PATTERN] [--] ARG REPLACEMENT|(OLD=NEW|^=PREFIX|+=SUFFIX [...]) [-?|-h|--help]'
 }
 printUsage()
 {
@@ -25,25 +25,46 @@ HELPDESCRIPTION
     printShortUsage "$1"
     echo
     cat <<HELPTEXT
-
+    --keep-prefix-pattern|-P PATTERN
+			Ignore text matching PATTERN at the beginning of ARG
+			while doing replacements.
+    --keep-suffix-pattern|-S PATTERN
+			Ignore text matching PATTERN at the end of ARG while
+			doing replacements.
+All PATTERNs are POSIX-style anchored extended regular expressions.
 HELPTEXT
 }
 
+prefixPattern=
+suffixPattern=
 while [ $# -ne 0 ]
 do
     case "$1" in
 	--help|-h|-\?)	shift; printLongUsage "$0"; exit 0;;
+	--keep-prefix-pattern|-P)
+			shift; prefixPattern="${1?}"; shift;;
+	--keep-suffix-pattern|-S)
+			shift; suffixPattern="${1?}"; shift;;
 	--)		shift; break;;
 	-*)		{ echo "ERROR: Unknown option \"$1\"!"; echo; printUsage "$0"; } >&2; exit 2;;
 	*)		break;;
     esac
 done
-
 if [ $# -lt 2 ]; then
     printUsage "$0" >&2
     exit 2
 fi
 result="$1"; shift
+prefix=''
+suffix=''
+if [ -n "$prefixPattern" ] && [[ "$result" =~ ^($prefixPattern)(.*)$ ]]; then
+    prefix="${BASH_REMATCH[1]}"
+    result="${BASH_REMATCH[-1]}"
+fi
+if [ -n "$suffixPattern" ] && [[ "$result" =~ ^(.*)($suffixPattern)$ ]]; then
+    result="${BASH_REMATCH[1]}"
+    suffix="${BASH_REMATCH[2]}"
+fi
 
 isFirst=t
 while [ $# -ne 0 ]
@@ -66,4 +87,4 @@ do
     shift
     isFirst=
 done
-printf '%s\n' "$result"
+printf '%s\n' "${prefix}${result}${suffix}"
