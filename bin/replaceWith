@@ -4,7 +4,7 @@ printShortUsage()
 {
     # Note: short followed by long option; if the user knows the short one, she can
     # skim the long one.
-    printf 'Usage: %q %s\n' "$(basename "$1")" '[-P|--keep-prefix-pattern PATTERN] [-S|--keep-suffix-pattern PATTERN] [--] ARG REPLACEMENT|(OLD=NEW|^=PREFIX|+=SUFFIX [...]) [-?|-h|--help]'
+    printf 'Usage: REPLACEWITH_NOOP_STATUS99 %q %s\n' "$(basename "$1")" '[-P|--keep-prefix-pattern PATTERN] [-S|--keep-suffix-pattern PATTERN] [--] ARG REPLACEMENT|(OLD=NEW|^=PREFIX|+=SUFFIX [...]) [-?|-h|--help]'
 }
 printUsage()
 {
@@ -55,6 +55,7 @@ if [ $# -lt 2 ]; then
     exit 2
 fi
 result="$1"; shift
+original="$result"
 prefix=''
 suffix=''
 if [ -n "$prefixPattern" ] && [[ "$result" =~ ^($prefixPattern)(.*)$ ]]; then
@@ -87,4 +88,7 @@ do
     shift
     isFirst=
 done
-printf '%s\n' "${prefix}${result}${suffix}"
+
+replacement="${prefix}${result}${suffix}"
+printf '%s\n' "$replacement"
+[ "$original" != "$replacement" ] || exit ${REPLACEWITH_NOOP_STATUS:-99}
