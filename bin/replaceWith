@@ -4,7 +4,7 @@ printShortUsage()
 {
     # Note: short followed by long option; if the user knows the short one, she can
     # skim the long one.
-    printf 'Usage: REPLACEWITH_NOOP_STATUS99 %q %s\n' "$(basename "$1")" '[-P|--keep-prefix-pattern PATTERN] [-S|--keep-suffix-pattern PATTERN] [--] ARG REPLACEMENT|(OLD=NEW|^=PREFIX|+=SUFFIX [...]) [-?|-h|--help]'
+    printf 'Usage: REPLACEWITH_NOOP_STATUS99 %q %s\n' "$(basename "$1")" '[-P|--keep-prefix-pattern PATTERN] [-S|--keep-suffix-pattern PATTERN] [-O|--pattern-is-optional] [--] ARG REPLACEMENT|(OLD=NEW|^=PREFIX|+=SUFFIX [...]) [-?|-h|--help]'
 }
 printUsage()
 {
@@ -31,12 +31,16 @@ HELPDESCRIPTION
     --keep-suffix-pattern|-S PATTERN
 			Ignore text matching PATTERN at the end of ARG while
 			doing replacements.
+    --pattern-is-optional|-O
+			If no replacements can be made with PATTERN, also
+			attempt replacement on the full original ARG.
 All PATTERNs are POSIX-style anchored extended regular expressions.
 HELPTEXT
 }
 
 prefixPattern=
 suffixPattern=
+isPatternOptional=
 while [ $# -ne 0 ]
 do
     case "$1" in
@@ -45,6 +49,8 @@ do
 			shift; prefixPattern="${1?}"; shift;;
 	--keep-suffix-pattern|-S)
 			shift; suffixPattern="${1?}"; shift;;
+	--pattern-is-optional|-O)
+			shift; isPatternOptional=t;;
 	--)		shift; break;;
 	-*)		{ echo "ERROR: Unknown option \"$1\"!"; echo; printUsage "$0"; } >&2; exit 2;;
 	*)		break;;
@@ -54,6 +60,8 @@ if [ $# -lt 2 ]; then
     printUsage "$0" >&2
     exit 2
 fi
+
+typeset -a argAndReplacements=("$@")
 result="$1"; shift
 original="$result"
 prefix=''
@@ -89,6 +97,13 @@ do
     isFirst=
 done
 
+status=
 replacement="${prefix}${result}${suffix}"
+if [ "$original" = "$replacement" ]; then
+    if [ "$isPatternOptional" ] && [ -n "$prefixPattern" -o -n "$suffixPattern" ]; then
+	exec "${BASH_SOURCE[0]}" "${argAndReplacements[@]}"
+    fi
+    status=${REPLACEWITH_NOOP_STATUS:-99}
+fi
 printf '%s\n' "$replacement"
-[ "$original" != "$replacement" ] || exit ${REPLACEWITH_NOOP_STATUS:-99}
+exit ${status:-0}
