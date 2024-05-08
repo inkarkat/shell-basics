@@ -25,8 +25,8 @@ printLongUsage()
     # This is the long "man page" when launched with the help argument.
     # It is printed to stdout to allow paging with 'more'.
     cat <<HELPDESCRIPTION
-Test whether the number of bytes / characters / lines / words in [all] FILE[s] /
-produced by COMMAND is greater / smaller than N.
+Test whether the number of bytes / characters / lines / words in [combined
+contents of all] FILE[s] / produced by COMMAND is greater / smaller than N.
 HELPDESCRIPTION
     echo
     printShortUsage "$1"
@@ -113,7 +113,11 @@ fi >&2
 
 countInput()
 {
-    wc "${wcArg[@]}" -- "$@"
+    if [ $# -le 1 ]; then
+	wc "${wcArg[@]}" -- "$@"
+    else
+	cat -- "$@" | wc "${wcArg[@]}"
+    fi
 }
 
 getCount()
