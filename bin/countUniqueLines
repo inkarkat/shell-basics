@@ -1,0 +1,51 @@
+#!/bin/bash
+set -o pipefail
+shopt -qs extglob
+
+printUsage()
+{
+    cat <<HELPTEXT
+Prefix unique lines with the number of occurrences.
+HELPTEXT
+    echo
+    printf 'Usage: %q %s\n' "$(basename "$1")" '[-f|--skip-fields=N] [-i|--ignore-case] [-s|--skip-chars=N] [-z|--zero-terminated] [-w|--check-chars=N] [--] [FILE ...] [-?|-h|--help]'
+}
+
+fieldSkip=
+charSkip=
+typeset -a sortArgs=()
+typeset -a uniqArgs=()
+while [ $# -ne 0 ]
+do
+    case "$1" in
+	--help|-h|-\?)	shift; printUsage "$0"; exit 0;;
+
+	-i)		sortArgs+=(--ignore-case); uniqArgs+=("$1"); shift;;	# XXX: Sort form of uniq -i is sort -f
+	-z)		uniqArgs+=("$1"); shift;;
+	--@(ignore-case|zero-terminated))
+			sortArgs+=("$1"); uniqArgs+=("$1"); shift;;
+	-w)		uniqArgs+=("$1" "${2?}"); shift; shift;;
+	--check-chars=*)
+			uniqArgs+=("$1"); shift;;
+	--check-chars)
+			uniqArgs+=("$1" "${2?}"); shift; shift;;
+	--skip-fields|-f)
+			fieldSkip=$((${2?}+1)); uniqArgs+=("$1" "${2?}"); shift; shift;;
+	--skip-fields=*)
+			fieldSkip=$((${1#--skip-fields=}+1)); uniqArgs+=("$1"); shift;;
+	--skip-chars|-s)
+			charSkip=$((${2?}+1)); uniqArgs+=("$1" "${2?}"); shift; shift;;
+	--skip-chars=*)
+			charSkip=$((${1#--skip-chars=}+1)); uniqArgs+=("$1"); shift;;
+	--)		uniqArgs+=("$1"); shift; break;;
+	-*)		{ echo "ERROR: Unknown option \"$1\"!"; echo; printUsage "$0"; } >&2; exit 2;;
+	*)		break;;
+    esac
+done
+
+# Support combination of --skip-fields and --skip-chars, too.
+[ -n "$fieldSkip" -o -n "$charSkip" ] \
+    && sortArgs+=(--key="${fieldSkip:-1}${charSkip:+.}${charSkip}")
+
+sort "${sortArgs[@]}" -- "$@" \
+    | uniq --count "${uniqArgs[@]}"
