@@ -46,12 +46,20 @@ if [ $# -eq 0 ]; then
     printUsage "$0" >&2
     exit 2
 fi
+
+print=
+setPrint()
+{
+    if [ -n "$print" ]; then
+	echo "ERROR: Only one of --files-matching, --first-matching, --unique-match, or --files-not-matching can be specified!"
+	echo
+	printUsage "$0"
+	exit 2
+    fi >&2
+    print="${1:?}"
+}
 isMatchDirectories=
 isMatchSubPaths=
-isPrintMatching=
-isPrintFirstMatching=
-isPrintUniqueMatch=
-isPrintNotMatching=
 typeset -a globs=()
 while [ $# -ne 0 ]
 do
@@ -59,12 +67,12 @@ do
 	--help|-h|-\?)		    shift; printLongUsage "$0"; exit 0;;
 	--directories|-d)	    shift; isMatchDirectories=t;;
 	--subpath|-s)		    shift; isMatchSubPaths=t;;
-	--files-matching|-l)	    shift; isPrintMatching=t;;
-	--first-matching|-1)	    shift; isPrintFirstMatching=t;;
-	--unique-match|-u)	    shift; isPrintUniqueMatch=t
+	--files-matching|-l)	    shift; setPrint matching;;
+	--first-matching|-1)	    shift; setPrint first;;
+	--unique-match|-u)	    shift; setPrint unique
 				    trap 'printUniqueMatch' EXIT
 				    ;;
-	--files-not-matching|-L)    shift; isPrintNotMatching=t;;
+	--files-not-matching|-L)    shift; setPrint not-matching;;
 	--)			    shift; break;;
 	-*)			    { echo "ERROR: Unknown option \"$1\"!"; echo; printUsage "$0"; } >&2; exit 2;;
 	*)			    globs+=("$1"); shift;;
@@ -92,23 +100,28 @@ handleResult()
     local filespec="${1:?}"; shift
 
     if [ "$found" ]; then
-	if [ "$isPrintMatching" ]; then
-	    printf '%s\n' "$filespec"
-	    status=0
-	elif [ "$isPrintFirstMatching" ]; then
-	    printf '%s\n' "$filespec"
-	    exit 0
-	elif [ "$isPrintUniqueMatch" ]; then
-	    if [ -n "$uniqueMatch" ]; then
-		trap '' EXIT
-		exit 1
-	    else
-		uniqueMatch="$filespec"
-	    fi
-	elif [ ! "$isPrintNotMatching" ]; then
-	    exit 0
-	fi
-    elif [ "$isPrintNotMatching" ]; then
+	case "$print" in
+	    matching)
+		printf '%s\n' "$filespec"
+		status=0
+		;;
+	    first)
+		printf '%s\n' "$filespec"
+		exit 0
+		;;
+	    unique)
+		if [ -n "$uniqueMatch" ]; then
+		    trap '' EXIT
+		    exit 1
+		else
+		    uniqueMatch="$filespec"
+		fi
+		;;
+	    not-matching)
+		;;
+	    *)	exit 0;;
+	esac
+    elif [ "$print" = not-matching ]; then
 	printf '%s\n' "$filespec"
     fi
 }
