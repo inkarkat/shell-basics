@@ -7,6 +7,9 @@ printShortUsage()
     # skim the long one.
     printf 'Usage: %q %s\n' "$(basename "$1")" "[-d|--directories] [-s|--subpath] [-l|--files-matching|-1|--first-matching|-u|--unique-match|-L|--files-not-matching] ['GLOB' ...] -- FILESPEC [...] [-?|-h|--help]"
     printf 'Usage: %q %s\n' "$(basename "$1")" "[...] 'GLOB' FILESPEC [...] [-?|-h|--help]"
+    echo
+    printf 'Usage: %q %s\n' "$(basename "$1")" "-v|--values [-l|--print-matching|-1|--first-matching|-u|--unique-match|-L|--print-not-matching] ['GLOB' ...] -- VALUE [...]"
+    printf 'Usage: %q %s\n' "$(basename "$1")" "-v|--values [...] 'GLOB' VALUE [...]"
 }
 printUsage()
 {
@@ -31,6 +34,9 @@ HELPDESCRIPTION
 			foo/bar/file).
     --subpath|-s	Also match subpaths (e.g. bar/file in foo/bar/file) in
 			addition to the full passed path.
+    --values|-v		Only perform a full match on the passed VALUE(s), don't
+			consider the filename, directories, or subpaths. This is
+			for generic matching of non-file VALUEs.
 SEE ALSO:
 - expandglob directly matches a passed GLOB (unlike here just a single one) for
   full filespecs on the file system; FILESPECs do not have to be passed, but it
@@ -58,6 +64,7 @@ setPrint()
     fi >&2
     print="${1:?}"
 }
+isMatchFilename=t
 isMatchDirectories=
 isMatchSubPaths=
 typeset -a globs=()
@@ -67,12 +74,15 @@ do
 	--help|-h|-\?)		    shift; printLongUsage "$0"; exit 0;;
 	--directories|-d)	    shift; isMatchDirectories=t;;
 	--subpath|-s)		    shift; isMatchSubPaths=t;;
-	--files-matching|-l)	    shift; setPrint matching;;
+	--print-matching|--files-matching|-l)
+				    shift; setPrint matching;;
 	--first-matching|-1)	    shift; setPrint first;;
 	--unique-match|-u)	    shift; setPrint unique
 				    trap 'printUniqueMatch' EXIT
 				    ;;
-	--files-not-matching|-L)    shift; setPrint not-matching;;
+	--print-not-matching|--files-not-matching|-L)
+				    shift; setPrint not-matching;;
+	--values|-v)		    shift; isMatchFilename=;;
 	--)			    shift; break;;
 	-*)			    { echo "ERROR: Unknown option \"$1\"!"; echo; printUsage "$0"; } >&2; exit 2;;
 	*)			    globs+=("$1"); shift;;
@@ -147,13 +157,15 @@ fi
 for filespec
 do
     found=
-    filename="$(basename -- "$filespec")"
+    [ ! "$isMatchFilename" ] || filename="$(basename -- "$filespec")"
 
     for g in "${globs[@]}"
     do
-	case "$filename" in
-	    @($g)) found=t; break;;
-	esac
+	if [ "$isMatchFilename" ]; then
+	    case "$filename" in
+		@($g)) found=t; break;;
+	    esac
+	fi
 	case "$filespec" in
 	    @($g)) found=t; break;;
 	esac
