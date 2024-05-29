@@ -93,6 +93,7 @@ handleResult()
     fi
 }
 
+status=1
 if [ ${#globs[@]} -eq 0 ]; then
     # No GLOBs to match. Check that at least one FILESPEC is given and exists as
     # a file (and isn't just an unmatched glob).
@@ -102,15 +103,14 @@ if [ ${#globs[@]} -eq 0 ]; then
 
     for filespec
     do
-	[ -e "$filespec" -o -h "$filespec" ] && exit 0
+	handleResult "$([ -e "$filespec" -o -h "$filespec" ] && printf t)" "$filespec"
     done
-    exit 1
+    exit $status
 elif [ $# -eq 0 ]; then
     exit 1  # No FILESPECs to match.
 fi
 
 
-status=1
 for filespec
 do
     found=
