@@ -72,6 +72,28 @@ do
 	break
     fi
 done
+
+handleResult()
+{
+    local found="${1?}"; shift
+    local filespec="${1:?}"; shift
+
+    if [ "$found" ]; then
+	if [ "$isPrintMatching" ]; then
+	    printf '%s\n' "$filespec"
+	    status=0
+	elif [ "$isPrintFirstMatching" ]; then
+	    printf '%s\n' "$filespec"
+	    exit 0
+	elif [ ! "$isPrintNotMatching" ]; then
+	    exit 0
+	fi
+    elif [ "$isPrintNotMatching" ]; then
+	printf '%s\n' "$filespec"
+    fi
+}
+
+status=1
 if [ ${#globs[@]} -eq 0 ]; then
     # No GLOBs to match. Check that at least one FILESPEC is given and exists as
     # a file (and isn't just an unmatched glob).
@@ -81,15 +103,14 @@ if [ ${#globs[@]} -eq 0 ]; then
 
     for filespec
     do
-	[ -e "$filespec" -o -h "$filespec" ] && exit 0
+	handleResult "$([ -e "$filespec" -o -h "$filespec" ] && printf t)" "$filespec"
     done
-    exit 1
+    exit $status
 elif [ $# -eq 0 ]; then
     exit 1  # No FILESPECs to match.
 fi
 
 
-status=1
 for filespec
 do
     found=
@@ -120,18 +141,6 @@ do
 	fi
     done
 
-    if [ "$found" ]; then
-	if [ "$isPrintMatching" ]; then
-	    printf '%s\n' "$filespec"
-	    status=0
-	elif [ "$isPrintFirstMatching" ]; then
-	    printf '%s\n' "$filespec"
-	    exit 0
-	elif [ ! "$isPrintNotMatching" ]; then
-	    exit 0
-	fi
-    elif [ "$isPrintNotMatching" ]; then
-	printf '%s\n' "$filespec"
-    fi
+    handleResult "$found" "$filespec"
 done
 exit $status
