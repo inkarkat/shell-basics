@@ -5,7 +5,7 @@ printShortUsage()
 {
     # Note: short followed by long option; if the user knows the short one, she can
     # skim the long one.
-    printf 'Usage: %q %s\n' "$(basename "$1")" "[-d|--directories] [-s|--subpath] [-l|--files-matching|-1|--first-matching|-L|--files-not-matching] ['GLOB' ...] -- FILESPEC [...] [-?|-h|--help]"
+    printf 'Usage: %q %s\n' "$(basename "$1")" "[-d|--directories] [-s|--subpath] [-l|--files-matching|-1|--first-matching|-u|--unique-match|-L|--files-not-matching] ['GLOB' ...] -- FILESPEC [...] [-?|-h|--help]"
     printf 'Usage: %q %s\n' "$(basename "$1")" "[...] 'GLOB' FILESPEC [...] [-?|-h|--help]"
 }
 printUsage()
@@ -39,7 +39,7 @@ SEE ALSO:
 EXIT STATUS:
     0	(At least one) match.
 	No GLOB (but existing FILESPEC(s)) is passed.
-    1	No matches.
+    1	No matches / unique match.
 HELPTEXT
 }
 if [ $# -eq 0 ]; then
@@ -50,6 +50,7 @@ isMatchDirectories=
 isMatchSubPaths=
 isPrintMatching=
 isPrintFirstMatching=
+isPrintUniqueMatch=
 isPrintNotMatching=
 typeset -a globs=()
 while [ $# -ne 0 ]
@@ -60,6 +61,9 @@ do
 	--subpath|-s)		    shift; isMatchSubPaths=t;;
 	--files-matching|-l)	    shift; isPrintMatching=t;;
 	--first-matching|-1)	    shift; isPrintFirstMatching=t;;
+	--unique-match|-u)	    shift; isPrintUniqueMatch=t
+				    trap 'printUniqueMatch' EXIT
+				    ;;
 	--files-not-matching|-L)    shift; isPrintNotMatching=t;;
 	--)			    shift; break;;
 	-*)			    { echo "ERROR: Unknown option \"$1\"!"; echo; printUsage "$0"; } >&2; exit 2;;
@@ -73,6 +77,15 @@ do
     fi
 done
 
+uniqueMatch=
+printUniqueMatch()
+{
+    if [ -n "$uniqueMatch" ]; then
+	printf "%s\\n" "$uniqueMatch"
+	exit 0
+    fi
+}
+
 handleResult()
 {
     local found="${1?}"; shift
@@ -85,6 +98,13 @@ handleResult()
 	elif [ "$isPrintFirstMatching" ]; then
 	    printf '%s\n' "$filespec"
 	    exit 0
+	elif [ "$isPrintUniqueMatch" ]; then
+	    if [ -n "$uniqueMatch" ]; then
+		trap '' EXIT
+		exit 1
+	    else
+		uniqueMatch="$filespec"
+	    fi
 	elif [ ! "$isPrintNotMatching" ]; then
 	    exit 0
 	fi
