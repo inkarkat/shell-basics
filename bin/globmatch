@@ -30,7 +30,8 @@ HELPDESCRIPTION
     --directories|-d	Also match directories (without trailing /; e.g. foo in
 			foo/bar/file).
     --subpath|-s	Also match subpaths (e.g. bar/file in foo/bar/file) in
-			addition to the full passed path. SEE ALSO:
+			addition to the full passed path.
+SEE ALSO:
 - expandglob directly matches a passed GLOB (unlike here just a single one) for
   full filespecs on the file system; FILESPECs do not have to be passed, but it
   cannot just cover the filename or subpaths.
@@ -80,7 +81,7 @@ if [ ${#globs[@]} -eq 0 ]; then
 
     for filespec
     do
-	[ -e "$filespec" -o  -h "$filespec" ] && exit 0
+	[ -e "$filespec" -o -h "$filespec" ] && exit 0
     done
     exit 1
 elif [ $# -eq 0 ]; then
