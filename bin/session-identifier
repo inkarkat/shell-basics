@@ -37,7 +37,7 @@ if [ $# -ne 0 ]; then
     commands+="${commands:+ $SESSIONIDENTIFIER_COMMAND_JOINER }${quotedSimpleCommand% }"
 fi
 if [ -z "$commands" ]; then
-    commands='readableHostname --long; uptime --since'
+    commands="readableHostname --long; uptime --since | sed -e 's#:[0-9][0-9]\$##'" # XXX: uptime output may be off by one second after suspend/resume; cut off the seconds.
 fi
 
 sessionIdentifier="$(eval "$commands")" || exit $?
