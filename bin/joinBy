@@ -21,7 +21,7 @@ printLongUsage()
     # This is the long "man page" when launched with the help argument.
     # It is printed to stdout to allow paging with 'more'.
     cat <<HELPDESCRIPTION
-Join all ARGs with SEPARATOR in between each.
+Join all ARGs / input lines with SEPARATOR in between each.
 HELPDESCRIPTION
     echo
     printShortUsage "$1"
