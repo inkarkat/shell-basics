@@ -43,6 +43,7 @@ HELPDESCRIPTION
     --summarize-larger N[ ENTRIES]
 			If there are more than N ARGs, do not print any and just
 			summarize as N elements / ENTRIES.
+			Overrules any --truncate-after.
 SEE ALSO:
 - joinWith joins with different potentially repeating sequences of separators.
 - collapseToSingleLine takes lines from files / standard input and can do
