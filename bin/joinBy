@@ -76,7 +76,7 @@ do
 			shift; lastSeparator="$1"; shift;;
 	--truncate-after)
 			shift
-			text="${1#+([0-9])}"
+			text="${1##+([0-9])}"
 			truncateNum=${1%"$text"}
 			if [ -z "$truncateNum" ]; then
 			    echo 'Missing N.'
@@ -89,7 +89,7 @@ do
 			;;
 	--summarize-larger)
 			shift
-			text="${1#+([0-9])}"
+			text="${1##+([0-9])}"
 			summarizeNum=${1%"$text"}
 			if [ -z "$summarizeNum" ]; then
 			    echo 'Missing N.'
