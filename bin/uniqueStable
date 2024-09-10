@@ -4,7 +4,7 @@ printShortUsage()
 {
     # Note: short followed by long option; if the user knows the short one, she can
     # skim the long one.
-    printf 'Usage: %q %s\n' "$(basename "$1")" '[-F|--field-separator FS] [-M|--match-field [-]N [-M ...]|-S|--skip-field [-]N [-S ...]] [-s|--skip PATTERN [-s ...]] [-m|--match PATTERN [-m ...]] [-x|--ignore PATTERN [-x ...]] [--last|--both] [-i[SUFFIX]|--in-place[=SUFFIX]] [--] [FILE ...] [-?|-h|--help]'
+    printf 'Usage: %q %s\n' "$(basename "$1")" '[-F|--field-separator FS] [-z|--null-data] [-M|--match-field [-]N [-M ...]|-S|--skip-field [-]N [-S ...]] [-s|--skip PATTERN [-s ...]] [-m|--match PATTERN [-m ...]] [-x|--ignore PATTERN [-x ...]] [--last|--both] [-i[SUFFIX]|--in-place[=SUFFIX]] [--] [FILE ...] [-?|-h|--help]'
 }
 printUsage()
 {
@@ -28,7 +28,9 @@ Filters FILE(s) (or standard input) so that each line is contained only once (in
 its first occurrence, across all FILEs).
     --in-place[=SUFFIX]|-i[SUFFIX]
 			Edit FILE(s) in place (makes backup if SUFFIX supplied).
-    --field-separator|-F FS Use FS as the input field separator (as with AWK).
+    --field-separator|-F FS
+			Use FS as the input field separator (as with AWK).
+    --null-data|-z	Separate lines by NUL characters instead of newlines.
     --skip|-s PATTERN	Do not consider the parts of the line that match
 			PATTERN.
     --match|-m PATTERN	Only consider the parts of the line that match PATTERN.
@@ -69,6 +71,7 @@ do
     case "$1" in
 	--help|-h|-\?)		shift; printLongUsage "$0"; exit 0;;
 	--field-separator|-F)	awkArgs+=("$1" "$2"); shift; shift;;
+	--null-data|-z)		shift; awkCall=(gawk); awkArgs+=(-v RS='\0' -v ORS='\0');;
 	--skip-field|-S)	shift; skippedFields+=("$1"); shift;;
 	--match-field|-M)	shift; matchedFields+=("$1"); shift;;
 	--skip|-s)		shift; skipPattern+="${skipPattern:+|}${1:?}"; shift;;
