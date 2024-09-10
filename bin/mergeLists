@@ -1,0 +1,132 @@
+#!/bin/bash
+set -o pipefail
+
+printShortUsage()
+{
+    # Note: short followed by long option; if the user knows the short one, they can
+    # skim the long one.
+    printf 'Usage: %q %s\n' "$(basename "$1")" '[-F|--field-separator FIELD-SEPARATOR] [-s|--output-separator OUTPUT-SEPARATOR] [--omit-empty] [--sort|SORT-OPTION ...] [--] ARG1 [...] [-?|-h|--help]'
+}
+printUsage()
+{
+    # This is the short help when launched with no or incorrect arguments.
+    # It is printed to stderr to avoid accidental processing.
+    printShortUsage "$1" >&2
+    printf >&2 '\nTry %q --help for more information.\n' "$(basename "$1")"
+}
+printLongUsage()
+{
+    # This is the long "man page" when launched with the help argument.
+    # It is printed to stdout to allow paging with 'more'.
+    cat <<HELPDESCRIPTION
+Combine all ARG1, ... [after splitting them by FIELD-SEPARATOR] so that each
+argument occurs only once, optionally sorted by SORT-OPTION(s).
+HELPDESCRIPTION
+    echo
+    printShortUsage "$1"
+    echo
+    cat <<HELPTEXT
+    --field-separator|-F FIELD-SEPARATOR
+		Use FIELD-SEPARATOR to split each argument into fields, then
+		merge the fields. Runs of whitespace count as one separator!
+		The result is separated by FIELD-SEPARATOR (or a passed
+		OUTPUT-SEPARATOR).
+    --output-separator|-s OUTPUT-SEPARATOR
+		Use OUTPUT-SEPARATOR (instead of FIELD-SEPARATOR or the default
+		newline) to separate the merged fields.
+    --omit-empty
+		Ignore empty arguments.
+    --sort	Output the merged arguments in sorted order.
+    SORT-OPTION ...
+		Output the merged arguments in sorted order, using the given
+		SORT-OPTION(s).
+SEE ALSO:
+- Without field splitting same as $ printf '%s\n' ARG1 ... | uniqueStable
+  or $ printf '%s\n' ARG1 ... | sort -u [SORT-OPTION ...]
+HELPTEXT
+}
+
+unset fieldSeparator
+unset outputSeparator
+typeset -a sortArgs=()
+preAction=
+action=mergeArgs
+while [ $# -ne 0 ]
+do
+    case "$1" in
+	--help|-h|-\?)	shift; printLongUsage "$0"; exit 0;;
+	--field-separator|-F)
+			shift; fieldSeparator="${1?}"; shift;;
+	--output-separator|-s)
+			shift; outputSeparator="${1?}"; shift;;
+	--omit-empty)	shift; preAction=omitEmpty;;
+	--sort)		shift; action=sortArgs;;
+	--)		shift; break;;
+	-*)		sortArgs+=("$1"); shift; action=sortArgs;;
+	*)		break;;
+    esac
+done
+
+omitEmpty()
+{
+    typeset -a result=()
+    for arg in "${args[@]}"
+    do
+	[ -z "$arg" ] || result+=("$arg")
+    done
+    args=("${result[@]}")
+}
+
+mergeArgs()
+{
+    typeset -A dict=()
+    typeset -a result=()
+    for arg in "${args[@]}"
+    do
+	local key="${arg:-${fieldSeparator:-$'\n'}}"
+	if [ ! "${dict["$key"]}" ]; then
+	    result+=("$arg")
+	    dict["$key"]=t
+	fi
+    done
+    args=("${result[@]}")
+}
+
+sortArgs()
+{
+    readarray -d '' -t args < <(
+	printf '%s\0' "${args[@]}" \
+	    | sort --zero-terminated --unique "${sortArgs[@]}"
+	printf '%d\0' "$?"
+    )	# Exit status from the process substitution is lost; return the actual exit status via an appended additional record.
+    [ ${args[-1]} -ne 0 ] && return ${args[-1]}
+    unset 'args[-1]'
+}
+
+typeset -a args=()
+if [ -n "${fieldSeparator+t}" ]; then
+    for arg
+    do
+	IFS="$fieldSeparator" read -r -d '' -a words <<<"$arg"
+	[ ${#words[@]} -eq 0 ] || words[-1]="${words[-1]%$'\n'}"
+	args+=("${words[@]}")
+    done
+else
+    args=("$@")
+fi
+
+$preAction || exit $?
+[ ${#args[@]} -le 1 ] || $action || exit $?
+
+sep="${outputSeparator-${fieldSeparator-$'\n'}}"
+case "$sep" in
+    $'\n'|\\n|\\0)
+	printf "%s${sep}" "${args[@]}";;
+    *)	if [ ${#args[@]} -le 1 ]; then
+	    printf '%s\n' "${args[@]}"
+	else
+	    printf "%s${sep}" "${args[@]:0:$((${#args[@]}-1))}"
+	    printf '%s\n' "${args[-1]}"
+	fi
+	;;
+esac
