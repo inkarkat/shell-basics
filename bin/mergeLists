@@ -5,7 +5,7 @@ printShortUsage()
 {
     # Note: short followed by long option; if the user knows the short one, they can
     # skim the long one.
-    printf 'Usage: %q %s\n' "$(basename "$1")" '[-F|--field-separator FIELD-SEPARATOR] [-s|--output-separator OUTPUT-SEPARATOR] [--sort|SORT-OPTION ...] [--] ARG1 [...] [-?|-h|--help]'
+    printf 'Usage: %q %s\n' "$(basename "$1")" '[-F|--field-separator FIELD-SEPARATOR] [-s|--output-separator OUTPUT-SEPARATOR] [--omit-empty] [--sort|SORT-OPTION ...] [--] ARG1 [...] [-?|-h|--help]'
 }
 printUsage()
 {
@@ -32,6 +32,8 @@ HELPDESCRIPTION
     --output-separator|-s OUTPUT-SEPARATOR
 		Use OUTPUT-SEPARATOR (instead of FIELD-SEPARATOR or the default
 		newline) to separate the merged fields.
+    --omit-empty
+		Ignore empty arguments.
     --sort	Output the merged arguments in sorted order.
     SORT-OPTION ...
 		Output the merged arguments in sorted order, using the given
@@ -45,6 +47,7 @@ HELPTEXT
 unset fieldSeparator
 unset outputSeparator
 typeset -a sortArgs=()
+preAction=
 action=mergeArgs
 while [ $# -ne 0 ]
 do
@@ -54,12 +57,23 @@ do
 			shift; fieldSeparator="${1?}"; shift;;
 	--output-separator|-s)
 			shift; outputSeparator="${1?}"; shift;;
+	--omit-empty)	shift; preAction=omitEmpty;;
 	--sort)		shift; action=sortArgs;;
 	--)		shift; break;;
 	-*)		sortArgs+=("$1"); shift; action=sortArgs;;
 	*)		break;;
     esac
 done
+
+omitEmpty()
+{
+    typeset -a result=()
+    for arg in "${args[@]}"
+    do
+	[ -z "$arg" ] || result+=("$arg")
+    done
+    args=("${result[@]}")
+}
 
 mergeArgs()
 {
@@ -99,6 +113,7 @@ else
     args=("$@")
 fi
 
+$preAction || exit $?
 $action || exit $?
 
 sep="${outputSeparator-${fieldSeparator-$'\n'}}"
