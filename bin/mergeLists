@@ -114,7 +114,7 @@ else
 fi
 
 $preAction || exit $?
-$action || exit $?
+[ ${#args[@]} -le 1 ] || $action || exit $?
 
 sep="${outputSeparator-${fieldSeparator-$'\n'}}"
 case "$sep" in
