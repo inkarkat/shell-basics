@@ -67,9 +67,10 @@ mergeArgs()
     typeset -a result=()
     for arg in "${args[@]}"
     do
-	if [ ! "${dict["$arg"]}" ]; then
+	local key="${arg:-${fieldSeparator:-$'\n'}}"
+	if [ ! "${dict["$key"]}" ]; then
 	    result+=("$arg")
-	    dict["$arg"]=t
+	    dict["$key"]=t
 	fi
     done
     args=("${result[@]}")
