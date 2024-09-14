@@ -26,8 +26,8 @@ HELPDESCRIPTION
     echo
     cat <<HELPTEXT
     --paginate|-p	Show the trace separately after the execution. Output
-			and errors are shown separately, and are not part of the
-			trace.
+			and errors are shown immediately, and are not part of
+			the trace.
     --inbox		Write the trace into the inbox.
 HELPTEXT
 }
