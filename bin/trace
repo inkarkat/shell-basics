@@ -63,7 +63,16 @@ if [ "$(type -t "$program")" = function ]; then
     set -x
     "$program" "$@"
 else
-    BASH_ARGV0="$program"	# Bash 5+ only
-    set -x
-    source "$program" "$@"
+    programFilespec="$(which -- "$program" 2>/dev/null)"
+    if [ -n "$programFilespec" ] \
+	&& grep --fixed-strings --quiet 'case ",${TRACE:-}," in *,${BASH_SOURCE[0]##*/},*)' -- "$programFilespec"
+    then
+	# This script supports tracing via environment variable.
+	export TRACE+="${TRACE:+,}$(basename -- "$programFilespec")"
+	exec "$program" "$@"
+    else
+	BASH_ARGV0="$program"	# Bash 5+ only
+	set -x
+	source "$program" "$@"
+    fi
 fi
