@@ -4,7 +4,7 @@ printShortUsage()
 {
     # Note: short followed by long option; if the user knows the short one, she can
     # skim the long one.
-    printf 'Usage: %q %s\n' "$(basename "$1")" '[-p|--paginate|--inbox] [.] COMMAND [ARG ...] [-?|-h|--help]'
+    printf 'Usage: %q %s\n' "$(basename "$1")" '[-f|--for|-F|--only-for SUBSIDIARY-COMMAND [-f ...]] [-p|--paginate|--inbox] [.] COMMAND [ARG ...] [-?|-h|--help]'
 }
 printUsage()
 {
@@ -25,45 +25,107 @@ HELPDESCRIPTION
     printShortUsage "$1"
     echo
     cat <<HELPTEXT
+    --for|-f SUBSIDIARY-COMMAND
+			Also enable tracing for SUBSIDIARY-COMMAND. (*)
+    --only-for|-F SUBSIDIARY-COMMAND
+			Just enable tracing for SUBSIDIARY-COMMAND. (*)
     --paginate|-p	Show the trace separately after the execution. Output
 			and errors are shown immediately, and are not part of
 			the trace.
     --inbox		Write the trace into the inbox.
+(*) The command needs to have support for this via the TRACE environment
+    variable.
 HELPTEXT
 }
-setupCaptureAndViewing()
-{
-    viewer=("$@")
-    TMPFILE="$(mktemp --tmpdir "$(basename -- "$0")-XXXXXX" 2>/dev/null || echo "${TMPDIR:-/tmp}/$(basename -- "$0").$$$RANDOM")"
-    trap 'set +x; exec 42>&-; viewTrace' EXIT
-    exec 42>"$TMPFILE"
-    BASH_XTRACEFD=42
-}
-viewTrace()
-{
-    sed -i '${ /^+ set +x$/d }' -- "$TMPFILE"
-    "${viewer[@]}" "$TMPFILE"
-    rm -f -- "$TMPFILE" 2>/dev/null
-}
-case "$1" in
-    --help|-h|-\?)	shift; printLongUsage "$0"; exit 0;;
-    --paginate|-p)	shift; setupCaptureAndViewing "${PAGER:-less}" --RAW-CONTROL-CHARS --;;
-    --inbox)		shift; setupCaptureAndViewing inbox --base trace --;;
-esac
+
+isFor=
+isOnlyFor=
+typeset -a capture=()
+typeset -a viewer=()
+while [ $# -ne 0 ]
+do
+    case "$1" in
+	--help|-h|-\?)	shift; printLongUsage "$0"; exit 0;;
+	--for|-f)	shift; TRACE+="${TRACE:+,}${1:?}"; shift; isFor=t;;
+	--only-for|-F)	shift; TRACE+="${TRACE:+,}${1:?}"; shift; isOnlyFor=t;;
+	--paginate|-p)	shift; capture=(setupCapture); viewer=("${PAGER:-less}" --RAW-CONTROL-CHARS --);;
+	--inbox)	shift; capture=(setupCapture); viewer=(inbox --base trace --);;
+	--)		shift; break;;
+	-*)		{ echo "ERROR: Unknown option \"$1\"!"; echo; printUsage "$0"; } >&2; exit 2;;
+	*)		break;;
+    esac
+done
+export TRACE
+typeset -a traceEnableCommand=(set -x)
+if [ "$isOnlyFor" ] && [ ! "$isFor" ]; then
+    traceEnableCommand=()
+fi
+if [ $# -eq 0 ]; then
+    printUsage "$0" >&2
+    exit 2
+fi
 
 program="$1"; shift
 if [ "$program" = '.' ]; then
+    if [ $# -eq 0 ]; then
+	printUsage "$0" >&2
+	exit 2
+    fi
     # Sourced scripts may test for an interactive shell, so set it (even if that
     # has no effect other than modifying $- here).
     set -i
     program="$1"; shift
 fi
 
+setupCapture()
+{
+    TMPFILE="$(mktemp --tmpdir "$(basename -- "$0")-XXXXXX" 2>/dev/null || echo "${TMPDIR:-/tmp}/$(basename -- "$0").$$$RANDOM")"
+    trap 'set +x; exec 42>&-; viewTrace' EXIT
+    exec 42>"$TMPFILE"
+    export BASH_XTRACEFD=42
+    [ $# -eq 0 ] && return
+
+    "${traceEnableCommand[@]}"
+    "$@"
+}
+
+viewTrace()
+{
+    sed -i '${ /^+ set +x$/d }' -- "$TMPFILE"
+    "${viewer[@]}" "$TMPFILE"
+    rm -f -- "$TMPFILE" 2>/dev/null
+}
+
+sourceIt()
+{
+    if [ ${#capture[@]} -eq 0 ]; then
+	BASH_ARGV0="$program"	# Bash 5+ only
+	"${traceEnableCommand[@]}"
+	source "$program" "$@"
+    else
+	# If the script exec's another script, the trap that launches the viewer after
+	# its completion will be lost. We need to source the script in a subshell to
+	# keep the trap alive.
+	"${capture[@]}"
+	(
+	    BASH_ARGV0="$program"	# Bash 5+ only
+	    "${traceEnableCommand[@]}"
+	    source "$program" "$@"
+	)
+    fi
+}
+
 if [ "$(type -t "$program")" = function ]; then
-    set -x
-    "$program" "$@"
+    "${capture[@]}" "$program" "$@"
 else
-    BASH_ARGV0="$program"	# Bash 5+ only
-    set -x
-    source "$program" "$@"
+    programFilespec="$(which -- "$program" 2>/dev/null)"
+    if [ -n "$programFilespec" ] \
+	&& grep --fixed-strings --quiet 'case ",${TRACE:-}," in *,${BASH_SOURCE[0]##*/},*)' -- "$programFilespec"
+    then
+	# This script supports tracing via environment variable.
+	[ ${#traceEnableCommand[@]} -eq 0 ] || export TRACE+="${TRACE:+,}$(basename -- "$programFilespec")"
+	"${capture[@]:-exec}" "$program" "$@"
+    else
+	sourceIt "$@"
+    fi
 fi
