@@ -96,9 +96,17 @@ viewTrace()
     rm -f -- "$TMPFILE" 2>/dev/null
 }
 
-sourceIt()
-{
-    if [ ${#capture[@]} -eq 0 ]; then
+if [ "$(type -t "$program")" = function ]; then
+    "${capture[@]}" "$program" "$@"
+else
+    programFilespec="$(which -- "$program" 2>/dev/null)"
+    if [ -n "$programFilespec" ] \
+	&& grep --fixed-strings --quiet 'case ",${TRACE:-}," in *,${BASH_SOURCE[0]##*/},*)' -- "$programFilespec"
+    then
+	# This script supports tracing via environment variable.
+	[ ${#traceEnableCommand[@]} -eq 0 ] || export TRACE+="${TRACE:+,}$(basename -- "$programFilespec")"
+	"${capture[@]:-exec}" "$program" "$@"
+    elif [ ${#capture[@]} -eq 0 ]; then
 	BASH_ARGV0="$program"	# Bash 5+ only
 	"${traceEnableCommand[@]}"
 	source "$program" "$@"
@@ -112,20 +120,5 @@ sourceIt()
 	    "${traceEnableCommand[@]}"
 	    source "$program" "$@"
 	)
-    fi
-}
-
-if [ "$(type -t "$program")" = function ]; then
-    "${capture[@]}" "$program" "$@"
-else
-    programFilespec="$(which -- "$program" 2>/dev/null)"
-    if [ -n "$programFilespec" ] \
-	&& grep --fixed-strings --quiet 'case ",${TRACE:-}," in *,${BASH_SOURCE[0]##*/},*)' -- "$programFilespec"
-    then
-	# This script supports tracing via environment variable.
-	[ ${#traceEnableCommand[@]} -eq 0 ] || export TRACE+="${TRACE:+,}$(basename -- "$programFilespec")"
-	"${capture[@]:-exec}" "$program" "$@"
-    else
-	sourceIt "$@"
     fi
 fi
