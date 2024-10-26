@@ -1,0 +1,9 @@
+#!/bin/sh
+
+## noop		Simply pass through all input and ignore any command-line
+##		arguments. Can be used as a dummy pager:
+##		PAGER=noop git log
+
+# No usage help here, because we want the command to really swallow any
+# command-line arguments.
+exec cat
