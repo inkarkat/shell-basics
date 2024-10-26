@@ -1,5 +1,7 @@
 #!/bin/sh
 
+## swallow		Soak up and drop all input and command-line arguments.
+
 # No usage help here, because we want the command to really swallow any
 # command-line arguments.
 exec cat >/dev/null
