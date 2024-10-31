@@ -1,0 +1,34 @@
+#!/bin/bash
+
+printUsage()
+{
+    cat <<HELPTEXT
+Use less in follow mode as a superior (interruptible, browseable) tail, and wait
+until file exists.
+HELPTEXT
+    echo
+    printf 'Usage: %q %s\n' "$(basename "$1")" '[LESS-ARGS ...] [--] [FILE ...] [-?|-h|--help]'
+    printf 'Usage: cat FILE [...] | %q %s\n' "$(basename "$1")" '[LESS-ARGS ...]'
+}
+
+case "$1" in
+    --help|-h|-\?)	shift; printUsage "$0"; exit 0;;
+esac
+
+if [ $# -gt 0 ]; then
+    file="${!#}"
+    title "$file" 2>/dev/null
+
+    delayMessage="Waiting for file \"${file}\"."
+    while [ ! -e "$file" -o -d "$file" ]; do
+	printf %s "$delayMessage"
+	delayMessage='.'
+	sleep 1
+    done
+fi
+
+if exists 'less' && [ -t 1 ]; then
+    exec less --follow-name +F "$@"
+else
+    exec tail --follow=name --retry "$@"
+fi
