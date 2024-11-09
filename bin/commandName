@@ -139,6 +139,9 @@ do
 	    -e q
 	)"
 
+	# Drop a potential negation of the exit status.
+	netCommandLine="${netCommandLine#! }"
+
 	# DWIM: Drop the chdir in a "cd DIR && COMMAND" or "cd DIR; COMMAND" commandline.
 	if [[ "$netCommandLine" =~ ^cd[[:space:]] ]] && [[ "$*" =~ \&\&|\;[[:space:]]*([^[:space:]].*)$ ]]; then
 	    set -- "${BASH_REMATCH[1]}"
