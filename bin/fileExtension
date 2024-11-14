@@ -32,7 +32,7 @@ HELPDESCRIPTION
     --split-all|-3
 		Path (. if none), name, and extension are printed on separate
 		lines.
-The following options can be used alone or combined with oneof the above output
+The following options can be used alone or combined with one of the above output
 modifications:
     --basename|-b
 		Both path and extension are removed; the bare name without path
