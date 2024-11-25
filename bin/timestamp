@@ -39,7 +39,9 @@ HELPDESCRIPTION
 			preserve a passed command with arguments in reusable
 			form).
 
-SEE ALSO: ts (provided by GNU moreutils)
+RELATED COMMANDS:
+- ts (provided by GNU moreutils)
+- https://github.com/mislav/dotfiles/blob/master/bin/lineprof
 HELPTEXT
 }
 
