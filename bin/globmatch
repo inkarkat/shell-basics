@@ -30,7 +30,7 @@ HELPDESCRIPTION
     printShortUsage "$1"
     echo
     cat <<HELPTEXT
-    --directories|-d	Also match directories (without trailing /; e.g. foo in
+    --directories|-d	Also match directories (e.g. foo or foo/ in
 			foo/bar/file).
     --subpath|-s	Also match subpaths (e.g. bar/file in foo/bar/file) in
 			addition to the full passed path.
@@ -94,6 +94,20 @@ do
 	break
     fi
 done
+
+isDirectoryMatch()
+{
+    local g="${1:?}"; shift
+    local filespec="${1:?}"; shift
+    while [[ "$filespec" =~ / ]]
+    do
+	filespec="${filespec%/*}"
+	case "${filespec}/" in
+	    $g) return 0;;
+	esac
+    done
+    return 1
+}
 
 uniqueMatch=
 printUniqueMatch()
@@ -171,11 +185,21 @@ do
 	esac
 	if [ "$isMatchDirectories" ]; then
 	    case "$filespec" in
-		@($g)/*) found=t; break;;
+		@($g)/*)    found=t; break;;
+		@($g)*)	    if isDirectoryMatch "@($g)" "$filespec"; then
+				found=t
+				break
+			    fi
+			    ;;
 	    esac
 	    if [ "$isMatchSubPaths" ]; then
 		case "$filespec" in
-		    */@($g)/*) found=t; break;;
+		    */@($g)/*)	found=t; break;;
+		    */@($g)*)	if isDirectoryMatch "*/@($g)" "$filespec"; then
+				    found=t
+				    break
+				fi
+				;;
 		esac
 	    fi
 	fi
