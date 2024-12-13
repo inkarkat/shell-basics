@@ -2,9 +2,14 @@
 
 load fixture
 
+requireIfne()
+{
+    type -t ifne >/dev/null || skip "ifne is not available"
+}
+
 setup() {
     EMPTY="${BATS_TMPDIR}/empty"
-    > "$EMPTY"
+    : > "$EMPTY"
 }
 
 @test "search for single line regexp with no matches in empty input returns 1" {
@@ -14,12 +19,14 @@ setup() {
 }
 
 @test "search for single line regexp with no matches in null device returns 1" {
+    requireIfne
     run multilinegrep --basic-regexp '.' /dev/null
     [ $status -eq 1 ]
     [ "$output" = "" ]
 }
 
 @test "search for single line regexp with no matches in empty inputs returns 1" {
+    requireIfne
     run multilinegrep --basic-regexp '.' "$EMPTY" /dev/null "$EMPTY" /dev/null
     [ $status -eq 1 ]
     [ "$output" = "" ]
