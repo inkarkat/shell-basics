@@ -4,7 +4,7 @@ printShortUsage()
 {
     # Note: short followed by long option; if the user knows the short one, she can
     # skim the long one.
-    printf 'Usage: %q %s\n' "$(basename "$1")" '[-1|--single] [-d|--strip|-s|--split|-3|--split-all] [-b|--basename] [-c|--splice INSERTION] [-f|--default EXT|-m|--modify EXT] [--] FILENAME [DEFAULT-EXT] [-?|-h|--help]'
+    printf 'Usage: %q %s\n' "$(basename "$1")" '[-1|--single] [-d|--strip|-s|--split|-3|--split-all] [-b|--basename] [-c|--splice INSERTION] [-f|--default EXT|-m|--modify EXT|-a|--add EXT] [--] FILENAME [DEFAULT-EXT] [-?|-h|--help]'
 }
 printUsage()
 {
@@ -41,11 +41,13 @@ modifications:
 		and extension is printed.
     --splice|-c	INSERTION
 		INSERTION is inserted at the end of the file name, before the
-		extension(s).
+		extension(s). If you want to prepend an EXT, use --splice .EXT
     --default|-f EXT
 		Append EXT to FILENAME if it doesn't have one yet.
     --modify|-m EXT
 		Change any existing file extension to EXT.
+    --add|-a EXT
+		Append EXT to the existing file extension.
 HELPTEXT
     printf 'Example: readarray -t fileSplit < <(%q --split "foo bar.tar.gz")\n' "$(basename "$1")"
 }
@@ -55,6 +57,7 @@ typeset -a actions=()
 output=ext
 insertion=
 defaultExtension=
+addExtension=
 while [ $# -ne 0 ]
 do
     case "$1" in
@@ -68,6 +71,7 @@ do
 	--splice|-c)	shift; insertion="$1"; shift; output=asIs; actions+=(splice);;
 	--default|-f)	shift; defaultExtension="${1:?}"; shift; output=asIs; actions+=(defaultExtension);;
 	--modify|-m)	shift; defaultExtension="${1:?}"; shift; output=asIs; actions+=(modifyExtension);;
+	--add|-a)	shift; addExtension="${1:?}"; shift; output=asIs; actions+=(addExtension);;
 	--)		shift; break;;
 	-*)		{ echo "ERROR: Unknown option \"$1\"!"; echo; printUsage "$0"; } >&2; exit 2;;
 	*)		break;;
@@ -83,7 +87,7 @@ if [ -z "$defaultExtension" ]; then
     defaultExtension="$1"
     shift
 fi
-if [[ "$defaultExtension" = */* ]]; then
+if [[ "$defaultExtension" = */* ]] || [[ "$addExtension" = */* ]]; then
     echo 'ERROR: EXT must not contain /.'
     echo
     printUsage "$0"
@@ -130,6 +134,11 @@ defaultExtension()
 modifyExtension()
 {
     ext="$defaultExtension"
+}
+
+addExtension()
+{
+    ext+="${ext:+.}${addExtension}"
 }
 
 for action in "${actions[@]}"
