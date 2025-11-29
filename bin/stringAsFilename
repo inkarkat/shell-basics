@@ -4,31 +4,74 @@ shopt -qs extglob
 printUsage()
 {
     cat <<HELPTEXT
-Encode an arbitrary STRING for use as a filename; i.e. escape all forbidden
-characters, control the length, so that the result is a valid filename but
-enough uniqueness is kept. The only guarantee is that the same STRING will
-always lead to the same filename.
+Encode arbitrary TEXT (or text read from stdin via -) for use as a filename;
+i.e. escape all forbidden characters, control the length (limited to ${maxLength} / N),
+so that the result is a valid filename but enough uniqueness is kept. The only
+guarantee is that the same TEXT will always lead to the same filename.
 HELPTEXT
     echo
-    printf 'Usage: %q %s\n' "$(basename "$1")" 'STRING [...] [-?|-h|--help]'
+    printf 'Usage: %q %s\n' "$(basename "$1")" '[-l|--max-length N] [--] TEXT [...] [-?|-h|--help]'
+    printf 'Usage: cat FILE [...] | %q %s\n' "$(basename "$1")" '- [-?|-h|--help]'
 }
-case "$1" in
-    --help|-h|-\?)	shift; printUsage "$0"; exit 0;;
-esac
-if [ $# -eq 0 -o -z "$*" ]; then
+
+maxLength=128
+while [ $# -ne 0 ]
+do
+    case "$1" in
+	--help|-h|-\?)	shift; printUsage "$0"; exit 0;;
+	--max-length|-l)
+			shift; maxLength="${1:?}"; shift;;
+	--)		shift; break;;
+	-)		break;; # For supporting special - FILE without prior --
+	-*)		{ echo "ERROR: Unknown option \"$1\"!"; echo; printUsage "$0"; } >&2; exit 2;;
+	*)		break;;
+    esac
+done
+if [ $# -ne 1 ]; then
     printUsage "$0" >&2
     exit 2
 fi
 
-filename="${*//[^A-Za-z0-9]/_}"
-filename="${filename//+(_)/_}"
-filename="${filename#_}"
-filename="${filename%_}"
-if [ ${#filename} -lt 8 -o ${#filename} -gt 64 ]; then
-    # Too short is bad because there's not enough uniqueness; too long makes for
-    # hard to read filenames. Solve both by using the hash of the original
-    # command.
-    printf %s "$*" | sha256sum - | cut --delimiter ' ' --fields 1
+if [ "$1" = '-' ]; then
+    string=$(< /dev/stdin)
+    [ -n "$string" ] || exit 1
 else
-    printf '%s\n' "$filename"
+    string=${1?}
 fi
+
+hash()
+{
+    printf %s "${1:?}" | sha256sum - | cut --delimiter ' ' --fields 1
+}
+
+encode()
+{
+    local string="${1?}"; shift
+    local strlen=${#string}
+    local pos encoded=
+
+    for (( pos=0; pos < strlen; pos++ ))
+    do
+	c=${string:$pos:1}
+	case "$c" in
+	    [-_.a-zA-Z0-9]) o="$c";;
+	    *)		    printf -v o '%%%02x' "'$c";;
+	esac
+	encoded+="$o"
+    done
+    printf %s "$encoded"
+}
+
+filename="$(encode "$string")"
+if [ ${#filename} -gt $maxLength ]; then
+    hashed="$(hash "$string")"
+    if [ ${#hashed} -gt $maxLength ]; then
+	filename="${hashed:0:$maxLength}"
+    else
+	filename="${filename:0:$((maxLength - ${#hashed} - 1))}"
+	filename="${filename%\%?}"  # Remove incomplete trailing encoded character.
+	filename="${filename%\%}"
+	filename+="${filename:+~}${hashed}" # Add separator between encoded and hashed parts.
+    fi
+fi
+printf '%s\n' "$filename"
