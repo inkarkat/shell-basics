@@ -157,7 +157,7 @@ if [ ${#userNotifyTitleArg[@]} -eq 0 ]; then
     [ -n "$commandName" ] && userNotifyTitleArg=(--title "$commandName")
 fi
 
-eval "notification=\"\$(${commands} ${redirPrefix} ${filterCommands:+|}" "$filterCommands" ")\" ${redirSuffix}"
+eval "notification=\"\$({ ${commands}; } ${redirPrefix} ${filterCommands:+|}" "$filterCommands" ")\" ${redirSuffix}"
 
 [ -n "$notification" ] || exit 99
 
