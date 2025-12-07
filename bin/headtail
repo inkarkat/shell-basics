@@ -129,7 +129,7 @@ function printHeadTail(      cutlineHalfWidth, cutline, literalLineNumPattern, o
 	    print plusOneLine
 	} else {
 	    if (separatorInfo != "") {
-		cutlineHalfWidth = ((ENVIRON["COLUMNS"] == "" ? 80 : ENVIRON["COLUMNS"]) - 2 - length(separatorInfo) - (separatorInfo ~ literalLineNumPattern ? 4 : 0)) / 2
+		cutlineHalfWidth = ((ENVIRON["COLUMNS"] == "" ? 80 : ENVIRON["COLUMNS"]) - 2 - length(separatorInfo) - (separatorInfo ~ literalLineNumPattern ? length(omittedNum) - 2 : 0)) / 2
 		cutline = gensub(/ /, "~", "g", sprintf("%*s", cutlineHalfWidth, ""))
 		separator = sprintf("%s %s %s", cutline, separatorInfo, cutline)
 	    }

@@ -29,8 +29,41 @@ EOF
     assert_output - <<'EOF'
 ONE
 TWO
-~~~~~~~ [8 lines truncated] ~~~~~~~
+~~~~~~~~~ [8 lines truncated] ~~~~~~~~~
 ELEVEN
 TWELVE
+EOF
+}
+
+@test "list 2 first and 2 last lines from 104 input lines with custom cutline containing count" {
+    COLUMNS=40 run -0 headtail --lines 2 --separator-cut-what '{} lines truncated' < <(seq 1 104)
+    assert_output - <<'EOF'
+1
+2
+~~~~~~~~ [100 lines truncated] ~~~~~~~~
+103
+104
+EOF
+}
+
+@test "list 2 first and 2 last lines from 1004 input lines with custom cutline containing count" {
+    COLUMNS=40 run -0 headtail --lines 2 --separator-cut-what '{} lines truncated' < <(seq 1 1004)
+    assert_output - <<'EOF'
+1
+2
+~~~~~~~~ [1000 lines truncated] ~~~~~~~~
+1003
+1004
+EOF
+}
+
+@test "list 2 first and 2 last lines from 10004 input lines with custom cutline containing count" {
+    COLUMNS=40 run -0 headtail --lines 2 --separator-cut-what '{} lines truncated' < <(seq 1 10004)
+    assert_output - <<'EOF'
+1
+2
+~~~~~~~ [10000 lines truncated] ~~~~~~~
+10003
+10004
 EOF
 }
