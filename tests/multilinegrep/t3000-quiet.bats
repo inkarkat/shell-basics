@@ -3,31 +3,26 @@
 load fixture
 
 @test "quiet search for single line regexp returns 0" {
-    run multilinegrep --quiet 'one-l..e' "$INPUT"
-    [ $status -eq 0 ]
-    [ "$output" = "" ]
+    run -0 multilinegrep --quiet 'one-l..e' "$INPUT"
+    assert_output ''
 }
 
 @test "quiet search for single line regexp with multiple matches returns 0" {
-    run multilinegrep --quiet '[Oo]ne' "$INPUT"
-    [ $status -eq 0 ]
-    [ "$output" = "" ]
+    run -0 multilinegrep --quiet '[Oo]ne' "$INPUT"
+    assert_output ''
 }
 
 @test "quiet search for single line regexp with no matches returns 1" {
-    run multilinegrep --quiet 'doesN.tMatch' "$INPUT"
-    [ $status -eq 1 ]
-    [ "$output" = "" ]
+    run -1 multilinegrep --quiet 'doesN.tMatch' "$INPUT"
+    assert_output ''
 }
 
 @test "quiet search for three-line regexp with multiple matches" {
-    run multilinegrep --quiet $'[Oo]ne.*\nt.*\n.*l' "$INPUT"
-    [ $status -eq 0 ]
-    [ "$output" = "" ]
+    run -0 multilinegrep --quiet $'[Oo]ne.*\nt.*\n.*l' "$INPUT"
+    assert_output ''
 }
 
 @test "quiet search for three-line regexp with no matches returns 1" {
-    run multilinegrep --quiet $'does\nN.t\nMatch' "$INPUT"
-    [ $status -eq 1 ]
-    [ "$output" = "" ]
+    run -1 multilinegrep --quiet $'does\nN.t\nMatch' "$INPUT"
+    assert_output ''
 }

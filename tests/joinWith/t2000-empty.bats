@@ -1,25 +1,23 @@
 #!/usr/bin/env bats
 
+load fixture
+
 @test "no arguments no output" {
-    run joinWith --
-    [ $status -eq 99 ]
-    [ "$output" = "" ]
+    run -99 joinWith --
+    assert_output ''
 }
 
 @test "empty text" {
-    run joinWith --empty '(none)' --
-    [ $status -eq 0 ]
-    [ "$output" = "(none)" ]
+    run -0 joinWith --empty '(none)' --
+    assert_output '(none)'
 }
 
 @test "omit empty" {
-    run joinWith --empty '(none)' --omit-empty -- '' ''
-    [ $status -eq 0 ]
-    [ "$output" = "(none)" ]
+    run -0 joinWith --empty '(none)' --omit-empty -- '' ''
+    assert_output '(none)'
 }
 
 @test "empty with prefix and suffix" {
-    run joinWith --empty '(none)' --prefix '[' --suffix ']' --
-    [ $status -eq 0 ]
-    [ "$output" = "[(none)]" ]
+    run -0 joinWith --empty '(none)' --prefix '[' --suffix ']' --
+    assert_output '[(none)]'
 }

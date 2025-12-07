@@ -3,68 +3,95 @@
 load fixture
 
 @test "both removal of empty input is empty and returns 99" {
-    runWithInput '' longestCommon --remove-both
-    [ $status -eq 99 ]
-    [ "$output" = "" ]
+    run -99 longestCommon --remove-both </dev/null
+    assert_output ''
 }
 
 @test "both removal of single input line is empty" {
-    runWithInput 'foo bar' longestCommon --remove-both
-    [ $status -eq 0 ]
-    [ "$output" = "" ]
+    run -0 longestCommon --remove-both <<<'foo bar'
+    assert_output ''
 }
 
 @test "both removal of two identical input lines is empty" {
-    runWithInput $'foo bar\nfoo bar' longestCommon --remove-both
-    [ $status -eq 0 ]
-    [ "$output" = "" ]
+    run -0 longestCommon --remove-both <<'EOF'
+foo bar
+foo bar
+EOF
+    assert_output ''
 }
 
 @test "both removal of two input lines" {
-    runWithInput $'new signin\nnewer pin' longestCommon --remove-both
-    [ $status -eq 0 ]
-    [ "$output" = " sign
-er p" ]
+    run -0 longestCommon --remove-both <<'EOF'
+new signin
+newer pin
+EOF
+    assert_output - <<'EOF'
+ sign
+er p
+EOF
 }
 
 @test "both removal of three input lines" {
-    runWithInput $'stain\nsin\nsignin' longestCommon --remove-both
-    [ $status -eq 0 ]
-    [ "$output" = "ta
+    run -0 longestCommon --remove-both <<'EOF'
+stain
+sin
+signin
+EOF
+    assert_output - <<'EOF'
+ta
 
-ign" ]
+ign
+EOF
 }
 
 @test "both removal of three completely different input lines is identical to input and returns 99" {
-    runWithInput $'loo\nfox\nfoony' longestCommon --remove-both
-    [ $status -eq 99 ]
-    [ "$output" = $'loo\nfox\nfoony' ]
+    run -99 longestCommon --remove-both <<'EOF'
+loo
+fox
+foony
+EOF
+    assert_output $'loo\nfox\nfoony'
 }
 
 @test "both removal of two identical prefixes and suffixes with different text in between" {
-    runWithInput $'foo-bar\nfooXbar' longestCommon --remove-both
-    [ $status -eq 0 ]
-    [ "$output" = "-
-X" ]
+    run -0 longestCommon --remove-both <<'EOF'
+foo-bar
+fooXbar
+EOF
+    assert_output - <<'EOF'
+-
+X
+EOF
 }
 
 @test "both removal of two identical prefixes and suffixes partially with different text in between" {
-    runWithInput $'foo-bar\nfoobar' longestCommon --remove-both
-    [ $status -eq 0 ]
-    [ "$output" = "-" ]
+    run -0 longestCommon --remove-both <<'EOF'
+foo-bar
+foobar
+EOF
+    assert_output -- '-'
 }
 
 @test "both removal of two repeat-character prefixes and suffixes with one interrupted" {
-    runWithInput $'oooooo\nooooXoo' longestCommon --remove-both
-    [ $status -eq 0 ]
-    [ "$output" = "
-X" ]
+    run -0 longestCommon --remove-both <<'EOF'
+oooooo
+ooooXoo
+EOF
+    assert_output - <<'EOF'
+
+X
+EOF
 }
 
 @test "both removal of three repeat-character prefixes and suffixes with two interrupted differently" {
-    runWithInput $'oooooo\nooooXoo\noXooooo' longestCommon --remove-both
-    [ $status -eq 0 ]
-    [ "$output" = "ooo
+    run -0 longestCommon --remove-both <<'EOF'
+oooooo
+ooooXoo
+oXooooo
+EOF
+    assert_output - <<'EOF'
+ooo
 oooX
-Xooo" ]
+Xooo
+EOF
 }

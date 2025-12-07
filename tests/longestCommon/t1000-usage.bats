@@ -1,20 +1,19 @@
 #!/usr/bin/env bats
 
+load fixture
+
 @test "no arguments prints message and usage instructions" {
-    run longestCommon
-    [ $status -eq 2 ]
-    [ "${lines[0]%% *}" = 'Usage:' ]
+    run -2 longestCommon
+    assert_line -n 0 -e '^Usage:'
 }
 
 @test "invalid option prints message and usage instructions" {
-    run longestCommon --invalid-option
-    [ $status -eq 2 ]
-    [ "${lines[0]}" = 'ERROR: Unknown option "--invalid-option"!' ]
-    [ "${lines[2]%% *}" = 'Usage:' ]
+    run -2 longestCommon --invalid-option
+    assert_line -n 0 'ERROR: Unknown option "--invalid-option"!'
+    assert_line -n 2 -e '^Usage:'
 }
 
 @test "-h prints long usage help" {
-  run longestCommon -h
-    [ $status -eq 0 ]
-    [ "${lines[0]%% *}" != 'Usage:' ]
+  run -0 longestCommon -h
+    refute_line -n 0 -e '^Usage:'
 }

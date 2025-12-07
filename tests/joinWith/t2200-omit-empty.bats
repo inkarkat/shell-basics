@@ -1,7 +1,8 @@
 #!/usr/bin/env bats
 
+load fixture
+
 @test "join omitting empty arguments" {
-    run joinWith --omit-empty foo '' bar '' '' '' baz ''
-    [ $status -eq 0 ]
-    [ "$output" = "foo bar baz" ]
+    run -0 joinWith --omit-empty foo '' bar '' '' '' baz ''
+    assert_output 'foo bar baz'
 }

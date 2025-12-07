@@ -1,19 +1,18 @@
 #!/usr/bin/env bats
 
+load fixture
+
 @test "join with prefix" {
-    run joinWith --prefix 'Here:' foo bar baz
-    [ "$status" -eq 0 ]
-    [ "$output" = "Here:foo bar baz" ]
+    run -0 joinWith --prefix 'Here:' foo bar baz
+    assert_output 'Here:foo bar baz'
 }
 
 @test "join with suffix" {
-    run joinWith --suffix ';duh' foo bar baz
-    [ "$status" -eq 0 ]
-    [ "$output" = "foo bar baz;duh" ]
+    run -0 joinWith --suffix ';duh' foo bar baz
+    assert_output 'foo bar baz;duh'
 }
 
 @test "join with prefix and suffix" {
-    run joinWith --prefix '[' --suffix ']' foo bar baz
-    [ "$status" -eq 0 ]
-    [ "$output" = "[foo bar baz]" ]
+    run -0 joinWith --prefix '[' --suffix ']' foo bar baz
+    assert_output '[foo bar baz]'
 }

@@ -13,39 +13,33 @@ setup() {
 }
 
 @test "search for single line regexp with no matches in empty input returns 1" {
-    run multilinegrep --basic-regexp '.' "$EMPTY"
-    [ $status -eq 1 ]
-    [ "$output" = "" ]
+    run -1 multilinegrep --basic-regexp '.' "$EMPTY"
+    assert_output ''
 }
 
 @test "search for single line regexp with no matches in null device returns 1" {
     requireIfne
-    run multilinegrep --basic-regexp '.' /dev/null
-    [ $status -eq 1 ]
-    [ "$output" = "" ]
+    run -1 multilinegrep --basic-regexp '.' /dev/null
+    assert_output ''
 }
 
 @test "search for single line regexp with no matches in empty inputs returns 1" {
     requireIfne
-    run multilinegrep --basic-regexp '.' "$EMPTY" /dev/null "$EMPTY" /dev/null
-    [ $status -eq 1 ]
-    [ "$output" = "" ]
+    run -1 multilinegrep --basic-regexp '.' "$EMPTY" /dev/null "$EMPTY" /dev/null
+    assert_output ''
 }
 
 @test "search for explicitly passed three-line regexp with no matches in empty input returns 1" {
-    run multilinegrep --basic-regexp $'does\nN.t\nMatch' "$EMPTY"
-    [ $status -eq 1 ]
-    [ "$output" = "" ]
+    run -1 multilinegrep --basic-regexp $'does\nN.t\nMatch' "$EMPTY"
+    assert_output ''
 }
 
 @test "search for single line regexp in existing and empty file returns matched line" {
-    run multilinegrep --basic-regexp 'Start' "$EMPTY" "$INPUT"
-    [ $status -eq 0 ]
-    [ "$output" = "Start" ]
+    run -0 multilinegrep --basic-regexp 'Start' "$EMPTY" "$INPUT"
+    assert_output 'Start'
 }
 
 @test "search for single line regexp in existing and null device returns matched line" {
-    run multilinegrep --basic-regexp 'Start' /dev/null "$INPUT"
-    [ $status -eq 0 ]
-    [ "$output" = "Start" ]
+    run -0 multilinegrep --basic-regexp 'Start' /dev/null "$INPUT"
+    assert_output 'Start'
 }

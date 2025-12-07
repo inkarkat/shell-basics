@@ -1,8 +1,9 @@
 #!/usr/bin/env bats
 
+load fixture
+
 @test "-h prints long usage help" {
-    run printCounts -h
-    [ $status -eq 0 ]
-    [ "${lines[0]%% *}" != 'Usage:' ]
-    [ "${lines[1]%% *}" = 'Usage:' ]
+    run -0 printCounts -h
+    refute_line -n 0 -e '^Usage:'
+    assert_line -n 1 -e '^Usage:'
 }

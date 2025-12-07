@@ -1,13 +1,13 @@
 #!/usr/bin/env bats
 
+load fixture
+
 @test "merge args" {
-    run mergeLists foo bar baz baz foo quux foo
-    [ $status -eq 0 ]
-    [ "$output" = $'foo\nbar\nbaz\nquux' ]
+    run -0 mergeLists foo bar baz baz foo quux foo
+    assert_output $'foo\nbar\nbaz\nquux'
 }
 
 @test "merge args into a single result" {
-    run mergeLists foo foo foo
-    [ $status -eq 0 ]
-    [ "$output" = 'foo' ]
+    run -0 mergeLists foo foo foo
+    assert_output 'foo'
 }

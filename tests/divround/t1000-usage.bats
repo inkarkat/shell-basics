@@ -1,13 +1,13 @@
 #!/usr/bin/env bats
 
+load fixture
+
 @test "no arguments prints usage" {
-    run divround
-    [ $status -eq 2 ]
-    [ "${lines[-1]%% *}" = 'Usage:' ]
+    run -2 divround
+    assert_line -n -1 -e '^Usage:'
 }
 
 @test "-h prints long usage help" {
-    run divround -h
-    [ $status -eq 0 ]
-    [ "${lines[0]%% *}" != 'Usage:' ]
+    run -0 divround -h
+    refute_line -n 0 -e '^Usage:'
 }

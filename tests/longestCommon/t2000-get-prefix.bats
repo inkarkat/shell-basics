@@ -3,37 +3,45 @@
 load fixture
 
 @test "prefix of empty input is empty" {
-    runWithInput '' longestCommon --get-prefix
-    [ $status -eq 0 ]
-    [ "$output" = "" ]
+    run -0 longestCommon --get-prefix </dev/null
+    assert_output ''
 }
 
 @test "prefix of single input line is that input line" {
-    runWithInput 'foo bar' longestCommon --get-prefix
-    [ $status -eq 0 ]
-    [ "$output" = "foo bar" ]
+    run -0 longestCommon --get-prefix <<<'foo bar'
+    assert_output 'foo bar'
 }
 
 @test "prefix of two identical input lines is the entire input line" {
-    runWithInput $'foo bar\nfoo bar' longestCommon --get-prefix
-    [ $status -eq 0 ]
-    [ "$output" = "foo bar" ]
+    run -0 longestCommon --get-prefix <<'EOF'
+foo bar
+foo bar
+EOF
+    assert_output 'foo bar'
 }
 
 @test "prefix of two input lines" {
-    runWithInput $'foo bar\nfoxy lady' longestCommon --get-prefix
-    [ $status -eq 0 ]
-    [ "$output" = "fo" ]
+    run -0 longestCommon --get-prefix <<'EOF'
+foo bar
+foxy lady
+EOF
+    assert_output 'fo'
 }
 
 @test "prefix of three input lines" {
-    runWithInput $'fox\nfo\nfoony' longestCommon --get-prefix
-    [ $status -eq 0 ]
-    [ "$output" = "fo" ]
+    run -0 longestCommon --get-prefix <<'EOF'
+fox
+fo
+foony
+EOF
+    assert_output 'fo'
 }
 
 @test "prefix of three completely different input lines is empty and returns 99" {
-    runWithInput $'loo\nfox\nfoony' longestCommon --get-prefix
-    [ $status -eq 99 ]
-    [ "$output" = "" ]
+    run -99 longestCommon --get-prefix <<'EOF'
+loo
+fox
+foony
+EOF
+    assert_output ''
 }
