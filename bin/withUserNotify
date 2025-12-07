@@ -10,7 +10,7 @@ printShortUsage()
 {
     # Note: short followed by long option; if the user knows the short one, she can
     # skim the long one.
-    printf 'Usage: %q %s\n' "$(basename "$1")" "[-T|--title TITLE] [-t|--timeout TIMEOUT] [-c|--console] [-d|--desktop] [-g|--gui] [-l|--login-notification] [--markup] [-1|--stdout|-2|--stderr] [--filter-exec FILTER-COMMAND [...] $WITHUSERNOTIFY_EXEC_END [...]] [--filter-command \"FILTER-COMMANDLINE\" [--filter-command ...]] -c|--command \"COMMANDLINE\" [-c ...] | --exec SIMPLECOMMAND [...] ${WITHUSERNOTIFY_EXEC_END} [--exec ...] | [--] SIMPLECOMMAND [...] [-?|-h|--help]"
+    printf 'Usage: %q %s\n' "$(basename "$1")" "[-T|--title TITLE] [-t|--timeout TIMEOUT] [--console] [-d|--desktop] [-g|--gui] [-l|--login-notification] [--markup] [-1|--stdout|-2|--stderr] [--filter-exec FILTER-COMMAND [...] $WITHUSERNOTIFY_EXEC_END [...]] [--filter-command \"FILTER-COMMANDLINE\" [--filter-command ...]] -c|--command \"COMMANDLINE\" [-c ...] | --exec SIMPLECOMMAND [...] ${WITHUSERNOTIFY_EXEC_END} [--exec ...] | [--] SIMPLECOMMAND [...] [-?|-h|--help]"
 }
 printUsage()
 {
@@ -36,7 +36,7 @@ HELPDESCRIPTION
     --timeout|-t TIMEOUT
 			Auto-close the notification (if possible) and return 123
 			if the user did not acknowledge within TIMEOUT seconds.
-    --console|-c	Print the notification to the terminal.
+    --console		Print the notification to the terminal.
     --desktop|-d	Submit a desktop notification.
     --gui|-g		Open a GUI dialog (that needs to be acknowledged) with
 			the notification.
@@ -93,7 +93,7 @@ do
 	--help|-h|-\?)	shift; printLongUsage "$0"; exit 0;;
 
 	--markup)	shift; userNotifyMarkupArg=();;
-	-+([cdgl]))	userNotifyArgs+=("$1"); shift;;
+	-+([dgl]))	userNotifyArgs+=("$1"); shift;;
 	--@(console|desktop|gui|login-notification))
 			userNotifyArgs+=("$1"); shift;;
 	--timeout|-t)	userNotifyArgs+=("$1" "$2"); shift; shift;;
