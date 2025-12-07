@@ -6,3 +6,8 @@ load fixture
     run -2 headtail --lines 123abc
     assert_output 'headtail: invalid number of lines: 123abc'
 }
+
+@test "no separator prints an error message" {
+    run -1 headtail --separator
+    assert_output -p 'parameter not set'
+}

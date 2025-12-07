@@ -79,7 +79,7 @@ do
 	--lines=*)	lines="${1#--lines=}"; shift;;
 	--duplicate-if-short)
 			shift; isDuplicateIfShort=t;;
-	--separator|-s)	shift; separator="$1"; shift;;
+	--separator|-s)	shift; separator="${1?}"; shift;;
 	--separator-cutline)
 			shift
 			printf -v cutlineHalf "%$(((${COLUMNS:-80} - 8) / 2))s" '~'; printf -v cutlineHalf %s "${cutlineHalf// /\~}"
