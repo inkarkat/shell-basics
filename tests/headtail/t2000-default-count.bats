@@ -1,9 +1,11 @@
 #!/usr/bin/env bats
 
+load fixture
+
 @test "list 5 first and 5 last lines from file" {
-    run headtail "${BATS_TEST_DIRNAME}/louds"
-    [ $status -eq 0 ]
-    [ "$output" = "ONE
+    run -0 headtail "${BATS_TEST_DIRNAME}/louds"
+    assert_output - <<'EOF'
+ONE
 TWO
 THREE
 FOUR
@@ -12,13 +14,14 @@ EIGHT
 NINE
 TEN
 ELEVEN
-TWELVE" ]
+TWELVE
+EOF
 }
 
 @test "list 5 first and 5 last lines from stdin" {
-    run headtail < <(cat "${BATS_TEST_DIRNAME}/louds")
-    [ $status -eq 0 ]
-    [ "$output" = "ONE
+    run -0 headtail < <(cat "${BATS_TEST_DIRNAME}/louds")
+    assert_output - <<'EOF'
+ONE
 TWO
 THREE
 FOUR
@@ -27,5 +30,6 @@ EIGHT
 NINE
 TEN
 ELEVEN
-TWELVE" ]
+TWELVE
+EOF
 }

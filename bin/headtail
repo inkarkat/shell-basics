@@ -4,6 +4,8 @@ shopt -qs extglob
 DEFAULT_LINES=5
 : ${HEADTAIL_LINENUM_MARKER='{}'}
 lineNumMarker="$HEADTAIL_LINENUM_MARKER"; unset HEADTAIL_LINENUM_MARKER
+: ${HEADTAIL_FILE_MARKER='{F}'}
+fileMarker="$HEADTAIL_FILE_MARKER"; unset HEADTAIL_FILE_MARKER
 
 printShortUsage()
 {
@@ -42,14 +44,16 @@ HELPDESCRIPTION
 			lines. If only one line would be omitted, print the
 			NUM+1 one instead.${lineNumMarker:+ Inside, $lineNumMarker is replaced with the
 			number (2 or more, because a single would-be omitted
-			line does not print the separator) of omitted lines.}
+			line does not print the separator) of omitted lines.}${fileMarker:+
+			Inside, $fileMarker is replaced with the current filespec.}
     --separator-cutline
 			Print a separator in the form of a cutline between the
 			first and last lines.
     --separator-cut-what WHAT
 			Print a separator in the form of a cutline with WHAT in
 			the middle.${lineNumMarker:+ If WHAT contains ${lineNumMarker}, it is replaced with the
-			number of omitted lines.}
+			number of omitted lines.}${fileMarker:+ If WHAT contains ${fileMarker}, it is
+			replaced with the current filespec.}
     --quiet|-q		Do not precede each FILE with a header.
     --verbose|-v	Precede with header even if processing just one FILE.
     By default, each FILE is precedes with a header giving the file name if more
@@ -61,6 +65,7 @@ algorithm=headTail
 lines=$DEFAULT_LINES
 isDuplicateIfShort=
 separator=
+separatorInfo=
 header=auto
 typeset -a headerArgs=()
 while [ $# -ne 0 ]
@@ -79,19 +84,11 @@ do
 	--lines=*)	lines="${1#--lines=}"; shift;;
 	--duplicate-if-short)
 			shift; isDuplicateIfShort=t;;
-	--separator|-s)	shift; separator="$1"; shift;;
+	--separator|-s)	shift; separator="${1?}"; shift;;
 	--separator-cutline)
-			shift
-			printf -v cutlineHalf "%$(((${COLUMNS:-80} - 8) / 2))s" '~'; printf -v cutlineHalf %s "${cutlineHalf// /\~}"
-			separator="${cutlineHalf} [...] ${cutlineHalf}"
-			;;
+			shift; separatorInfo='[...]';;
 	--separator-cut-what)
-			shift
-			whatLength=${#1}; [[ "$1" =~ "$lineNumMarker" ]] && let whatLength+=4 # Make space for up to 999999.
-			printf -v cutlineHalf "%$(((${COLUMNS:-80} - 4 - whatLength) / 2))s" '~'; printf -v cutlineHalf %s "${cutlineHalf// /\~}"
-			separator="${cutlineHalf} [${1}] ${cutlineHalf}"
-			shift
-			;;
+			shift; separatorInfo="[${1?}]"; shift;;
 	--silent|--quiet|-q)
 			headerArgs+=("$1"); shift; header=no;;
 	--verbose|-v)	headerArgs+=("$1"); shift; header=yes;;
@@ -122,19 +119,35 @@ headTail()
 	-v "lines=$lines" \
 	-v "isDuplicateIfShort=$isDuplicateIfShort" \
 	-v "separator=${separator//\\/\\\\}" \
+	-v "separatorInfo=${separatorInfo//\\/\\\\}" \
 	-v "lineNumMarker=${lineNumMarker//\\/\\\\}" \
+	-v "fileMarker=${fileMarker//\\/\\\\}" \
 	-v "header=$header" \
 '
-function printHeadTail(      literalLineNumPattern, omittedNum, start, i)
+function printHeadTail(      literalLineNumMarkerPattern, literalFileMarkerPattern, cutlineHalfWidth, cutline, filespec, omittedNum, start, i)
 {
-    literalLineNumPattern = gensub(/[][\\$*+?{}.|()^]/, "\\\\&", "g", lineNumMarker)
-    if (bufCnt > lines && separator != "") {
+    literalLineNumMarkerPattern = gensub(/[][\\$*+?{}.|()^]/, "\\\\&", "g", lineNumMarker)
+    literalFileMarkerPattern = gensub(/[][\\$*+?{}.|()^]/, "\\\\&", "g", fileMarker)
+
+    if (bufCnt > lines && (separator != "" || separatorInfo != "")) {
 	omittedNum = (bufCnt - lines)
 	if (omittedNum == 1) {
 	    print plusOneLine
-	} else if (separator ~ literalLineNumPattern) {
-	    print gensub(literalLineNumPattern, omittedNum, "g", separator)
 	} else {
+	    filespec = (ARGC == 1 || ARGV[ARGIND] == "-" ? "input" : ARGV[ARGIND])
+	    if (separatorInfo != "") {
+		cutlineHalfWidth = ((ENVIRON["COLUMNS"] == "" ? 80 : ENVIRON["COLUMNS"]) \
+		    - 2 \
+		    - length(separatorInfo) \
+		    - (separatorInfo ~ literalLineNumMarkerPattern ? length(omittedNum) - 2 : 0) \
+		    - (separatorInfo ~ literalFileMarkerPattern ? length(filespec) : 0) \
+		) / 2
+		if (cutlineHalfWidth > 0) cutline = gensub(/ /, "~", "g", sprintf("%*s", cutlineHalfWidth, ""))
+		separator = cutline (cutline == "" ? "" : " ") separatorInfo (cutline == "" ? "" : " ") cutline
+	    }
+	    if (separator ~ literalLineNumMarkerPattern) separator = gensub(literalLineNumMarkerPattern, omittedNum, "g", separator)
+	    if (separator ~ literalFileMarkerPattern) separator = gensub(literalFileMarkerPattern, filespec, "g", separator)
+
 	    print separator
 	}
     }
