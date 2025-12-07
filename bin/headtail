@@ -61,6 +61,7 @@ algorithm=headTail
 lines=$DEFAULT_LINES
 isDuplicateIfShort=
 separator=
+separatorInfo=
 header=auto
 typeset -a headerArgs=()
 while [ $# -ne 0 ]
@@ -81,17 +82,9 @@ do
 			shift; isDuplicateIfShort=t;;
 	--separator|-s)	shift; separator="${1?}"; shift;;
 	--separator-cutline)
-			shift
-			printf -v cutlineHalf "%$(((${COLUMNS:-80} - 8) / 2))s" '~'; printf -v cutlineHalf %s "${cutlineHalf// /\~}"
-			separator="${cutlineHalf} [...] ${cutlineHalf}"
-			;;
+			shift; separatorInfo='[...]';;
 	--separator-cut-what)
-			shift
-			whatLength=${#1}; [[ "$1" =~ "$lineNumMarker" ]] && let whatLength+=4 # Make space for up to 999999.
-			printf -v cutlineHalf "%$(((${COLUMNS:-80} - 4 - whatLength) / 2))s" '~'; printf -v cutlineHalf %s "${cutlineHalf// /\~}"
-			separator="${cutlineHalf} [${1}] ${cutlineHalf}"
-			shift
-			;;
+			shift; separatorInfo="[${1?}]"; shift;;
 	--silent|--quiet|-q)
 			headerArgs+=("$1"); shift; header=no;;
 	--verbose|-v)	headerArgs+=("$1"); shift; header=yes;;
@@ -122,19 +115,26 @@ headTail()
 	-v "lines=$lines" \
 	-v "isDuplicateIfShort=$isDuplicateIfShort" \
 	-v "separator=${separator//\\/\\\\}" \
+	-v "separatorInfo=${separatorInfo//\\/\\\\}" \
 	-v "lineNumMarker=${lineNumMarker//\\/\\\\}" \
 	-v "header=$header" \
 '
-function printHeadTail(      literalLineNumPattern, omittedNum, start, i)
+function printHeadTail(      cutlineHalfWidth, cutline, literalLineNumPattern, omittedNum, start, i)
 {
     literalLineNumPattern = gensub(/[][\\$*+?{}.|()^]/, "\\\\&", "g", lineNumMarker)
-    if (bufCnt > lines && separator != "") {
+
+    if (bufCnt > lines && (separator != "" || separatorInfo != "")) {
 	omittedNum = (bufCnt - lines)
 	if (omittedNum == 1) {
 	    print plusOneLine
-	} else if (separator ~ literalLineNumPattern) {
-	    print gensub(literalLineNumPattern, omittedNum, "g", separator)
 	} else {
+	    if (separatorInfo != "") {
+		cutlineHalfWidth = ((ENVIRON["COLUMNS"] == "" ? 80 : ENVIRON["COLUMNS"]) - 2 - length(separatorInfo) - (separatorInfo ~ literalLineNumPattern ? 4 : 0)) / 2
+		cutline = gensub(/ /, "~", "g", sprintf("%*s", cutlineHalfWidth, ""))
+		separator = sprintf("%s %s %s", cutline, separatorInfo, cutline)
+	    }
+	    if (separator ~ literalLineNumPattern) separator = gensub(literalLineNumPattern, omittedNum, "g", separator)
+
 	    print separator
 	}
     }
