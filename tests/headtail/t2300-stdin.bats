@@ -1,37 +1,42 @@
 #!/usr/bin/env bats
 
-@test "list 2 first and 2 last lines from standard input" {
-    run headtail --lines 2 < <(cat "${BATS_TEST_DIRNAME}/counts")
-    [ $status -eq 0 ]
-    [ "$output" = "one
-two
-four
-five" ]
-}
+load fixture
 
-@test "list 2 first and 2 last lines from standard input with verbose" {
-    run headtail --verbose --lines 2 < <(cat "${BATS_TEST_DIRNAME}/counts")
-    [ $status -eq 0 ]
-    [ "$output" = "==> standard input <==
+@test "list 2 first and 2 last lines from standard input" {
+    run -0 headtail --lines 2 < <(cat "${BATS_TEST_DIRNAME}/counts")
+    assert_output - <<'EOF'
 one
 two
 four
-five" ]
+five
+EOF
+}
+
+@test "list 2 first and 2 last lines from standard input with verbose" {
+    run -0 headtail --verbose --lines 2 < <(cat "${BATS_TEST_DIRNAME}/counts")
+    assert_output - <<'EOF'
+==> standard input <==
+one
+two
+four
+five
+EOF
 }
 
 @test "list 2 first and 2 last lines from standard input specified as -" {
-    run headtail --lines 2 - < <(cat "${BATS_TEST_DIRNAME}/counts")
-    [ $status -eq 0 ]
-    [ "$output" = "one
+    run -0 headtail --lines 2 - < <(cat "${BATS_TEST_DIRNAME}/counts")
+    assert_output - <<'EOF'
+one
 two
 four
-five" ]
+five
+EOF
 }
 
 @test "list 2 first and 2 last lines from two files and standard input in between as -" {
-    run headtail --verbose --lines 2 "${BATS_TEST_DIRNAME}/counts" - "${BATS_TEST_DIRNAME}/louds" < <(echo foo)
-    [ $status -eq 0 ]
-    [ "$output" = "==> ${BATS_TEST_DIRNAME}/counts <==
+    run -0 headtail --verbose --lines 2 "${BATS_TEST_DIRNAME}/counts" - "${BATS_TEST_DIRNAME}/louds" < <(echo foo)
+    assert_output - <<EOF
+==> ${BATS_TEST_DIRNAME}/counts <==
 one
 two
 four
@@ -44,6 +49,7 @@ foo
 ONE
 TWO
 ELEVEN
-TWELVE" ]
+TWELVE
+EOF
 }
 
