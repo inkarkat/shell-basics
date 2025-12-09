@@ -19,7 +19,7 @@ EOF
 }
 
 @test "list 5 first and 5 last lines from stdin" {
-    run -0 headtail < <(cat "${BATS_TEST_DIRNAME}/louds")
+    run -0 headtail < "${BATS_TEST_DIRNAME}/louds"
     assert_output - <<'EOF'
 ONE
 TWO

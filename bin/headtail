@@ -1,7 +1,7 @@
 #!/bin/bash
 shopt -qs extglob
 
-DEFAULT_LINES=5
+readonly DEFAULT_LINES=5
 : ${HEADTAIL_LINENUM_MARKER='{}'}
 lineNumMarker="$HEADTAIL_LINENUM_MARKER"; unset HEADTAIL_LINENUM_MARKER
 : ${HEADTAIL_FILE_MARKER='{F}'}
@@ -11,7 +11,7 @@ printShortUsage()
 {
     # Note: short followed by long option; if the user knows the short one, she can
     # skim the long one.
-    printf 'Usage: %q %s\n' "$(basename "$1")" '[-n|--lines=[-]NUM] [-D|--duplicate-if-short] [-s|--separator HEAD-TAIL-SEPARATOR|--separator-cutline|--separator-cut-what WHAT] [-q|--quiet|--silent|-v|--verbose] [--] [FILE ...] [-?|-h|--help]'
+    printf 'Usage: %q %s\n' "$(basename "$1")" '[-n|--lines=[-]NUM] [-D|--duplicate-if-short] [-s|--separator HEAD-TAIL-SEPARATOR|--separator-cutline[-file]|--separator-cut-what WHAT] [-q|--quiet|--silent|-v|--verbose] [--] [FILE ...] [-?|-h|--help]'
     printf 'Usage: cat FILE [...] | %q %s\n' "$(basename "$1")" '[...] [-]'
 }
 printUsage()
@@ -46,9 +46,14 @@ HELPDESCRIPTION
 			number (2 or more, because a single would-be omitted
 			line does not print the separator) of omitted lines.}${fileMarker:+
 			Inside, $fileMarker is replaced with the current filespec.}
-    --separator-cutline
-			Print a separator in the form of a cutline between the
+    --separator-cutline	Print a separator in the form of a cutline between the
 			first and last lines.
+    --separator-cutline-file
+			Print a separator in the form of a cutline that informs
+			about the truncation of the FILE and the number of
+			omitted lines. If reading from standard input, the
+			contents are captured in a temp file whose filespec is
+			then used.
     --separator-cut-what WHAT
 			Print a separator in the form of a cutline with WHAT in
 			the middle.${lineNumMarker:+ If WHAT contains ${lineNumMarker}, it is replaced with the
@@ -87,6 +92,8 @@ do
 	--separator|-s)	shift; separator="${1?}"; shift;;
 	--separator-cutline)
 			shift; separatorInfo='[...]';;
+	--separator-cutline-file)
+			shift; separatorInfo='[{} lines omitted from {F}]'; algorithm='headTailWithTempfile';;
 	--separator-cut-what)
 			shift; separatorInfo="[${1?}]"; shift;;
 	--silent|--quiet|-q)
@@ -123,6 +130,7 @@ headTail()
 	-v "lineNumMarker=${lineNumMarker//\\/\\\\}" \
 	-v "fileMarker=${fileMarker//\\/\\\\}" \
 	-v "header=$header" \
+	-v "statusOnPassthrough=${statusOnPassthrough:-0}" \
 '
 function printHeadTail(      literalLineNumMarkerPattern, literalFileMarkerPattern, cutlineHalfWidth, cutline, filespec, omittedNum, start, i)
 {
@@ -149,6 +157,7 @@ function printHeadTail(      literalLineNumMarkerPattern, literalFileMarkerPatte
 	    if (separator ~ literalFileMarkerPattern) separator = gensub(literalFileMarkerPattern, filespec, "g", separator)
 
 	    print separator
+	    isTruncated = 1
 	}
     }
 
@@ -180,8 +189,11 @@ FNR == (lines + 1) {
     bufCnt++
     lastNr = FNR
 }
-END {
+ENDFILE {
     printHeadTail()
+}
+END {
+    exit(isTruncated ? 0 : statusOnPassthrough)
 }
 ' "$@"
 }
@@ -213,6 +225,35 @@ FNR <= lines {
     }
 }
 ' "$@"
+}
+
+headTailWithTempfile()
+{
+    typeset -a filespecs=()
+    typeset -a captureCommand=()
+    local tempFilespec
+    [ $# -gt 0 ] || set -- -
+    local filespec; for filespec in "$@"
+    do
+	if [ "$filespec" = - -a ${#captureCommand[@]} -eq 0 ]; then # AWK only processes stdin once, even if passed multiple times.
+	    tempFilespec="$(mktemp --tmpdir "$(basename -- "$0")-XXXXXX" 2>/dev/null || echo "${TMPDIR:-/tmp}/$(basename -- "$0").$$$RANDOM")"
+	    captureCommand=(tee -- "$tempFilespec")
+	    filespecs+=("$tempFilespec")
+	else
+	    filespecs+=("$filespec")
+	fi
+	statusOnPassthrough=99	# Indicate full printing of inputs without truncation via exit status.
+    done
+
+    eval '"${captureCommand[@]}"' "${captureCommand:+|}" 'headTail "${filespecs[@]}"'; status=$?
+
+    if [ $status -eq 99 -a ${#captureCommand[@]} -gt 0 ]; then
+	# (All) files were printed in full, i.e. no truncation happened; the cutline
+	# wasn't shown. The captured input can be removed.
+	rm -- "$tempFilespec"
+	status=0
+    fi
+    return $status
 }
 
 $algorithm "$@"
