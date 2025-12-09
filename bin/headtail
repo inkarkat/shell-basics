@@ -130,6 +130,7 @@ headTail()
 	-v "lineNumMarker=${lineNumMarker//\\/\\\\}" \
 	-v "fileMarker=${fileMarker//\\/\\\\}" \
 	-v "header=$header" \
+	-v "statusOnPassthrough=${statusOnPassthrough:-0}" \
 '
 function printHeadTail(      literalLineNumMarkerPattern, literalFileMarkerPattern, cutlineHalfWidth, cutline, filespec, omittedNum, start, i)
 {
@@ -156,6 +157,7 @@ function printHeadTail(      literalLineNumMarkerPattern, literalFileMarkerPatte
 	    if (separator ~ literalFileMarkerPattern) separator = gensub(literalFileMarkerPattern, filespec, "g", separator)
 
 	    print separator
+	    isTruncated = 1
 	}
     }
 
@@ -189,6 +191,9 @@ FNR == (lines + 1) {
 }
 ENDFILE {
     printHeadTail()
+}
+END {
+    exit(isTruncated ? 0 : statusOnPassthrough)
 }
 ' "$@"
 }
@@ -226,17 +231,29 @@ headTailWithTempfile()
 {
     typeset -a filespecs=()
     typeset -a captureCommand=()
+    local tempFilespec
     [ $# -gt 0 ] || set -- -
     local filespec; for filespec in "$@"
     do
 	if [ "$filespec" = - -a ${#captureCommand[@]} -eq 0 ]; then # AWK only processes stdin once, even if passed multiple times.
-	    filespec="$(mktemp --tmpdir "$(basename -- "$0")-XXXXXX" 2>/dev/null || echo "${TMPDIR:-/tmp}/$(basename -- "$0").$$$RANDOM")"
-	    captureCommand=(tee -- "$filespec")
+	    tempFilespec="$(mktemp --tmpdir "$(basename -- "$0")-XXXXXX" 2>/dev/null || echo "${TMPDIR:-/tmp}/$(basename -- "$0").$$$RANDOM")"
+	    captureCommand=(tee -- "$tempFilespec")
+	    filespecs+=("$tempFilespec")
+	else
+	    filespecs+=("$filespec")
 	fi
-	filespecs+=("$filespec")
+	statusOnPassthrough=99	# Indicate full printing of inputs without truncation via exit status.
     done
 
-    eval '"${captureCommand[@]}"' "${captureCommand:+|}" 'headTail "${filespecs[@]}"'
+    eval '"${captureCommand[@]}"' "${captureCommand:+|}" 'headTail "${filespecs[@]}"'; status=$?
+
+    if [ $status -eq 99 -a ${#captureCommand[@]} -gt 0 ]; then
+	# (All) files were printed in full, i.e. no truncation happened; the cutline
+	# wasn't shown. The captured input can be removed.
+	rm -- "$tempFilespec"
+	status=0
+    fi
+    return $status
 }
 
 $algorithm "$@"
