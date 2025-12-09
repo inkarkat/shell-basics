@@ -1,7 +1,7 @@
 #!/bin/bash
 shopt -qs extglob
 
-DEFAULT_LINES=5
+readonly DEFAULT_LINES=5
 : ${HEADTAIL_LINENUM_MARKER='{}'}
 lineNumMarker="$HEADTAIL_LINENUM_MARKER"; unset HEADTAIL_LINENUM_MARKER
 : ${HEADTAIL_FILE_MARKER='{F}'}
@@ -46,8 +46,7 @@ HELPDESCRIPTION
 			number (2 or more, because a single would-be omitted
 			line does not print the separator) of omitted lines.}${fileMarker:+
 			Inside, $fileMarker is replaced with the current filespec.}
-    --separator-cutline
-			Print a separator in the form of a cutline between the
+    --separator-cutline	Print a separator in the form of a cutline between the
 			first and last lines.
     --separator-cut-what WHAT
 			Print a separator in the form of a cutline with WHAT in
