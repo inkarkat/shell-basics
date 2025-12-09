@@ -11,7 +11,7 @@ printShortUsage()
 {
     # Note: short followed by long option; if the user knows the short one, she can
     # skim the long one.
-    printf 'Usage: %q %s\n' "$(basename "$1")" '[-n|--lines=[-]NUM] [-D|--duplicate-if-short] [-s|--separator HEAD-TAIL-SEPARATOR|--separator-cutline|--separator-cut-what WHAT] [-q|--quiet|--silent|-v|--verbose] [--] [FILE ...] [-?|-h|--help]'
+    printf 'Usage: %q %s\n' "$(basename "$1")" '[-n|--lines=[-]NUM] [-D|--duplicate-if-short] [-s|--separator HEAD-TAIL-SEPARATOR|--separator-cutline[-file]|--separator-cut-what WHAT] [-q|--quiet|--silent|-v|--verbose] [--] [FILE ...] [-?|-h|--help]'
     printf 'Usage: cat FILE [...] | %q %s\n' "$(basename "$1")" '[...] [-]'
 }
 printUsage()
@@ -48,6 +48,12 @@ HELPDESCRIPTION
 			Inside, $fileMarker is replaced with the current filespec.}
     --separator-cutline	Print a separator in the form of a cutline between the
 			first and last lines.
+    --separator-cutline-file
+			Print a separator in the form of a cutline that informs
+			about the truncation of the FILE and the number of
+			omitted lines. If reading from standard input, the
+			contents are captured in a temp file whose filespec is
+			then used.
     --separator-cut-what WHAT
 			Print a separator in the form of a cutline with WHAT in
 			the middle.${lineNumMarker:+ If WHAT contains ${lineNumMarker}, it is replaced with the
@@ -86,6 +92,8 @@ do
 	--separator|-s)	shift; separator="${1?}"; shift;;
 	--separator-cutline)
 			shift; separatorInfo='[...]';;
+	--separator-cutline-file)
+			shift; separatorInfo='[{} lines omitted from {F}]'; algorithm='headTailWithTempfile';;
 	--separator-cut-what)
 			shift; separatorInfo="[${1?}]"; shift;;
 	--silent|--quiet|-q)
@@ -179,7 +187,7 @@ FNR == (lines + 1) {
     bufCnt++
     lastNr = FNR
 }
-END {
+ENDFILE {
     printHeadTail()
 }
 ' "$@"
@@ -212,6 +220,23 @@ FNR <= lines {
     }
 }
 ' "$@"
+}
+
+headTailWithTempfile()
+{
+    typeset -a filespecs=()
+    typeset -a captureCommand=()
+    [ $# -gt 0 ] || set -- -
+    local filespec; for filespec in "$@"
+    do
+	if [ "$filespec" = - -a ${#captureCommand[@]} -eq 0 ]; then # AWK only processes stdin once, even if passed multiple times.
+	    filespec="$(mktemp --tmpdir "$(basename -- "$0")-XXXXXX" 2>/dev/null || echo "${TMPDIR:-/tmp}/$(basename -- "$0").$$$RANDOM")"
+	    captureCommand=(tee -- "$filespec")
+	fi
+	filespecs+=("$filespec")
+    done
+
+    eval '"${captureCommand[@]}"' "${captureCommand:+|}" 'headTail "${filespecs[@]}"'
 }
 
 $algorithm "$@"

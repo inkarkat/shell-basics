@@ -22,3 +22,23 @@ ELEVEN
 TWELVE
 EOF
 }
+
+@test "list first and last line from files and input with passed separator" {
+    COLUMNS=30 run -0 headtail --lines 1 --separator '- XXX -' - "${BATS_TEST_DIRNAME}/counts" "${BATS_TEST_DIRNAME}/louds" < "${BATS_TEST_DIRNAME}/louds"
+    assert_output - <<EOF
+==> standard input <==
+ONE
+- XXX -
+TWELVE
+
+==> ${BATS_TEST_DIRNAME}/counts <==
+one
+- XXX -
+five
+
+==> ${BATS_TEST_DIRNAME}/louds <==
+ONE
+- XXX -
+TWELVE
+EOF
+}

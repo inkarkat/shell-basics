@@ -89,3 +89,18 @@ ELEVEN
 TWELVE
 EOF
 }
+
+@test "list first and last line from files with file cutline containing count and filespec" {
+    COLUMNS=30 run -0 headtail --lines 1 --separator-cutline-file "${BATS_TEST_DIRNAME}/counts" "${BATS_TEST_DIRNAME}/louds"
+    assert_output - <<EOF
+==> ${BATS_TEST_DIRNAME}/counts <==
+one
+[3 lines omitted from ${BATS_TEST_DIRNAME}/counts]
+five
+
+==> ${BATS_TEST_DIRNAME}/louds <==
+ONE
+[10 lines omitted from ${BATS_TEST_DIRNAME}/louds]
+TWELVE
+EOF
+}
