@@ -6,6 +6,8 @@ readonly DEFAULT_LINES=5
 lineNumMarker="$HEADTAIL_LINENUM_MARKER"; unset HEADTAIL_LINENUM_MARKER
 : ${HEADTAIL_FILE_MARKER='{F}'}
 fileMarker="$HEADTAIL_FILE_MARKER"; unset HEADTAIL_FILE_MARKER
+# HEADTAIL_TEMP_PREFIX	Temporary file name prefix used for
+#			--separator-cutline-file with standard input.
 
 printShortUsage()
 {
@@ -236,7 +238,8 @@ headTailWithTempfile()
     local filespec; for filespec in "$@"
     do
 	if [ "$filespec" = - -a ${#captureCommand[@]} -eq 0 ]; then # AWK only processes stdin once, even if passed multiple times.
-	    tempFilespec="$(mktemp --tmpdir "$(basename -- "$0")-XXXXXX" 2>/dev/null || echo "${TMPDIR:-/tmp}/$(basename -- "$0").$$$RANDOM")"
+	    local tempPrefix="${HEADTAIL_TEMP_PREFIX:-$(basename -- "$0")}"
+	    tempFilespec="$(mktemp --tmpdir "${tempPrefix}-XXXXXX" 2>/dev/null || echo "${TMPDIR:-/tmp}/${tempPrefix}.$$$RANDOM")"
 	    captureCommand=(tee -- "$tempFilespec")
 	    filespecs+=("$tempFilespec")
 	else
