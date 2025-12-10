@@ -5,6 +5,8 @@ shopt -qs extglob
 : ${WITHUSERNOTIFY_COMMAND_JOINER=;}
 : ${WITHUSERNOTIFY_FILTERCOMMAND_JOINER=|}
 : ${WITHUSERNOTIFY_EXEC_END=;}
+: ${WITHUSERNOTIFY_WRAP=80}
+: ${WITHUSERNOTIFY_MAX_LINES=40}
 
 printShortUsage()
 {
@@ -157,7 +159,18 @@ if [ ${#userNotifyTitleArg[@]} -eq 0 ]; then
     [ -n "$commandName" ] && userNotifyTitleArg=(--title "$commandName")
 fi
 
-eval "notification=\"\$({ ${commands}; } ${redirPrefix} ${filterCommands:+|}" "$filterCommands" ")\" ${redirSuffix}"
+wrapCommand=
+[ -z "$WITHUSERNOTIFY_WRAP" ] \
+    || wrapCommand='fmt --split-only --width "$WITHUSERNOTIFY_WRAP"'
+truncateCommand=
+[ -z "$WITHUSERNOTIFY_MAX_LINES" ] \
+    || truncateCommand='env COLUMNS="${WITHUSERNOTIFY_WRAP:-80}" HEADTAIL_TEMP_PREFIX=userNotify headtail --lines $((WITHUSERNOTIFY_MAX_LINES / 2)) --separator-cutline-file'
+
+eval "notification=\"\$({ ${commands}; } ${redirPrefix}" \
+	"${filterCommands:+|}$filterCommands" \
+	"${wrapCommand:+|}$wrapCommand" \
+	"${truncateCommand:+|}$truncateCommand" \
+    ")\" ${redirSuffix}"
 
 [ -n "$notification" ] || exit 99
 
