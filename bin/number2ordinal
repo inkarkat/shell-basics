@@ -1,16 +1,37 @@
 #!/bin/bash
 
+printShortUsage()
+{
+    # Note: short followed by long option; if the user knows the short one, she can
+    # skim the long one.
+    printf 'Usage: %q %s\n' "$(basename "$1")" '[-l|--long] N [...] [-?|-h|--help]'
+}
 printUsage()
 {
-    cat <<HELPTEXT
+    # This is the short help when launched with no or incorrect arguments.
+    # It is printed to stderr to avoid accidental processing.
+    printShortUsage "$1" >&2
+    printf >&2 '\nTry %q --help for more information.\n' "$(basename "$1")"
+}
+printLongUsage()
+{
+    # This is the long "man page" when launched with the help argument.
+    # It is printed to stdout to allow paging with 'more'.
+    cat <<HELPDESCRIPTION
 Convert the passed number(s) N to the corresponding ordinal.
-HELPTEXT
+HELPDESCRIPTION
     echo
-    printf 'Usage: %q %s\n' "$(basename "$1")" 'N [...] [-?|-h|--help]'
+    printShortUsage "$1"
+    echo
+    cat <<HELPTEXT
+    --long|-l		Spell out numbers 1-13 (i.e. "first" instead of "1st").
+HELPTEXT
 }
 
+isLong=
 case "$1" in
-    --help|-h|-\?)	shift; printUsage "$0"; exit 0;;
+    --help|-h|-\?)	shift; printLongUsage "$0"; exit 0;;
+    --long|-l)		shift; isLong=t;;
 esac
 if [ $# -eq 0 ]; then
     printUsage "$0" >&2
@@ -22,7 +43,24 @@ ord()
     local n="${1:?}"; shift
     local mod100=$((n % 100)) suffix
 
-    if ((mod100 >= 11 && mod100 <= 13)); then
+    if [ "$isLong" ] && ((n <= 13)); then
+	case $n in
+	    1) suffix='first';;
+	    2) suffix='second';;
+	    3) suffix='third';;
+	    4) suffix='fourth';;
+	    5) suffix='fifth';;
+	    6) suffix='sixth';;
+	    7) suffix='seventh';;
+	    8) suffix='eighth';;
+	    9) suffix='ninth';;
+	    10) suffix='tenth';;
+	    11) suffix='eleventh';;
+	    12) suffix='twelfth';;
+	    13) suffix='thirteenth';;
+	esac
+	n=''
+    elif ((mod100 >= 11 && mod100 <= 13)); then
 	suffix='th'
     else
 	case $((n % 10)) in
@@ -32,7 +70,7 @@ ord()
 	    *) suffix='th' ;;
 	esac
     fi
-    printf '%d%s\n' "$n" "$suffix"
+    printf '%s%s\n' "$n" "$suffix"
 }
 
 for number
