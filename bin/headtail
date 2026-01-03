@@ -124,7 +124,7 @@ passThrough()
 
 headTail()
 {
-    exec awk \
+    awk \
 	-v "lines=$lines" \
 	-v "isDuplicateIfShort=$isDuplicateIfShort" \
 	-v "separator=${separator//\\/\\\\}" \
@@ -232,25 +232,28 @@ FNR <= lines {
 headTailWithTempfile()
 {
     typeset -a filespecs=()
-    typeset -a captureCommand=()
+    local isStdinCaptured=
     local tempFilespec
     [ $# -gt 0 ] || set -- -
     local filespec; for filespec in "$@"
     do
-	if [ "$filespec" = - -a ${#captureCommand[@]} -eq 0 ]; then # AWK only processes stdin once, even if passed multiple times.
+	if [ "$filespec" = - ] && [ ! "$isStdinCaptured" ]; then # AWK only processes stdin once, even if passed multiple times.
+	    isStdinCaptured=t
+	    statusOnPassthrough=99  # Indicate full printing of inputs without truncation via exit status, so that we can decide whether to keep the temp file or not.
+
 	    local tempPrefix="${HEADTAIL_TEMP_PREFIX:-$(basename -- "$0")}"
 	    tempFilespec="$(mktemp --tmpdir "${tempPrefix}-XXXXXX" 2>/dev/null || echo "${TMPDIR:-/tmp}/${tempPrefix}.$$$RANDOM")"
-	    captureCommand=(tee -- "$tempFilespec")
-	    filespecs+=("$tempFilespec")
+	    tee -- "$tempFilespec" >/dev/null \
+		&& filespecs+=("$tempFilespec") \
+		|| return 3
 	else
 	    filespecs+=("$filespec")
 	fi
-	statusOnPassthrough=99	# Indicate full printing of inputs without truncation via exit status.
     done
 
-    eval '"${captureCommand[@]}"' "${captureCommand:+|}" 'headTail "${filespecs[@]}"'; status=$?
+    headTail "${filespecs[@]}"; status=$?
 
-    if [ $status -eq 99 -a ${#captureCommand[@]} -gt 0 ]; then
+    if [ $status -eq 99 ] && [ "$isStdinCaptured" ]; then
 	# (All) files were printed in full, i.e. no truncation happened; the cutline
 	# wasn't shown. The captured input can be removed.
 	rm -- "$tempFilespec"
