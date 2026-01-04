@@ -1,0 +1,35 @@
+#!/bin/bash
+shopt -qs extglob # Enable extended file pattern matching operators from ksh (?(pattern-list), !(pattern-list), ...) in Bash.
+
+printUsage()
+{
+    cat <<HELPTEXT
+Check a white- or blacklist GLOB against passed ARGs.
+If GLOB is positive, test whether any ARG matches GLOB (whitelist).
+If GLOB is negative (i.e. !(PATTERN), excluding matches of PATTERN), test
+whether all ARGs match GLOB / no ARG matches PATTERN (blacklist).
+Only considers ARGs until one is equal to the WHITEORBLACKLISTGLOB_UNTIL value.
+
+SEE ALSO:
+- containsGlob works like this command's whitelist part.
+- matchesGlob works like this command's blacklist part.
+HELPTEXT
+    echo
+    printf 'Usage: [WHITEORBLACKLISTGLOB_UNTIL=value] %q %s\n' "$(basename "$1")" "[--] 'GLOB' [ARG ...] [-?|-h|--help]"
+}
+case "$1" in
+    --help|-h|-\?)	shift; printUsage "$0"; exit 0;;
+    --)			shift;;
+esac
+
+glob="$1"; shift
+isNegative=; [[ "$glob" =~ ^!\(.*\)$ ]] && isNegative=t
+for elem
+do
+    [ -n "$WHITEORBLACKLISTGLOB_UNTIL" ] && [ "$WHITEORBLACKLISTGLOB_UNTIL" = "$elem" ] && break
+    case "$elem" in
+	@($glob))   [ "$isNegative" ] || exit 0;;
+	*)	    [ "$isNegative" ] && exit 1;;
+    esac
+done
+[ "$isNegative" ]
