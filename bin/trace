@@ -71,20 +71,22 @@ if [ "$program" = '.' ]; then
 	printUsage "$0" >&2
 	exit 2
     fi
-    # Sourced scripts may test for an interactive shell, so set it (even if that
-    # has no effect other than modifying $- here).
-    set -i
     program="$1"; shift
+    [ ${#capture[@]} -gt 0 ] || capture=(source)
 fi
 
+activateCapture()
+{
+    exec 42>"$TMPFILE"
+    export BASH_XTRACEFD=42
+}
 setupCapture()
 {
     TMPFILE="$(mktemp --tmpdir "$(basename -- "$0")-XXXXXX" 2>/dev/null || echo "${TMPDIR:-/tmp}/$(basename -- "$0").$$$RANDOM")"
     trap 'set +x; exec 42>&-; viewTrace' EXIT
-    exec 42>"$TMPFILE"
-    export BASH_XTRACEFD=42
     [ $# -eq 0 ] && return
 
+    activateCapture
     "${traceEnableCommand[@]}"
     "$@"
 }
@@ -100,8 +102,12 @@ if [ "$(type -t "$program")" = function ]; then
     "${capture[@]}" "$program" "$@"
 else
     programFilespec="$(which -- "$program" 2>/dev/null)"
+    programName="${programFilespec##*/}"; programName="${programName%.*}"
     if [ -n "$programFilespec" ] \
-	&& grep --fixed-strings --quiet 'case ",${TRACE:-}," in *,${BASH_SOURCE[0]##*/},*)' -- "$programFilespec"
+	&& grep --fixed-strings --quiet \
+		-e 'case ",${TRACE:-}," in *,${BASH_SOURCE[0]##*/},*)' \
+		-e 'case ",${TRACE:-}," in *,'"${programName}"',*)' \
+		-- "$programFilespec"
     then
 	# This script supports tracing via environment variable.
 	[ ${#traceEnableCommand[@]} -eq 0 ] || export TRACE+="${TRACE:+,}$(basename -- "$programFilespec")"
@@ -116,6 +122,7 @@ else
 	# keep the trap alive.
 	"${capture[@]}"
 	(
+	    activateCapture
 	    BASH_ARGV0="$program"	# Bash 5+ only
 	    "${traceEnableCommand[@]}"
 	    source "$program" "$@"
