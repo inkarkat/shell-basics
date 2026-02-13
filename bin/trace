@@ -71,9 +71,6 @@ if [ "$program" = '.' ]; then
 	printUsage "$0" >&2
 	exit 2
     fi
-    # Sourced scripts may test for an interactive shell, so set it (even if that
-    # has no effect other than modifying $- here).
-    set -i
     program="$1"; shift
     [ ${#capture[@]} -gt 0 ] || capture=(source)
 fi
