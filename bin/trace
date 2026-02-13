@@ -77,14 +77,18 @@ if [ "$program" = '.' ]; then
     program="$1"; shift
 fi
 
+activateCapture()
+{
+    exec 42>"$TMPFILE"
+    export BASH_XTRACEFD=42
+}
 setupCapture()
 {
     TMPFILE="$(mktemp --tmpdir "$(basename -- "$0")-XXXXXX" 2>/dev/null || echo "${TMPDIR:-/tmp}/$(basename -- "$0").$$$RANDOM")"
     trap 'set +x; exec 42>&-; viewTrace' EXIT
-    exec 42>"$TMPFILE"
-    export BASH_XTRACEFD=42
     [ $# -eq 0 ] && return
 
+    activateCapture
     "${traceEnableCommand[@]}"
     "$@"
 }
@@ -116,6 +120,7 @@ else
 	# keep the trap alive.
 	"${capture[@]}"
 	(
+	    activateCapture
 	    BASH_ARGV0="$program"	# Bash 5+ only
 	    "${traceEnableCommand[@]}"
 	    source "$program" "$@"
