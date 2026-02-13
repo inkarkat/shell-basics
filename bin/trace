@@ -104,8 +104,12 @@ if [ "$(type -t "$program")" = function ]; then
     "${capture[@]}" "$program" "$@"
 else
     programFilespec="$(which -- "$program" 2>/dev/null)"
+    programName="${programFilespec##*/}"; programName="${programName%.*}"
     if [ -n "$programFilespec" ] \
-	&& grep --fixed-strings --quiet 'case ",${TRACE:-}," in *,${BASH_SOURCE[0]##*/},*)' -- "$programFilespec"
+	&& grep --fixed-strings --quiet \
+		-e 'case ",${TRACE:-}," in *,${BASH_SOURCE[0]##*/},*)' \
+		-e 'case ",${TRACE:-}," in *,'"${programName}"',*)' \
+		-- "$programFilespec"
     then
 	# This script supports tracing via environment variable.
 	[ ${#traceEnableCommand[@]} -eq 0 ] || export TRACE+="${TRACE:+,}$(basename -- "$programFilespec")"
