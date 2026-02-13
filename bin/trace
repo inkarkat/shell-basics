@@ -75,6 +75,7 @@ if [ "$program" = '.' ]; then
     # has no effect other than modifying $- here).
     set -i
     program="$1"; shift
+    [ ${#capture[@]} -gt 0 ] || capture=(source)
 fi
 
 activateCapture()
