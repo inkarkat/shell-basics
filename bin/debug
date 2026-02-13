@@ -15,10 +15,19 @@ case "$1" in
     --help|-h|-\?)	shift; printUsage "$0"; exit 0;;
     --interactive|-i)	shift; isInteractive=t;;
 esac
+if [ $# -eq 0 ]; then
+    printUsage "$0" >&2
+    exit 2
+fi
 
 program=$1; shift
 if [ "$program" = '.' ]; then
+    if [ $# -eq 0 ]; then
+	printUsage "$0" >&2
+	exit 2
+    fi
     program="$1"; shift
+
     if [ "$isInteractive" ]; then
 	exec bash -i -c 'DEBUG+="${DEBUG:+,}$0"; . "$0" "$@"' -- "$program" "$@"
     fi
