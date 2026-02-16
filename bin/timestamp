@@ -45,7 +45,7 @@ RELATED COMMANDS:
 HELPTEXT
 }
 
-typeset -a dateArgs=()
+typeset -a dateDateArgs=()
 dateFormat='+%d-%b-%Y${fieldSeparator- }%T${millis}'
 separator=' '
 millis=',%3N'
@@ -63,7 +63,7 @@ do
 	--field-separator|-F)
 			shift; fieldSeparator="$1"; shift;;
 	--separator|-s)	shift; separator="$1"; shift;;
-	--date|-d)	shift; dateArgs+=(--date "${1:?}"); shift;;
+	--date|-d)	shift; dateDateArgs+=(--date "${1:?}"); shift;;
 	--quoted)	shift; isQuoted=t;;
 	--prefix)	shift; prefix="$1"; shift;;
 	-)		break;;
@@ -72,20 +72,22 @@ do
 	*)		break;;
     esac
 done
+[ -n "$NOW" -a ${#dateDateArgs[@]} -eq 0 ] && dateDateArgs=(--date "$NOW")
+
 if [ $# -eq 1 ] && [ "$1" = '-' ]; then
     isEOL=t
     while IFS=$'\n' read -r line || { isEOL=; [ -n "$line" ]; }
     do
-	printf "%s%s%s%s${isEOL:+\\n}" "$prefix" "$(eval "date \"\${dateArgs[@]}\" \"$dateFormat\"")" "$separator" "$line"
+	printf "%s%s%s%s${isEOL:+\\n}" "$prefix" "$(eval "date \"\${dateDateArgs[@]}\" \"$dateFormat\"")" "$separator" "$line"
     done
 elif [ $# -gt 0 ]; then
     if [ "$isQuoted" ]; then
-	PRETTYPRINTQUOTEDARGS_PREFIX="${prefix}$(eval "date \"\${dateArgs[@]}\" \"$dateFormat\"")${separator}" \
+	PRETTYPRINTQUOTEDARGS_PREFIX="${prefix}$(eval "date \"\${dateDateArgs[@]}\" \"$dateFormat\"")${separator}" \
 	    exec prettyPrintQuotedArgs -- "$@"
     else
-	printf '%s%s%s%s\n' "$prefix" "$(eval "date \"\${dateArgs[@]}\" \"$dateFormat\"")" "$separator" "$*"
+	printf '%s%s%s%s\n' "$prefix" "$(eval "date \"\${dateDateArgs[@]}\" \"$dateFormat\"")" "$separator" "$*"
     fi
 else
     [ -n "$prefix" ] && printf %s "$prefix"
-    eval "date \"\${dateArgs[@]}\" \"$dateFormat\""
+    eval "date \"\${dateDateArgs[@]}\" \"$dateFormat\""
 fi
