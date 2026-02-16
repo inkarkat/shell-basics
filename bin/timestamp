@@ -72,6 +72,8 @@ do
 	*)		break;;
     esac
 done
+[ -n "$NOW" -a ${#dateDateArgs[@]} -eq 0 ] && dateDateArgs=(--date "$NOW")
+
 if [ $# -eq 1 ] && [ "$1" = '-' ]; then
     isEOL=t
     while IFS=$'\n' read -r line || { isEOL=; [ -n "$line" ]; }
