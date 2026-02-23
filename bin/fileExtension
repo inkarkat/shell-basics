@@ -45,6 +45,10 @@ modifications:
     --default|-f EXT	Append EXT to FILENAME if it doesn't have one yet.
     --modify|-m EXT	Change any existing file extension to EXT.
     --add|-a EXT	Append EXT to the existing file extension.
+
+SEE ALSO:
+- eachFile uses this command's processing to derive a target command, and then
+  perform COMMAND(s) on each FILE that requires an update.
 HELPTEXT
     echo
     printf 'Example: readarray -t fileSplit < <(%q --split "foo bar.tar.gz")\n' "$(basename "$1")"
