@@ -63,7 +63,7 @@ do
 	--single|-1)	shift; isSingle=t;;
 	--strip|-d)	shift; output=strip;;
 	--basename|-b)	shift; output=strip; actions+=(keepBasename);;
-	--rebase|-o)	shift; targetDirspec="${1:?}"; shift; actions+=(rebase);;
+	--rebase|-o)	shift; targetDirspec="${1:?}"; shift; output=asIs; actions+=(rebase);;
 	--split|-s)	shift; output=split;;
 	--split-all|-3)	shift; output=splitall;;
 	--splice|-c)	shift; insertion="$1"; shift; output=asIs; actions+=(splice);;
