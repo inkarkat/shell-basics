@@ -24,31 +24,29 @@ HELPDESCRIPTION
     echo
     printShortUsage "$1"
     cat <<HELPTEXT
-    --single|-1	Just parse a single .extension (instead of a maximum of three).
-    --strip|-d	The extension is removed instead and the bare (path +) name
-		without extension is printed.
-    --split|-s	Both (path +) name and extension are printed on separate lines,
-		e.g. for parsing via read.
-    --split-all|-3
-		Path (. if none), name, and extension are printed on separate
-		lines.
+    --single|-1		Just parse a single .extension (instead of a maximum of
+			three).
+    --strip|-d		The extension is removed instead and the bare (path +)
+			name without extension is printed.
+    --split|-s		Both (path +) name and extension are printed on separate
+			lines, e.g. for parsing via read.
+    --split-all|-3	Path (. if none), name, and extension are printed on
+			separate lines.
 The following options can be used alone or combined with one of the above output
 modifications:
     --rebase|-o TARGETDIR
-		Change the directory part of FILENAME to TARGETDIR.
-    --basename|-b
-		Both path and extension are removed; the bare name without path
-		and extension is printed.
+			Change the directory part of FILENAME to TARGETDIR.
+    --basename|-b	Both path and extension are removed; the bare name
+			without path and extension is printed.
     --splice|-c	INSERTION
-		INSERTION is inserted at the end of the file name, before the
-		extension(s). If you want to prepend an EXT, use --splice .EXT
-    --default|-f EXT
-		Append EXT to FILENAME if it doesn't have one yet.
-    --modify|-m EXT
-		Change any existing file extension to EXT.
-    --add|-a EXT
-		Append EXT to the existing file extension.
+			INSERTION is inserted at the end of the file name,
+			before the extension(s). If you want to prepend an EXT,
+			use --splice .EXT
+    --default|-f EXT	Append EXT to FILENAME if it doesn't have one yet.
+    --modify|-m EXT	Change any existing file extension to EXT.
+    --add|-a EXT	Append EXT to the existing file extension.
 HELPTEXT
+    echo
     printf 'Example: readarray -t fileSplit < <(%q --split "foo bar.tar.gz")\n' "$(basename "$1")"
 }
 
