@@ -37,6 +37,7 @@ do
 			    # so that readline's cursor positioning (e.g. C-u) isn't confused by the
 			    # invisible color codes (which it counts as full characters).
 			    separatePrompt="${2?}"
+			    uncoloredPrompt="${uncoloredPrompt##*$'\n'}" # Only the last line of the prompt is relevant for readline's cursor positioning.
 			    uncoloredPromptLen=${#uncoloredPrompt}
 
 			    # The read command needs a fake prompt that looks as if it's as long as the
