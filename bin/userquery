@@ -1,4 +1,5 @@
 #!/bin/bash
+shopt -qs extglob
 
 : ${USERQUERY_EXIT_STATUS_NO_TERM:=99}
 : ${USERQUERY_EOF=$'\n'}
@@ -23,9 +24,41 @@ HELPTEXT
     echo
     printf 'Usage: choice="$([USERQUERY_EOF=STRING] [USERQUERY_EXIT_STATUS_NO_TERM=99] [USERQUERY_INPUT=/dev/stdin] [USERQUERY_ERROR_OUTPUT=/dev/null] [USERQUERY_ALERT_SUBJECT=SUBJECT] [USERQUERY_ALERT_TIMESPAN=VALID-TIMESPAN|TIMESLOT] %q %s)"\n' "$(basename "$1")" '[READ-ARGS ...]'
 }
-case "$1" in
-    --help|-h|-\?)	shift; printUsage "$0"; exit 0;;
-esac
+
+separatePrompt=
+typeset -a args=()
+while [ $# -ne 0 ]
+do
+    case "$1" in
+	--help|-h|-\?)	shift; printUsage "$0"; exit 0;;
+	-p)		uncoloredPrompt="${2//\[*([0-9:;])m/}"
+			if [ "$2" != "$uncoloredPrompt" ]; then
+			    # XXX: If the prompt contains ANSI color codes, we need to print it separately
+			    # so that readline's cursor positioning (e.g. C-u) isn't confused by the
+			    # invisible color codes (which it counts as full characters).
+			    separatePrompt="${2?}"
+			    uncoloredPromptLen=${#uncoloredPrompt}
+
+			    # The read command needs a fake prompt that looks as if it's as long as the
+			    # uncolored prompt, but when printed it must be a no-op. The ANSI color reset
+			    # ^[[0m can be written with an arbitrary amount of zeroes (e.g. ^[[0000m)
+			    # without changing its effect, so we use that to create a zero-length prompt of
+			    # the correct length.
+			    if [ $uncoloredPromptLen -ge 3 ]; then
+				[ $uncoloredPromptLen -eq 3 ] || printf -v zeroPadding "%$((uncoloredPromptLen - 3))s" '0'; printf -v zeroPadding %s "${zeroPadding// /0}"
+				args+=("$1" $'\e['"${zeroPadding}m")
+			    fi
+			    # XXX: We cannot handle prompts of one or two characters length, because the
+			    # minimum length of an ANSI color code is 3 characters (e.g. ^[[m).
+			else
+			    args+=("$1" "${2?}")
+			fi
+			shift; shift
+			;;
+	*)		args+=("$1"); shift;;
+    esac
+done
+set -- "${args[@]}" "$@"
 
 { exec 0<"${USERQUERY_INPUT:-/dev/tty}"; } 2>/dev/null || exit $USERQUERY_EXIT_STATUS_NO_TERM
 
@@ -41,4 +74,5 @@ if [ "$USERQUERY_ALERT_TIMESPAN" ]; then
     marker --update "${USERQUERY_ALERT_SUBJECT:-default}"
 fi
 
+[ -z "$separatePrompt" ] || printf >/dev/tty %s "$separatePrompt"
 IFS='' read "$@" CHOICE 2>"${USERQUERY_ERROR_OUTPUT:-/dev/tty}" && printf '%s%s' "$CHOICE" "$USERQUERY_EOF"
