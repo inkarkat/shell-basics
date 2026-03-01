@@ -1,0 +1,118 @@
+#!/bin/bash
+
+: ${COMBINENAMES_ELLIPSIS=…}
+
+printShortUsage()
+{
+    # Note: short followed by long option; if the user knows the short one, they can
+    # skim the long one.
+    printf 'Usage: %q %s\n' "$(basename "$1")" '--range [--exclude-ranged] [--] NAME [...] [-?|-h|--help]'
+}
+printUsage()
+{
+    # This is the short help when launched with no or incorrect arguments.
+    # It is printed to stderr to avoid accidental processing.
+    printShortUsage "$1" >&2
+    printf >&2 '\nTry %q --help for more information.\n' "$(basename "$1")"
+}
+printLongUsage()
+{
+    # This is the long "man page" when launched with the help argument.
+    # It is printed to stdout to allow paging with 'more'.
+    cat <<HELPDESCRIPTION
+Combine all passed NAME(s) into a single name that characterizes all of them.
+HELPDESCRIPTION
+    echo
+    printShortUsage "$1"
+    echo
+    cat <<HELPTEXT
+    --range		Use the first and last NAME(s) to characterize the whole
+			range of NAME(s). Keep common prefix and suffix and
+			synthesize a middle part consisting of the different
+			parts of the first and last NAME(s) separated by ${COMBINENAMES_ELLIPSIS}.
+			For example, "foo1.txt" and "foo9.txt" would be combined
+			to "foo1…9.txt".
+    --exclude-ranged	When --range is used, exclude first and last NAME(s)
+			that themselves already have a ${COMBINENAMES_ELLIPSIS}
+			in them, to avoid a recursive characterization.
+cla-exitstatus
+HELPTEXT
+}
+
+selector=firstAndLast
+action=
+while [ $# -ne 0 ]
+do
+    case "$1" in
+	--help|-h|-\?)	shift; printLongUsage "$0"; exit 0;;
+	--range)	shift; action=combineRanges;;
+	--exclude-ranged)
+			shift; selector=firstAndLastWithoutRanged;;
+	--)		shift; break;;
+	-*)		{ echo "ERROR: Unknown option \"$1\"!"; echo; printUsage "$0"; } >&2; exit 2;;
+	*)		break;;
+    esac
+done
+if [ -z "$action" ]; then
+    printUsage "$0" >&2
+    exit 2
+fi
+case $# in
+    0)	echo 'ERROR: No NAME(s) passed.'
+	echo
+	printUsage "$0"
+	exit 2
+	;;
+    1)	printf '%s\n' "$1"; exit 0;;
+esac >&2
+
+firstAndLast()
+{
+    printf '%s\n' "$1" "${!#}"
+}
+
+firstAndLastWithoutRanged()
+{
+    # DWIM: Don't include a previously generated range (i.e. with "…" in the
+    # synthesized name); it is more likely that the user wants to exclude the
+    # previously generated target (but chose a sloppy file glob that now includes an
+    # existing target file).
+    for ((a = 1; a <= $#; a++))
+    do
+	[[ "${!a}" == *…* ]] || break
+    done
+    for ((b = $#; b >= 1; b--))
+    do
+	[[ "${!b}" == *…* ]] || break
+    done
+    printf '%s\n' "${!a}" "${!b}"
+}
+
+combineRanges()
+{
+    local a="${1:?}"; shift
+    local b="${1:?}"; shift
+
+    local i=0 la=${#a}; lb=${#b} min=$((la < lb ? la : lb))
+    while ((i < min)) && [[ "${a:i:1}" == "${b:i:1}" ]]; do
+	let i++
+    done
+    prefix="${a:0:i}"
+
+    # Common suffix (don't overlap prefix).
+    local j=0
+    while ((la-1-j >= i)) && ((lb-1-j >= i)) && [[ "${a:la-1-j:1}" == "${b:lb-1-j:1}" ]]; do
+	let j++
+    done
+    local suffix="${a:la-j:j}"
+    local mid_a="${a:i:la-i-j}"
+    local mid_b="${b:i:lb-i-j}"
+
+    printf '%s%s%s%s%s\n' "$prefix" "$mid_a" "$COMBINENAMES_ELLIPSIS" "$mid_b" "$suffix"
+}
+
+readarray -t names < <($selector "$@")
+if [ ${#names[@]} -ne 2 ]; then
+    printf >&2 'ASSERT: Expected 2 names, but got %s.\n' "${#names[@]}"; exit 3
+fi
+$action "${names[@]}"
