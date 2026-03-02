@@ -2,7 +2,7 @@
 shopt -qs extglob
 
 : ${COMMANDNAME_INTERPRETERS='perl|python?(3)|ruby'}
-# COMMANDNAME_WRAPPERS='wrapper1|wrapper2'
+: ${COMMANDNAME_WRAPPERS='sudo'}
 : ${COMMANDNAME_SHELLS='?(ba|da|[cakz])sh'}
 : ${COMMANDNAME_EXTENSIONS='?(.exe)'}
 
