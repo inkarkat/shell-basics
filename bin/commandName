@@ -10,7 +10,7 @@ printShortUsage()
 {
     # Note: short followed by long option; if the user knows the short one, she can
     # skim the long one.
-    printf 'Usage: %q %s\n' "$(basename "$1")" '[--eval] [--undefined UNDEFINED] [-n|--no-interpreter] [--] COMMANDLINE ... [-?|-h|--help]'
+    printf 'Usage: [COMMANDNAME_INTERPRETERS=CMD-GLOB] [COMMANDNAME_WRAPPERS=CMD-GLOB] [COMMANDNAME_SHELLS=CMD-GLOB] [COMMANDNAME_EXTENSIONS=EXT-GLOB] %q %s\n' "$(basename "$1")" '[--eval] [--undefined UNDEFINED] [-n|--no-interpreter] [--] COMMANDLINE ... [-?|-h|--help]'
 }
 printUsage()
 {
@@ -29,8 +29,10 @@ COMMANDLINE.
 HELPDESCRIPTION
     echo
     printShortUsage "$1"
+    echo
     cat <<HELPTEXT
-    --eval	Also support interpolation via eval (basically, quoted commands).
+    --eval	Also support interpolation via eval (basically, quoted
+		commands).
     --undefined UNDEFINED
 		If no command is found, return UNDEFINED instead of "undefined".
     --no-interpreter|-n
