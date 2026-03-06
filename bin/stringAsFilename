@@ -10,8 +10,9 @@ so that the result is a valid filename but enough uniqueness is kept. The only
 guarantee is that the same TEXT will always lead to the same filename.
 HELPTEXT
     echo
-    printf 'Usage: %q %s\n' "$(basename "$1")" '[-l|--max-length N] [--] TEXT [...] [-?|-h|--help]'
-    printf 'Usage: cat FILE [...] | %q %s\n' "$(basename "$1")" '- [-?|-h|--help]'
+    printf 'Usage: %q %s\n' "$(basename "$1")" '[-l|--max-length N] [-?|-h|--help] ...'
+    printf 'Usage: %q %s\n' "$(basename "$1")" '... [--] TEXT [...]'
+    printf 'Usage: cat FILE [...] | %q %s\n' "$(basename "$1")" '... -'
 }
 
 maxLength=128
