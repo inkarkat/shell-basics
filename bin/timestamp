@@ -1,11 +1,19 @@
 #!/bin/bash
 
+: ${TIMESTAMP_COMMAND_JOINER=;}
+: ${TIMESTAMP_EXEC_END=;}
+
 printShortUsage()
 {
     # Note: short followed by long option; if the user knows the short one, she can
     # skim the long one.
-    printf 'Usage: %q %s\n' "$(basename "$1")" '[--human|--short|--sortable] [--no-millis] [-s|--separator SEP] [-F|--field-separator SEP] [-d|--date DATE] [--prefix PREFIX] [[--quoted] [--] MESSAGE [...]] [-?|-h|--help]'
-    printf 'Usage: cat FILE [...] | %q %s\n' "$(basename "$1")" '[...] -'
+    printf 'Usage: %q %s\n' "$(basename "$1")" '[--human|--short|--sortable] [--no-millis] [-s|--separator SEP] [-F|--field-separator SEP] [-d|--date DATE] [--prefix PREFIX] [-?|-h|--help] ...'
+    echo
+    printf 'Usage: %q %s\n' "$(basename "$1")" '... [--quoted] [--] MESSAGE [...]'
+    echo
+    printf 'Usage: %q %s\n' "$(basename "$1")" "... -c|--command \"COMMANDLINE\" [-c ...] | --exec SIMPLECOMMAND ... $TIMESTAMP_EXEC_END [--exec ...]"
+    echo
+    printf 'Usage: cat FILE [...] | %q %s\n' "$(basename "$1")" '... -'
 }
 printUsage()
 {
@@ -38,6 +46,10 @@ HELPDESCRIPTION
     --quoted		Each argument of MESSAGE is individually quoted (e.g. to
 			preserve a passed command with arguments in reusable
 			form).
+    --command|-c CMD	Execute CMD as a command-line and prefix its output.
+    --exec COMMAND $TIMESTAMP_EXEC_END	Execute COMMAND; all following arguments are taken to be
+			arguments to the COMMAND until an argument consisting of
+			'${TIMESTAMP_EXEC_END}' is encountered. Its output is prefixed with timestamps.
 
 RELATED COMMANDS:
 - ts (provided by GNU moreutils)
@@ -52,6 +64,7 @@ millis=',%3N'
 unset fieldSeparator
 isQuoted=
 prefix=
+commands=
 while [ $# -ne 0 ]
 do
     case "$1" in
@@ -66,6 +79,24 @@ do
 	--date|-d)	shift; dateDateArgs+=(--date "${1:?}"); shift;;
 	--quoted)	shift; isQuoted=t;;
 	--prefix)	shift; prefix="$1"; shift;;
+
+	--command|-c)	shift; commands+="${commands:+ $TIMESTAMP_COMMAND_JOINER }$1"; shift;;
+	--exec)		shift
+			cmd=
+			while [ $# -gt 0 -a "$1" != "$TIMESTAMP_EXEC_END" ]
+			do
+			    printf -v quotedArg '%q' "$1"
+			    cmd+="${cmd:+ }${quotedArg}"
+			    shift
+			done
+			if [ $# -eq 0 ]; then
+			    echo "ERROR: --exec command must be concluded with '${TIMESTAMP_EXEC_END}'"; echo; printUsage "$0"
+			    exit 2
+			fi >&2
+			shift
+			commands+="${commands:+ $TIMESTAMP_COMMAND_JOINER }${cmd}"
+			;;
+
 	-)		break;;
 	--)		shift; break;;
 	-*)		{ echo "ERROR: Unknown option \"$1\"!"; echo; printUsage "$0"; } >&2; exit 2;;
@@ -83,7 +114,15 @@ timestampInput()
     done
 }
 
-if [ $# -eq 1 ] && [ "$1" = '-' ]; then
+if [ -n "$commands" ]; then
+    if [ $# -ne 0 ]; then
+	printUsage "$0" >&2
+	exit 2
+    fi
+
+    eval "$commands" \
+	| timestampInput
+elif [ $# -eq 1 ] && [ "$1" = '-' ]; then
     timestampInput
 elif [ $# -gt 0 ]; then
     if [ "$isQuoted" ]; then
