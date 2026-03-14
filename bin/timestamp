@@ -74,12 +74,17 @@ do
 done
 [ -n "$NOW" -a ${#dateDateArgs[@]} -eq 0 ] && dateDateArgs=(--date "$NOW")
 
-if [ $# -eq 1 ] && [ "$1" = '-' ]; then
-    isEOL=t
+timestampInput()
+{
+    local isEOL=t line
     while IFS=$'\n' read -r line || { isEOL=; [ -n "$line" ]; }
     do
 	printf "%s%s%s%s${isEOL:+\\n}" "$prefix" "$(eval "date \"\${dateDateArgs[@]}\" \"$dateFormat\"")" "$separator" "$line"
     done
+}
+
+if [ $# -eq 1 ] && [ "$1" = '-' ]; then
+    timestampInput
 elif [ $# -gt 0 ]; then
     if [ "$isQuoted" ]; then
 	PRETTYPRINTQUOTEDARGS_PREFIX="${prefix}$(eval "date \"\${dateDateArgs[@]}\" \"$dateFormat\"")${separator}" \
