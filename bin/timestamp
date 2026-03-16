@@ -7,12 +7,13 @@ readonly FORMAT_DEFAULT='%d-%b-%Y${fieldSeparator- }%T${millis}'
 readonly FORMAT_HUMAN='%d-%b-%Y${fieldSeparator-_}%T'
 readonly FORMAT_SHORT='%Y%m%d${fieldSeparator--}%H%M%S'
 readonly FORMAT_SORTABLE='%Y-%m-%d${fieldSeparator-T}%T${millis}'
+readonly FORMAT_LOGGING='%Y-%m-%d${fieldSeparator- }%T${millis}'
 
 printShortUsage()
 {
     # Note: short followed by long option; if the user knows the short one, she can
     # skim the long one.
-    printf 'Usage: %q %s\n' "$(basename "$1")" '[--human|--short|--sortable] [--no-millis] [-s|--separator SEP] [-F|--field-separator SEP] [-d|--date DATE] [--prefix PREFIX] [-?|-h|--help] ...'
+    printf 'Usage: %q %s\n' "$(basename "$1")" '[--human|--short|--sortable|--logging] [--no-millis] [-s|--separator SEP] [-F|--field-separator SEP] [-d|--date DATE] [--prefix PREFIX] [-?|-h|--help] ...'
     echo
     printf 'Usage: %q %s\n' "$(basename "$1")" '... [--quoted] [--] MESSAGE [...]'
     echo
@@ -42,7 +43,9 @@ HELPDESCRIPTION
     --human		Human-readable output format: $FORMAT_HUMAN
     --short		Sortable output format: $FORMAT_SHORT
     --sortable		Sortable output format: $FORMAT_SORTABLE
-    --no-millis		Drop the milliseconds off the --sortable format.
+    --logging		Format suitable for logging: $FORMAT_LOGGING
+    --no-millis		Drop the milliseconds off the --sortable and --logging
+			formats.
     --separator|-s SEP	Use SEP between timestamp and MESSAGE.
     --field-separator|-F SEP
 			Use SEP between date and time.
@@ -77,6 +80,7 @@ do
 	--human)	shift; dateFormat="$FORMAT_HUMAN";;
 	--short)	shift; dateFormat="$FORMAT_SHORT";;
 	--sortable)	shift; dateFormat="$FORMAT_SORTABLE";;
+	--logging)	shift; dateFormat="$FORMAT_LOGGING";;
 	--no-millis)	shift; millis='';;
 	--field-separator|-F)
 			shift; fieldSeparator="$1"; shift;;
