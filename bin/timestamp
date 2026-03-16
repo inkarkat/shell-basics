@@ -3,6 +3,11 @@
 : ${TIMESTAMP_COMMAND_JOINER=;}
 : ${TIMESTAMP_EXEC_END=;}
 
+readonly FORMAT_DEFAULT='%d-%b-%Y${fieldSeparator- }%T${millis}'
+readonly FORMAT_HUMAN='%d-%b-%Y${fieldSeparator-_}%T'
+readonly FORMAT_SHORT='%Y%m%d${fieldSeparator--}%H%M%S'
+readonly FORMAT_SORTABLE='%Y-%m-%d${fieldSeparator-T}%T${millis}'
+
 printShortUsage()
 {
     # Note: short followed by long option; if the user knows the short one, she can
@@ -34,9 +39,9 @@ HELPDESCRIPTION
     printShortUsage "$1"
     echo
     cat <<HELPTEXT
-    --human		Human-readable output format: %d-%b-%Y${fieldSeparator-_}%T
-    --short		Sortable output format: %Y%m%d${fieldSeparator--}%H%M%S
-    --sortable		Sortable output format: %Y-%m-%d${fieldSeparator-T}%T${millis}
+    --human		Human-readable output format: $FORMAT_HUMAN
+    --short		Sortable output format: $FORMAT_SHORT
+    --sortable		Sortable output format: $FORMAT_SORTABLE
     --no-millis		Drop the milliseconds off the --sortable format.
     --separator|-s SEP	Use SEP between timestamp and MESSAGE.
     --field-separator|-F SEP
@@ -58,7 +63,7 @@ HELPTEXT
 }
 
 typeset -a dateDateArgs=()
-dateFormat='+%d-%b-%Y${fieldSeparator- }%T${millis}'
+dateFormat="$FORMAT_DEFAULT"
 separator=' '
 millis=',%3N'
 unset fieldSeparator
@@ -69,9 +74,9 @@ while [ $# -ne 0 ]
 do
     case "$1" in
 	--help|-h|-\?)	shift; printLongUsage "$0"; exit 0;;
-	--human)	shift; dateFormat='+%d-%b-%Y${fieldSeparator-_}%T';;
-	--short)	shift; dateFormat='+%Y%m%d${fieldSeparator--}%H%M%S';;
-	--sortable)	shift; dateFormat='+%Y-%m-%d${fieldSeparator-T}%T${millis}';;
+	--human)	shift; dateFormat="$FORMAT_HUMAN";;
+	--short)	shift; dateFormat="$FORMAT_SHORT";;
+	--sortable)	shift; dateFormat="$FORMAT_SORTABLE";;
 	--no-millis)	shift; millis='';;
 	--field-separator|-F)
 			shift; fieldSeparator="$1"; shift;;
@@ -110,7 +115,7 @@ timestampInput()
     local isEOL=t line
     while IFS=$'\n' read -r line || { isEOL=; [ -n "$line" ]; }
     do
-	printf "%s%s%s%s${isEOL:+\\n}" "$prefix" "$(eval "date \"\${dateDateArgs[@]}\" \"$dateFormat\"")" "$separator" "$line"
+	printf "%s%s%s%s${isEOL:+\\n}" "$prefix" "$(eval "date \"\${dateDateArgs[@]}\" \"+$dateFormat\"")" "$separator" "$line"
     done
 }
 
@@ -126,12 +131,12 @@ elif [ $# -eq 1 ] && [ "$1" = '-' ]; then
     timestampInput
 elif [ $# -gt 0 ]; then
     if [ "$isQuoted" ]; then
-	PRETTYPRINTQUOTEDARGS_PREFIX="${prefix}$(eval "date \"\${dateDateArgs[@]}\" \"$dateFormat\"")${separator}" \
+	PRETTYPRINTQUOTEDARGS_PREFIX="${prefix}$(eval "date \"\${dateDateArgs[@]}\" \"+$dateFormat\"")${separator}" \
 	    exec prettyPrintQuotedArgs -- "$@"
     else
-	printf '%s%s%s%s\n' "$prefix" "$(eval "date \"\${dateDateArgs[@]}\" \"$dateFormat\"")" "$separator" "$*"
+	printf '%s%s%s%s\n' "$prefix" "$(eval "date \"\${dateDateArgs[@]}\" \"+$dateFormat\"")" "$separator" "$*"
     fi
 else
     [ -n "$prefix" ] && printf %s "$prefix"
-    eval "date \"\${dateDateArgs[@]}\" \"$dateFormat\""
+    eval "date \"\${dateDateArgs[@]}\" \"+$dateFormat\""
 fi
