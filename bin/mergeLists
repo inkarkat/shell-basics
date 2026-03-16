@@ -5,7 +5,7 @@ printShortUsage()
 {
     # Note: short followed by long option; if the user knows the short one, they can
     # skim the long one.
-    printf 'Usage: %q %s\n' "$(basename "$1")" '[-F|--field-separator FIELD-SEPARATOR] [-s|--output-separator OUTPUT-SEPARATOR] [--omit-empty] [--sort|SORT-OPTION ...] [--] ARG1 [...] [-?|-h|--help]'
+    printf 'Usage: %q %s\n' "$(basename "$1")" '[-F|--field-separator FS] [-s|--output-separator OS] [--omit-empty] [--sort|SORT-OPTION ...] [--] ARG1 [...] [-?|-h|--help]'
 }
 printUsage()
 {
@@ -19,21 +19,20 @@ printLongUsage()
     # This is the long "man page" when launched with the help argument.
     # It is printed to stdout to allow paging with 'more'.
     cat <<HELPDESCRIPTION
-Combine all ARG1, ... [after splitting them by FIELD-SEPARATOR] so that each
-argument occurs only once, optionally sorted by SORT-OPTION(s).
+Combine all ARG1, ... [after splitting them by FS] so that each argument occurs
+only once, optionally sorted by SORT-OPTION(s).
 HELPDESCRIPTION
     echo
     printShortUsage "$1"
     echo
     cat <<HELPTEXT
-    --field-separator|-F FIELD-SEPARATOR
-		Use FIELD-SEPARATOR to split each argument into fields, then
-		merge the fields. Runs of whitespace count as one separator!
-		The result is separated by FIELD-SEPARATOR (or a passed
-		OUTPUT-SEPARATOR).
-    --output-separator|-s OUTPUT-SEPARATOR
-		Use OUTPUT-SEPARATOR (instead of FIELD-SEPARATOR or the default
-		newline) to separate the merged fields.
+    --field-separator|-F FS
+		Use FS to split each argument into fields, then merge the
+		fields. Runs of whitespace count as one separator!
+		The result is separated by FS (or a passed OS).
+    --output-separator|-s OS
+		Use OS (instead of FS or the default newline) to separate the
+		merged fields.
     --omit-empty
 		Ignore empty arguments.
     --sort	Output the merged arguments in sorted order.
