@@ -17,9 +17,9 @@ printShortUsage()
     echo
     printf 'Usage: %q %s\n' "$(basename "$1")" '... [--quoted] [--] MESSAGE [...]'
     echo
-    printf 'Usage: %q %s\n' "$(basename "$1")" "... -c|--command \"COMMANDLINE\" [-c ...] | --exec SIMPLECOMMAND ... $TIMESTAMP_EXEC_END [--exec ...]"
+    printf 'Usage: %q %s\n' "$(basename "$1")" "... [--static] -c|--command \"COMMANDLINE\" [-c ...] | --exec SIMPLECOMMAND ... $TIMESTAMP_EXEC_END [--exec ...]"
     echo
-    printf 'Usage: cat FILE [...] | %q %s\n' "$(basename "$1")" '... -'
+    printf 'Usage: cat FILE [...] | %q %s\n' "$(basename "$1")" '... [--static] -'
 }
 printUsage()
 {
@@ -54,10 +54,14 @@ HELPDESCRIPTION
     --quoted		Each argument of MESSAGE is individually quoted (e.g. to
 			preserve a passed command with arguments in reusable
 			form).
+    --static		Do not update the timestamp for each line of input, but
+			repeat the same timestamp (from when the first line was
+			encountered) for all lines.
     --command|-c CMD	Execute CMD as a command-line and prefix its output.
     --exec COMMAND $TIMESTAMP_EXEC_END	Execute COMMAND; all following arguments are taken to be
 			arguments to the COMMAND until an argument consisting of
-			'${TIMESTAMP_EXEC_END}' is encountered. Its output is prefixed with timestamps.
+			'${TIMESTAMP_EXEC_END}' is encountered. Its output is prefixed with
+			timestamps.
 
 RELATED COMMANDS:
 - ts (provided by GNU moreutils)
@@ -71,6 +75,8 @@ separator=' '
 millis=',%3N'
 unset fieldSeparator
 isQuoted=
+dateSourceInit=
+dateSource=getDate
 prefix=
 commands=
 while [ $# -ne 0 ]
@@ -87,6 +93,7 @@ do
 	--separator|-s)	shift; separator="$1"; shift;;
 	--date|-d)	shift; dateDateArgs+=(--date "${1:?}"); shift;;
 	--quoted)	shift; isQuoted=t;;
+	--static)	shift; dateSourceInit=staticDateSourceInit; dateSource=getDateStatic;;
 	--prefix)	shift; prefix="$1"; shift;;
 
 	--command|-c)	shift; commands+="${commands:+ $TIMESTAMP_COMMAND_JOINER }$1"; shift;;
@@ -114,12 +121,27 @@ do
 done
 [ -n "$NOW" -a ${#dateDateArgs[@]} -eq 0 ] && dateDateArgs=(--date "$NOW")
 
+getDate()
+{
+    eval "date \"\${dateDateArgs[@]}\" \"+$dateFormat\""
+}
+
+staticDateSourceInit()
+{
+    : ${staticDate:="$(getDate)"}
+}
+getDateStatic()
+{
+    printf %s "${staticDate:?}"
+}
+
 timestampInput()
 {
     local isEOL=t line
     while IFS=$'\n' read -r line || { isEOL=; [ -n "$line" ]; }
     do
-	printf "%s%s%s%s${isEOL:+\\n}" "$prefix" "$(eval "date \"\${dateDateArgs[@]}\" \"+$dateFormat\"")" "$separator" "$line"
+	$dateSourceInit
+	printf "%s%s%s%s${isEOL:+\\n}" "$prefix" "$($dateSource)" "$separator" "$line"
     done
 }
 
@@ -135,12 +157,12 @@ elif [ $# -eq 1 ] && [ "$1" = '-' ]; then
     timestampInput
 elif [ $# -gt 0 ]; then
     if [ "$isQuoted" ]; then
-	PRETTYPRINTQUOTEDARGS_PREFIX="${prefix}$(eval "date \"\${dateDateArgs[@]}\" \"+$dateFormat\"")${separator}" \
+	PRETTYPRINTQUOTEDARGS_PREFIX="${prefix}$(getDate)${separator}" \
 	    exec prettyPrintQuotedArgs -- "$@"
     else
-	printf '%s%s%s%s\n' "$prefix" "$(eval "date \"\${dateDateArgs[@]}\" \"+$dateFormat\"")" "$separator" "$*"
+	printf '%s%s%s%s\n' "$prefix" "$(getDate)" "$separator" "$*"
     fi
 else
     [ -n "$prefix" ] && printf %s "$prefix"
-    eval "date \"\${dateDateArgs[@]}\" \"+$dateFormat\""
+    getDate
 fi
