@@ -114,12 +114,17 @@ do
 done
 [ -n "$NOW" -a ${#dateDateArgs[@]} -eq 0 ] && dateDateArgs=(--date "$NOW")
 
+getDate()
+{
+    eval "date \"\${dateDateArgs[@]}\" \"+$dateFormat\""
+}
+
 timestampInput()
 {
     local isEOL=t line
     while IFS=$'\n' read -r line || { isEOL=; [ -n "$line" ]; }
     do
-	printf "%s%s%s%s${isEOL:+\\n}" "$prefix" "$(eval "date \"\${dateDateArgs[@]}\" \"+$dateFormat\"")" "$separator" "$line"
+	printf "%s%s%s%s${isEOL:+\\n}" "$prefix" "$(getDate)" "$separator" "$line"
     done
 }
 
@@ -135,12 +140,12 @@ elif [ $# -eq 1 ] && [ "$1" = '-' ]; then
     timestampInput
 elif [ $# -gt 0 ]; then
     if [ "$isQuoted" ]; then
-	PRETTYPRINTQUOTEDARGS_PREFIX="${prefix}$(eval "date \"\${dateDateArgs[@]}\" \"+$dateFormat\"")${separator}" \
+	PRETTYPRINTQUOTEDARGS_PREFIX="${prefix}$(getDate)${separator}" \
 	    exec prettyPrintQuotedArgs -- "$@"
     else
-	printf '%s%s%s%s\n' "$prefix" "$(eval "date \"\${dateDateArgs[@]}\" \"+$dateFormat\"")" "$separator" "$*"
+	printf '%s%s%s%s\n' "$prefix" "$(getDate)" "$separator" "$*"
     fi
 else
     [ -n "$prefix" ] && printf %s "$prefix"
-    eval "date \"\${dateDateArgs[@]}\" \"+$dateFormat\""
+    getDate
 fi
