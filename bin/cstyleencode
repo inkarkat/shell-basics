@@ -1,0 +1,77 @@
+#!/bin/bash
+
+printShortUsage()
+{
+    # Note: short followed by long option; if the user knows the short one, she can
+    # skim the long one.
+    printf 'Usage: %q %s\n' "$(basename "$1")" '-u|--unquoted [--] TEXT|- [-?|-h|--help]'
+}
+printUsage()
+{
+    # This is the short help when launched with no or incorrect arguments.
+    # It is printed to stderr to avoid accidental processing.
+    printShortUsage "$1" >&2
+    printf >&2 '\nTry %q --help for more information.\n' "$(basename "$1")"
+}
+printLongUsage()
+{
+    # This is the long "man page" when launched with the help argument.
+    # It is printed to stdout to allow paging with 'more'.
+    cat <<HELPDESCRIPTION
+Encode special characters in TEXT (or text read from stdin via -) as C-style
+escape sequences.
+HELPDESCRIPTION
+    echo
+    printShortUsage "$1"
+    echo
+    cat <<HELPTEXT
+    --unquoted|-u	Do not wrap the output in double quotes.
+HELPTEXT
+}
+
+prefix='"'
+suffix='"'
+while [ $# -ne 0 ]
+do
+    case "$1" in
+	--help|-h|-\?)	shift; printLongUsage "$0"; exit 0;;
+	--unquoted)	shift; prefix=''; suffix='';;
+	--)		shift; break;;
+	-)		break;;
+	-*)		{ echo "ERROR: Unknown option \"$1\"!"; echo; printUsage "$0"; } >&2; exit 2;;
+	*)		break;;
+    esac
+done
+if [ $# -ne 1 ]; then
+    printUsage "$0" >&2
+    exit 2
+fi
+
+if [ "$1" = '-' ]; then
+    string=$(< /dev/stdin)
+    [ -n "$string" ] || exit 1
+else
+    string=${1?}
+fi
+readonly strlen=${#string}
+encoded=
+pos=
+
+for (( pos=0; pos < strlen; pos++ ))
+do
+    c=${string:$pos:1}
+    case "$c" in
+	$'\n')	encoded+='\n' ;;
+	$'\t')	encoded+='\t' ;;
+	$'\r')	encoded+='\r' ;;
+	$'\b')	encoded+='\b' ;;
+	$'\a')	encoded+='\a' ;;
+	$'\e')	encoded+='\e' ;;
+	$'\\')	encoded+='\\' ;;
+	$'\"')	encoded+='\"' ;;
+	$'\f')	encoded+='\f' ;;
+	$'\v')	encoded+='\v' ;;
+	*)	encoded+="$c" ;;
+    esac
+done
+printf '%s%s%s\n' "$prefix" "$encoded" "$suffix"
