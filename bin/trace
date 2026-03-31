@@ -48,7 +48,10 @@ do
 	--help|-h|-\?)	shift; printLongUsage "$0"; exit 0;;
 	--for|-f)	shift; TRACE+="${TRACE:+,}${1:?}"; shift; isFor=t;;
 	--only-for|-F)	shift; TRACE+="${TRACE:+,}${1:?}"; shift; isOnlyFor=t;;
-	--paginate|-p)	shift; capture=(setupCapture); viewer=("${PAGER:-less}" --RAW-CONTROL-CHARS --);;
+	--paginate|-p)	shift
+			[ "$PAGER" = smartless ] && PAGER=less	# smartless does not page small outputs that fit the terminal, but we explicitly want to page through the captured trace.
+			capture=(setupCapture); viewer=("${PAGER:-less}" --RAW-CONTROL-CHARS --)
+			;;
 	--inbox|-i)	shift; capture=(setupCapture); viewer=(saveToInbox);;
 	--)		shift; break;;
 	-*)		{ echo "ERROR: Unknown option \"$1\"!"; echo; printUsage "$0"; } >&2; exit 2;;
