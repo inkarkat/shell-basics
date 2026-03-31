@@ -37,6 +37,8 @@ HELPDESCRIPTION
 			echotrace weren't prepended.
     --eval		Print the evaluation result instead of the (quoted)
 			eval.
+SEE ALSO:
+- inboxtrace duplicates to the inbox location instead of standard error.
 HELPTEXT
 }
 
