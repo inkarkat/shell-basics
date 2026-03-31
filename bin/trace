@@ -4,7 +4,7 @@ printShortUsage()
 {
     # Note: short followed by long option; if the user knows the short one, she can
     # skim the long one.
-    printf 'Usage: %q %s\n' "$(basename "$1")" '[-f|--for|-F|--only-for SUBSIDIARY-COMMAND [-f ...]] [-p|--paginate|--inbox] [.] COMMAND [ARG ...] [-?|-h|--help]'
+    printf 'Usage: %q %s\n' "$(basename "$1")" '[-f|--for|-F|--only-for SUBSIDIARY-COMMAND [-f ...]] [-p|--paginate|-i|--inbox] [.] COMMAND [ARG ...] [-?|-h|--help]'
 }
 printUsage()
 {
@@ -32,7 +32,7 @@ HELPDESCRIPTION
     --paginate|-p	Show the trace separately after the execution. Output
 			and errors are shown immediately, and are not part of
 			the trace.
-    --inbox		Write the trace into the inbox.
+    --inbox|-i		Write the trace into the inbox.
 (*) The command needs to have support for this via the TRACE environment
     variable.
 HELPTEXT
@@ -48,8 +48,11 @@ do
 	--help|-h|-\?)	shift; printLongUsage "$0"; exit 0;;
 	--for|-f)	shift; TRACE+="${TRACE:+,}${1:?}"; shift; isFor=t;;
 	--only-for|-F)	shift; TRACE+="${TRACE:+,}${1:?}"; shift; isOnlyFor=t;;
-	--paginate|-p)	shift; capture=(setupCapture); viewer=("${PAGER:-less}" --RAW-CONTROL-CHARS --);;
-	--inbox)	shift; capture=(setupCapture); viewer=(inbox --base trace --);;
+	--paginate|-p)	shift
+			[ "$PAGER" = smartless ] && PAGER=less	# smartless does not page small outputs that fit the terminal, but we explicitly want to page through the captured trace.
+			capture=(setupCapture); viewer=("${PAGER:-less}" --RAW-CONTROL-CHARS --)
+			;;
+	--inbox|-i)	shift; capture=(setupCapture); viewer=(saveToInbox);;
 	--)		shift; break;;
 	-*)		{ echo "ERROR: Unknown option \"$1\"!"; echo; printUsage "$0"; } >&2; exit 2;;
 	*)		break;;
@@ -74,6 +77,11 @@ if [ "$program" = '.' ]; then
     program="$1"; shift
     [ ${#capture[@]} -gt 0 ] || capture=(source)
 fi
+
+saveToInbox()
+{
+    inbox --base "${programName:-$program}" -- "$@"
+}
 
 activateCapture()
 {
