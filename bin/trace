@@ -49,7 +49,7 @@ do
 	--for|-f)	shift; TRACE+="${TRACE:+,}${1:?}"; shift; isFor=t;;
 	--only-for|-F)	shift; TRACE+="${TRACE:+,}${1:?}"; shift; isOnlyFor=t;;
 	--paginate|-p)	shift; capture=(setupCapture); viewer=("${PAGER:-less}" --RAW-CONTROL-CHARS --);;
-	--inbox|-i)	shift; capture=(setupCapture); viewer=(inbox --base trace --);;
+	--inbox|-i)	shift; capture=(setupCapture); viewer=(saveToInbox);;
 	--)		shift; break;;
 	-*)		{ echo "ERROR: Unknown option \"$1\"!"; echo; printUsage "$0"; } >&2; exit 2;;
 	*)		break;;
@@ -74,6 +74,11 @@ if [ "$program" = '.' ]; then
     program="$1"; shift
     [ ${#capture[@]} -gt 0 ] || capture=(source)
 fi
+
+saveToInbox()
+{
+    inbox --base "${programName:-$program}" -- "$@"
+}
 
 activateCapture()
 {
