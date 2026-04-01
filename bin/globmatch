@@ -5,7 +5,7 @@ printShortUsage()
 {
     # Note: short followed by long option; if the user knows the short one, she can
     # skim the long one.
-    printf 'Usage: %q %s\n' "$(basename "$1")" "[-d|--directories] [-s|--subpath] [-l|--files-matching|-1|--first-matching|-u|--unique-match|-L|--files-not-matching] ['GLOB' ...] -- FILESPEC [...] [-?|-h|--help]"
+    printf 'Usage: %q %s\n' "$(basename "$1")" "[-d|--directories|-D|--exclude-directories] [-s|--subpath] [-l|--files-matching|-1|--first-matching|-u|--unique-match|-L|--files-not-matching] ['GLOB' ...] -- FILESPEC [...] [-?|-h|--help]"
     printf 'Usage: %q %s\n' "$(basename "$1")" "[...] 'GLOB' FILESPEC [...] [-?|-h|--help]"
     echo
     printf 'Usage: %q %s\n' "$(basename "$1")" "-v|--values [-l|--print-matching|-1|--first-matching|-u|--unique-match|-L|--print-not-matching] ['GLOB' ...] -- VALUE [...]"
@@ -31,7 +31,9 @@ HELPDESCRIPTION
     echo
     cat <<HELPTEXT
     --directories|-d	Also match directories (e.g. foo or foo/ in
-			foo/bar/file).
+			foo/bar/file) in addition to the full passed path.
+    --exclude-directories|-D
+			Only match actual files, not directories.
     --subpath|-s	Also match subpaths (e.g. bar/file in foo/bar/file) in
 			addition to the full passed path.
     --values|-v		Only perform a full match on the passed VALUE(s), don't
@@ -66,6 +68,7 @@ setPrint()
 }
 isMatchFilename=t
 isMatchDirectories=
+isExcludeDirectories=
 isMatchSubPaths=
 typeset -a globs=()
 while [ $# -ne 0 ]
@@ -73,6 +76,7 @@ do
     case "$1" in
 	--help|-h|-\?)		    shift; printLongUsage "$0"; exit 0;;
 	--directories|-d)	    shift; isMatchDirectories=t;;
+	--exclude-directories|-D)   shift; isExcludeDirectories=t;;
 	--subpath|-s)		    shift; isMatchSubPaths=t;;
 	--print-matching|--files-matching|-l)
 				    shift; setPrint matching;;
@@ -94,6 +98,12 @@ do
 	break
     fi
 done
+if [ "$isMatchDirectories" ] && [ "$isExcludeDirectories" ]; then
+    echo "ERROR: --directories and --exclude-directories are mutually exclusive."
+    echo
+    printUsage "$0"
+    exit 2
+fi >&2
 
 isDirectoryMatch()
 {
@@ -167,6 +177,10 @@ elif [ $# -eq 0 ]; then
     exit 1  # No FILESPECs to match.
 fi
 
+checkFilespecMatch()
+{
+    [ ! "$isExcludeDirectories" ] || [ ! -d "$filespec" ]
+}
 
 for filespec
 do
@@ -177,11 +191,17 @@ do
     do
 	if [ "$isMatchFilename" ]; then
 	    case "$filename" in
-		@($g)) found=t; break;;
+		@($g))	if checkFilespecMatch; then
+			    found=t; break
+			fi
+			;;
 	    esac
 	fi
 	case "$filespec" in
-	    @($g)) found=t; break;;
+	    @($g))  if checkFilespecMatch; then
+			found=t; break
+		    fi
+		    ;;
 	esac
 	if [ "$isMatchDirectories" ]; then
 	    case "$filespec" in
@@ -205,7 +225,10 @@ do
 	fi
 	if [ "$isMatchSubPaths" ]; then
 	    case "$filespec" in
-		*/@($g)) found=t; break;;
+		*/@($g))    if checkFilespecMatch; then
+				found=t; break
+			    fi
+			    ;;
 	    esac
 	fi
     done
