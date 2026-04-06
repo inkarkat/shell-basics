@@ -45,7 +45,12 @@ precisionPlusOne=$((precision + 1))
 if [ $precisionPlusOne -gt ${#number} ]; then
     float=0
 else
-    float="${number:0: -$precisionPlusOne}.${number: -$precisionPlusOne}"
+    sign=''
+    if [ "${number:0:1}" = '-' ]; then
+	sign='-'
+	number="${number:1}"
+    fi
+    float="${sign}${number:0: -$precisionPlusOne}.${number: -$precisionPlusOne}"
 
     # If the integer part is in the thousands or larger, there's no use to
     # include any fractions. Just round off to the closest integer value then.
