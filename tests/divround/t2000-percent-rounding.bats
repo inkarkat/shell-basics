@@ -3,6 +3,9 @@
 load fixture
 
 @test "percent rounding" {
+    run -0 divround 4
+    assert_output '0'
+
     run -0 divround 50
     assert_output '0.5'
 
@@ -23,6 +26,9 @@ load fixture
 }
 
 @test "percent rounding of negative numbers" {
+    run -0 divround -4
+    assert_output '0'
+
     run -0 divround -50
     assert_output '-0.5'
 
