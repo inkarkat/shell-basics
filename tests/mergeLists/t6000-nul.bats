@@ -5,7 +5,6 @@ load fixture
 wrapper()
 {
     local replacement="${1:?}"; shift
-    local status
     "$@" | tr '\0' "$replacement"
     return ${PIPESTATUS[0]}
 }
