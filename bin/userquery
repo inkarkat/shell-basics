@@ -14,7 +14,7 @@ printUsage()
     cat <<HELPTEXT
 Query the user with READ-ARGS (e.g. -n 1 -p 'Type letter: ') from the terminal /
 \$USERQUERY_INPUT.
-If \$USERQUERY_ALERT_TIMESPAN is set and the last query (for
+If \$USERQUERY_ALERT_INTERVAL is set and the last query (for
 \$USERQUERY_ALERT_SUBJECT) was done earlier than VALID-TIMESPAN|TIMESLOT, the
 user additionally is alerted (via sound chime / notification) of the pending
 query, too.
@@ -22,7 +22,7 @@ Returns $USERQUERY_EXIT_STATUS_NO_TERM / \$USERQUERY_EXIT_STATUS_NO_TERM if inpu
 terminal.
 HELPTEXT
     echo
-    printf 'Usage: choice="$([USERQUERY_EOF=STRING] [USERQUERY_EXIT_STATUS_NO_TERM=99] [USERQUERY_INPUT=/dev/stdin] [USERQUERY_ERROR_OUTPUT=/dev/null] [USERQUERY_ALERT_SUBJECT=SUBJECT] [USERQUERY_ALERT_TIMESPAN=%s] %q %s)"\n' "$(datediff --get-short-usage newer-older-parameters 2>/dev/null)" "$(basename "$1")" '[READ-ARGS ...]'
+    printf 'Usage: choice="$([USERQUERY_EOF=STRING] [USERQUERY_EXIT_STATUS_NO_TERM=99] [USERQUERY_INPUT=/dev/stdin] [USERQUERY_ERROR_OUTPUT=/dev/null] [USERQUERY_ALERT_SUBJECT=SUBJECT] [USERQUERY_ALERT_INTERVAL=%s] %q %s)"\n' "$(datediff --get-short-usage newer-older-parameters 2>/dev/null)" "$(basename "$1")" '[READ-ARGS ...]'
 }
 
 separatePrompt=
@@ -63,13 +63,13 @@ set -- "${args[@]}" "$@"
 
 { exec 0<"${USERQUERY_INPUT:-/dev/tty}"; } 2>/dev/null || exit $USERQUERY_EXIT_STATUS_NO_TERM
 
-if [ "$USERQUERY_ALERT_TIMESPAN" ]; then
+if [ -n "$USERQUERY_ALERT_INTERVAL" ]; then
     marker()
     {
 	executionMarker --base-type runtime --group userquery "$@"
     }
 
-    if marker --query "${USERQUERY_ALERT_SUBJECT:-default}" --older "$USERQUERY_ALERT_TIMESPAN"; then
+    if marker --query "${USERQUERY_ALERT_SUBJECT:-default}" --older "$USERQUERY_ALERT_INTERVAL"; then
 	alert --exit-status 0 --success "${etcDir}/alert.mp3" --success-sigil '❓' --command-name "${USERQUERY_ALERT_SUBJECT:-Query}" --message "${USERQUERY_ALERT_SUBJECT:-An application} is waiting for your input again."
     fi
     marker --update "${USERQUERY_ALERT_SUBJECT:-default}"
