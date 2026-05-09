@@ -3,22 +3,13 @@ shopt -qs extglob
 
 printUsage()
 {
+    local timespanFormat="$(durationToSeconds --get-short-usage format 2>/dev/null)"
     cat <<HELPTEXT
-Delay for a random amount of time between MAX and MIN.
+Delay for a random amount of time between MAX and MIN.${timespanFormat:+
+Format: }${timespanFormat}
 HELPTEXT
-    printf 'Usage: %q %s\n' "$(basename "$1")" '[MAX[smhd] [MIN[smhd]]] [-?|-h|--help]'
-}
-
-timeToSeconds()
-{
-    case "$1" in
-	+([0-9])?(s))   time="${1%s}";;
-	+([0-9])m)	time=$((${1%m} * 60));;
-	+([0-9])h)	time=$((${1%h} * 3600));;
-	+([0-9])d)	time=$((${1%d} * 86400));;
-	*)		printf >&2 'ERROR: Illegal timespan: %s\n' "$1"; exit 2;;
-    esac
-    printf %s "$time"
+    echo
+    printf 'Usage: %q %s\n' "$(basename "$1")" '[MAX [MIN]] [-?|-h|--help]'
 }
 
 min=0
@@ -28,10 +19,17 @@ case "$1" in
 esac
 case $# in
     0)	;;
-    1)	max="$(timeToSeconds "$1")" || exit $?;;
-    2)	[ $1 -ge $2 ] || set -- "$2" "$1"
-	max="$(timeToSeconds "$1")" || exit $?
-	min="$(timeToSeconds "$2")" || exit $?
+    1)	max=$(durationToSeconds -- "${1:?}") || { printf >&2 'ERROR: Illegal TIMESPAN: %s\n' "$1"; exit 2; }; shift;;
+    2)	max=$(durationToSeconds -- "${1:?}") || { printf >&2 'ERROR: Illegal TIMESPAN: %s\n' "$1"; exit 2; }; shift
+	min=$(durationToSeconds -- "${1:?}") || { printf >&2 'ERROR: Illegal TIMESPAN: %s\n' "$1"; exit 2; }; shift
+	if [ $max -lt $min ]; then
+	    tmp=$max; max=$min; min=$tmp
+	elif [ $max -eq $min ]; then
+	    echo 'ERROR: MAX needs to be greater than MIN.'
+	    echo
+	    printUsage "$0"
+	    exit 2
+	fi >&2
 	;;
     *)	printUsage "$0" >&2
 	exit 2
