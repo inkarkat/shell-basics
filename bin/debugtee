@@ -16,12 +16,18 @@ HELPTEXT
     printf 'Usage: cat FILE [...] | %q %s | COMMAND ...\n' "$(basename "$1")" '[--for DEBUGGEE]'
     printf "Usage: cat FILE [...] | eval \${DEBUG:+%q %s |} 'COMMAND [...]'\\n" "$(basename "$1")" '[--for DEBUGGEE]'
 }
+
 debuggee=
-case "$1" in
-    --help|-h|-\?)	shift; printUsage "$0"; exit 0;;
-    --for)		shift; debuggee="${1?}"; shift;;
-    --)			shift;;
-esac
+while [ $# -ne 0 ]
+do
+    case "$1" in
+	--help|-h|-\?)	shift; printUsage "$0"; exit 0;;
+	--for)		shift; debuggee="${1?}"; shift;;
+	--)		shift; break;;
+	-*)		{ echo "ERROR: Unknown option \"$1\"!"; echo; printUsage "$0"; } >&2; exit 2;;
+	*)		break;;
+    esac
+done
 if [ $# -ne 0 ]; then
     printUsage "$0" >&2
     exit 2
