@@ -4,7 +4,7 @@ printShortUsage()
 {
     # Note: short followed by long option; if the user knows the short one, she can
     # skim the long one.
-    printf 'Usage: cat FILE [...] | %q %s | COMMAND ...\n' "$(basename "$1")" '[--for DEBUGGEE]'
+    printf 'Usage: cat FILE [...] | %q %s | COMMAND ...\n' "$(basename "$1")" '[--for DEBUGGEE] [-m|--module MODULE]'
     printf "Usage: cat FILE [...] | eval \${DEBUG:+%q %s |} 'COMMAND [...]'\\n" "$(basename "$1")" '...'
 }
 printUsage()
@@ -21,11 +21,11 @@ printLongUsage()
     cat <<HELPDESCRIPTION
 Duplicate standard input to a debug file (DEBUGGEE.log) if debugging is enabled
 for the debuggee, and print the debug filespec to standard error at the end.
-$ DEBUG=DEBUGGEE DEBUGGEE ...
-$ DEBUG=debugtee=FILESPEC,DEBUGGEE DEBUGGEE ... will log to a custom FILESPEC
-instead.
+$ DEBUG=DEBUGGEE[:MODULE] DEBUGGEE ...
+$ DEBUG=debugtee=FILESPEC,DEBUGGEE[:MODULE] DEBUGGEE ... will log to a custom
+  FILESPEC instead.
 $ DEBUG=debugtee DEBUGGEE ... will show for what DEBUGGEE it will enable (if not
-actually enabled).
+  actually enabled).
 HELPDESCRIPTION
     echo
     printShortUsage "$1"
@@ -33,15 +33,22 @@ HELPDESCRIPTION
     cat <<HELPTEXT
     --for DEBUGGEE	Target DEBUGGEE; by default it will take the name of the
 			parent process.
+    --module|-m MODULE	Activate only if debugging for MODULE of the DEBUGGEE is
+			enabled, and also debug into DEBUGGEE.log (unless
+			overridden) instead of DEBUGGEE-MODULE.log, which would
+			be the destination when passing --for DEBUGGEE:MODULE
+			instead.
 HELPTEXT
 }
 
 debuggee=
+module=
 while [ $# -ne 0 ]
 do
     case "$1" in
 	--help|-h|-\?)	shift; printLongUsage "$0"; exit 0;;
 	--for)		shift; debuggee="${1?}"; shift;;
+	--module|-m)	shift; module="${1:?}"; shift;;
 	--)		shift; break;;
 	-*)		{ echo "ERROR: Unknown option \"$1\"!"; echo; printUsage "$0"; } >&2; exit 2;;
 	*)		break;;
@@ -73,19 +80,19 @@ if [ -z "$debuggee" ]; then
 fi
 
 case ",${DEBUG:-}," in
-    *,${debuggee},*)
+    *,${debuggee}${module:+:}${module},*)
 	case ",${DEBUG:-}," in
 	    *,debugtee=*,*) filespec=",${DEBUG},"; filespec="${filespec#*,debugtee=}"; filespec="${filespec%%,*}"
 			    debugteeFilespec="$(realpath --no-symlinks -- "$filespec")" || debugteeFilespec="$filespec"
 			    ;;
-	    *)		    debugteeFilespec="${PWD}/${debuggee}.log";;
+	    *)		    debugteeFilespec="${PWD}/${debuggee//:/-}.log";;
 	esac
 
 	trap finally EXIT
 	tee --append -- "$debugteeFilespec"
 	;;
     *,debugtee,*)
-	printf >&2 'debugtee: Will activate with DEBUG=%q\n' "$debuggee"
+	printf >&2 'debugtee: Will activate with DEBUG=%q\n' "${debuggee}${module:+:}${module}"
 	;&
     *)	exec cat
 esac
