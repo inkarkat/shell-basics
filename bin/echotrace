@@ -40,6 +40,7 @@ HELPDESCRIPTION
 			eval.
 SEE ALSO:
 - inboxtrace duplicates to the inbox location instead of standard error.
+- debugtee duplicates stdin to a debug file when debugging is enabled.
 HELPTEXT
 }
 

@@ -47,6 +47,9 @@ HELPDESCRIPTION
 			instead.
     --to FILE		Use FILE instead of the default debug file
 			DEBUGGEE[-MODULE].log (unless overridden).
+SEE ALSO:
+- echotrace writes arguments as an execution trace to stderr instead of
+  executing the passed command when debugging is enabled.
 HELPTEXT
 }
 
@@ -99,9 +102,9 @@ if [ -z "$debuggee" ]; then
     debuggee="$(commandName --no-interpreter --undefined debugtee -- "$debugteeCmd" "$debugteeSecond")"
 fi
 
-case ",${DEBUG:-}," in
+case ",${DEBUG}," in
     *,${debuggee}${module:+:}${module},*)
-	case ",${DEBUG:-}," in
+	case ",${DEBUG}," in
 	    *,debugtee=*,*) filespec=",${DEBUG},"; filespec="${filespec#*,debugtee=}"; filespec="${filespec%%,*}"
 			    debugteeFilespec="$(realpath --no-symlinks -- "$filespec")" || debugteeFilespec="$filespec"
 			    ;;
