@@ -4,8 +4,9 @@ printShortUsage()
 {
     # Note: short followed by long option; if the user knows the short one, she can
     # skim the long one.
-    printf 'Usage: cat FILE [...] | %q %s | COMMAND ...\n' "$(basename "$1")" '[--for DEBUGGEE] [-m|--module MODULE] [--to FILE]'
-    printf "Usage: cat FILE [...] | eval \${DEBUG:+%q %s |} 'COMMAND [...]'\\n" "$(basename "$1")" '...'
+    printf 'Usage: cat FILE [...] | %q %s | COMMAND ...\n' "$(basename "$1")" '[-1|--single-capture] [--no-header|-d|--description DESCRIPTION] [--for DEBUGGEE] [-m|--module MODULE] [--to FILE]'
+    printf "Usage: cat FILE [...] | eval \"\${DEBUG:+%q %s |}\" 'COMMAND [...]'\\n" "$(basename "$1")" '...'
+    printf "Usage: eval 'COMMAND [...]' \"\${DEBUG:+| %q %s}\"\\n" "$(basename "$1")" '... [--to ${HOME@Q}/out.log}]'
 }
 printUsage()
 {
@@ -31,6 +32,12 @@ HELPDESCRIPTION
     printShortUsage "$1"
     echo
     cat <<HELPTEXT
+    --single-capture|-1	Don't append to the debug file, but overwrite it with
+			the latest capture. Disables the header, too.
+    --no-header		Omit the header line with the timestamp (which is added
+			by default).
+    --description|-d DESCRIPTION
+			Prepend DESCRIPTION to the timestamp in the header line.
     --for DEBUGGEE	Target DEBUGGEE; by default it will take the name of the
 			parent process.
     --module|-m MODULE	Activate only if debugging for MODULE of the DEBUGGEE is
@@ -46,10 +53,18 @@ HELPTEXT
 debuggee=
 module=
 debugteeFilespec=
+isAppend=t
+isHeader=t
+description=
 while [ $# -ne 0 ]
 do
     case "$1" in
 	--help|-h|-\?)	shift; printLongUsage "$0"; exit 0;;
+	--single-capture|-1)
+			shift; isAppend=;;
+	--no-header)	shift; isHeader=;;
+	--description|-d)
+			shift; description="${1?}"; shift;;
 	--for)		shift; debuggee="${1?}"; shift;;
 	--module|-m)	shift; module="${1:?}"; shift;;
 	--to)		shift; debugteeFilespec="${1:?}"; shift;;
@@ -62,6 +77,7 @@ if [ $# -ne 0 ]; then
     printUsage "$0" >&2
     exit 2
 fi
+[ ! "$isAppend" ] && [ -z "$description" ] && isHeader=	# Disable header if not appending and no description is given.
 
 [ -n "$DEBUG" ] || exec cat
 
@@ -93,7 +109,12 @@ case ",${DEBUG:-}," in
 	esac
 
 	trap finally EXIT
-	tee --append -- "$debugteeFilespec"
+	if [ "$isHeader" ]; then
+	    isFirst=; [ ! "$isAppend" ] || [ ! -s "$debugteeFilespec" ] && isFirst=t;
+	    eval 'HEADER_STYLE=dashed-line header ${isFirst:+--first} --no-color -- "${description}${description:+ at }$(timestamp --logging)"' ">${isAppend:+>} \"$debugteeFilespec\""
+	    isAppend=t
+	fi
+	tee ${isAppend:+--append} -- "$debugteeFilespec"
 	;;
     *,debugtee,*)
 	printf >&2 'debugtee: Will activate with DEBUG=%q\n' "${debuggee}${module:+:}${module}"
