@@ -13,7 +13,7 @@ printShortUsage()
 {
     # Note: short followed by long option; if the user knows the short one, she can
     # skim the long one.
-    printf 'Usage: %q %s\n' "$(basename "$1")" '[--human|--short|--sortable|--logging] [--no-millis] [-s|--separator SEP] [-F|--field-separator SEP] [-d|--date DATE] [--prefix PREFIX] [-?|-h|--help] ...'
+    printf 'Usage: %q %s\n' "$(basename "$1")" '[--human|--short|--sortable|--logging] [--no-millis] [-s|--separator SEP] [-F|--field-separator SEP] [-u|--utc|--universal] [-d|--date DATE] [--prefix PREFIX] [-?|-h|--help] ...'
     echo
     printf 'Usage: %q %s\n' "$(basename "$1")" '... [--quoted] [--] MESSAGE [...]'
     echo
@@ -44,11 +44,15 @@ HELPDESCRIPTION
     --short		Sortable output format: $FORMAT_SHORT
     --sortable		Sortable output format: $FORMAT_SORTABLE
     --logging		Format suitable for logging: $FORMAT_LOGGING
+			Uses UTC time and appends 'Z' to the timestamp.
     --no-millis		Drop the milliseconds off the --sortable and --logging
 			formats.
     --separator|-s SEP	Use SEP between timestamp and MESSAGE.
     --field-separator|-F SEP
 			Use SEP between date and time.
+    --utc|--universal|-u
+			Use Coordinated Universal Time (UTC) instead of local
+			time. Appends 'Z' to the timestamp.
     --date DATE		Use DATE instead of the current time.
     --prefix PREFIX	Put PREFIX directly before the timestamp.
     --quoted		Each argument of MESSAGE is individually quoted (e.g. to
@@ -71,6 +75,7 @@ HELPTEXT
 
 typeset -a dateDateArgs=()
 dateFormat="$FORMAT_DEFAULT"
+dateFormatAppendix=
 separator=' '
 millis=',%3N'
 unset fieldSeparator
@@ -86,11 +91,13 @@ do
 	--human)	shift; dateFormat="$FORMAT_HUMAN";;
 	--short)	shift; dateFormat="$FORMAT_SHORT";;
 	--sortable)	shift; dateFormat="$FORMAT_SORTABLE";;
-	--logging)	shift; dateFormat="$FORMAT_LOGGING";;
+	--logging)	shift; dateFormat="$FORMAT_LOGGING"; dateDateArgs+=(--utc); dateFormatAppendix='Z';;
 	--no-millis)	shift; millis='';;
 	--field-separator|-F)
 			shift; fieldSeparator="$1"; shift;;
 	--separator|-s)	shift; separator="$1"; shift;;
+	--utc|--universal|-u)
+			dateDateArgs+=("$1"); shift; dateFormatAppendix='Z';;
 	--date|-d)	shift; dateDateArgs+=(--date "${1:?}"); shift;;
 	--quoted)	shift; isQuoted=t;;
 	--static)	shift; dateSourceInit=staticDateSourceInit; dateSource=getDateStatic;;
@@ -123,7 +130,7 @@ done
 
 getDate()
 {
-    eval "date \"\${dateDateArgs[@]}\" \"+$dateFormat\""
+    eval "date \"\${dateDateArgs[@]}\" \"+${dateFormat}${dateFormatAppendix}\""
 }
 
 staticDateSourceInit()
