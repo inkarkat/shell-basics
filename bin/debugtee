@@ -4,7 +4,7 @@ printShortUsage()
 {
     # Note: short followed by long option; if the user knows the short one, she can
     # skim the long one.
-    printf 'Usage: cat FILE [...] | %q %s | COMMAND ...\n' "$(basename "$1")" '[--for DEBUGGEE] [-m|--module MODULE] [--to FILE]'
+    printf 'Usage: cat FILE [...] | %q %s | COMMAND ...\n' "$(basename "$1")" '[-1|--single-capture] [--for DEBUGGEE] [-m|--module MODULE] [--to FILE]'
     printf "Usage: cat FILE [...] | eval \"\${DEBUG:+%q %s |}\" 'COMMAND [...]'\\n" "$(basename "$1")" '...'
     printf "Usage: eval 'COMMAND [...]' \"\${DEBUG:+| %q %s}\"\\n" "$(basename "$1")" '... [--to ${HOME@Q}/out.log}]'
 }
@@ -32,6 +32,8 @@ HELPDESCRIPTION
     printShortUsage "$1"
     echo
     cat <<HELPTEXT
+    --single-capture|-1	Don't append to the debug file, but overwrite it with
+			the latest capture.
     --for DEBUGGEE	Target DEBUGGEE; by default it will take the name of the
 			parent process.
     --module|-m MODULE	Activate only if debugging for MODULE of the DEBUGGEE is
@@ -47,10 +49,13 @@ HELPTEXT
 debuggee=
 module=
 debugteeFilespec=
+typeset -a teeAppendArg=('--append')
 while [ $# -ne 0 ]
 do
     case "$1" in
 	--help|-h|-\?)	shift; printLongUsage "$0"; exit 0;;
+	--single-capture|-1)
+			shift; teeAppendArg=();;
 	--for)		shift; debuggee="${1?}"; shift;;
 	--module|-m)	shift; module="${1:?}"; shift;;
 	--to)		shift; debugteeFilespec="${1:?}"; shift;;
@@ -94,7 +99,7 @@ case ",${DEBUG:-}," in
 	esac
 
 	trap finally EXIT
-	tee --append -- "$debugteeFilespec"
+	tee "${teeAppendArg[@]}" -- "$debugteeFilespec"
 	;;
     *,debugtee,*)
 	printf >&2 'debugtee: Will activate with DEBUG=%q\n' "${debuggee}${module:+:}${module}"
