@@ -1,5 +1,14 @@
 #!/bin/bash
 
+printUsage()
+{
+    cat <<HELPTEXT
+Format and log ARG(s).
+HELPTEXT
+    echo
+    printf 'Usage: %q %s\n' "$(basename "$1")" '[--prefix PREFIX] [--suffix SUFFIX] [--] FORMAT [ARG ...] [-?|-h|--help]'
+}
+
 prefix=
 suffix=
 while [ $# -ne 0 ]
