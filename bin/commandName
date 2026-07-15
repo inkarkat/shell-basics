@@ -3,6 +3,7 @@ shopt -qs extglob
 
 : ${COMMANDNAME_INTERPRETERS='perl|python?(3)|ruby'}
 : ${COMMANDNAME_WRAPPERS='sudo'}
+: ${COMMANDNAME_INVOKERS='.|source|nohup|env|xargs'}
 : ${COMMANDNAME_SHELLS='?(ba|da|[cakz])sh'}
 : ${COMMANDNAME_EXTENSIONS='?(.exe)'}
 
@@ -10,7 +11,7 @@ printShortUsage()
 {
     # Note: short followed by long option; if the user knows the short one, she can
     # skim the long one.
-    printf 'Usage: [COMMANDNAME_INTERPRETERS=CMD-GLOB] [COMMANDNAME_WRAPPERS=CMD-GLOB] [COMMANDNAME_SHELLS=CMD-GLOB] [COMMANDNAME_EXTENSIONS=EXT-GLOB] %q %s\n' "$(basename "$1")" '[--eval] [--undefined UNDEFINED] [-n|--no-interpreter] [--] COMMANDLINE ... [-?|-h|--help]'
+    printf 'Usage: [COMMANDNAME_INTERPRETERS=CMD-GLOB] [COMMANDNAME_WRAPPERS=CMD-GLOB] [COMMANDNAME_INVOKERS=CMD-GLOB] [COMMANDNAME_SHELLS=CMD-GLOB] [COMMANDNAME_EXTENSIONS=EXT-GLOB] %q %s\n' "$(basename "$1")" '[--eval] [--undefined UNDEFINED] [-n|--no-interpreter] [--] COMMANDLINE ... [-?|-h|--help]'
 }
 printUsage()
 {
@@ -39,7 +40,8 @@ HELPDESCRIPTION
 		Drop a generic interpreter (bash, perl, python, etc.) from the
 		command-line and use the next (script filename) argument
 		instead. Also detects the special shell-wrapping invocation
-		(bash -c "\$@" bash COMMAND).
+		(bash -c "\$@" bash COMMAND) and invocation through
+		\$COMMANDNAME_INVOKERS.
 Example:
 HELPTEXT
     printf '%q %s\n' "$(basename "$1")" 'FOO=BAR /usr/bin/awk -F# "{ print \"$1\"; }"'
@@ -68,6 +70,10 @@ done
 dropInterpreter()
 {
     case "$commandFilespec" in
+	@(${COMMANDNAME_INVOKERS}))
+	    # Eat individual appended VAR=VAL arguments (e.g. for env VAR=VAL).
+	    while [[ "$2" =~ ^[[:alpha:]_][[:alnum:]_]+=(\\[[:space:]]|[^[:space:]\\])*$ ]]; do shift; done
+	    ;&
 	@(${COMMANDNAME_WRAPPERS})${COMMANDNAME_EXTENSIONS})
 	    shift
 	    while [ $# -gt 0 ] && [[ "$1" =~ ^- ]]
