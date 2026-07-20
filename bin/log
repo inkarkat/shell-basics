@@ -13,4 +13,10 @@ case "$1" in
     --help|-h|-\?)	shift; printUsage "$0"; exit 0;;
 esac
 
-exec timestamp --logging -- "$@"
+plainPrinter()
+{
+    printf '%s\n' "$*"
+}
+
+: ${LOG_TIMESTAMP_COMMAND=exec timestamp --logging --}
+${LOG_TIMESTAMP_COMMAND:-plainPrinter} "$@"
