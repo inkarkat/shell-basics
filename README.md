@@ -7,6 +7,7 @@ _A collection of basic shell scripts that are either useful on its own (in inter
 ### Dependencies
 
 * Bash, GNU `awk`, GNU `sed`
+* [inkarkat/shell-debugging](https://github.com/inkarkat/shell-debugging) for debugging (optional)
 * automated testing is done with _bats - Bash Automated Testing System_ (https://github.com/bats-core/bats-core)
 
 ### Installation
