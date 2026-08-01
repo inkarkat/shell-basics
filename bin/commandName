@@ -11,7 +11,7 @@ printShortUsage()
 {
     # Note: short followed by long option; if the user knows the short one, she can
     # skim the long one.
-    printf 'Usage: [COMMANDNAME_INTERPRETERS=CMD-GLOB] [COMMANDNAME_WRAPPERS=CMD-GLOB] [COMMANDNAME_INVOKERS=CMD-GLOB] [COMMANDNAME_SHELLS=CMD-GLOB] [COMMANDNAME_EXTENSIONS=EXT-GLOB] %q %s\n' "$(basename "$1")" '[--eval] [--undefined UNDEFINED] [-n|--no-interpreter] [--] COMMANDLINE ... [-?|-h|--help]'
+    printf 'Usage: [COMMANDNAME_INTERPRETERS=CMD-GLOB] [COMMANDNAME_WRAPPERS=CMD-GLOB] [COMMANDNAME_INVOKERS=CMD-GLOB] [COMMANDNAME_SHELLS=CMD-GLOB] [COMMANDNAME_EXTENSIONS=EXT-GLOB] %q %s\n' "$(basename "$1")" '[--eval] [--undefined UNDEFINED] [-n|--no-interpreter] [-f|--full-filespec] [--] COMMANDLINE ... [-?|-h|--help]'
 }
 printUsage()
 {
@@ -42,6 +42,8 @@ HELPDESCRIPTION
 		instead. Also detects the special shell-wrapping invocation
 		(bash -c "\$@" bash COMMAND) and invocation through
 		\$COMMANDNAME_INVOKERS.
+    --full-filespec|-f
+		Keep any path in the command name instead of stripping it off.
 Example:
 HELPTEXT
     printf '%q %s\n' "$(basename "$1")" 'FOO=BAR /usr/bin/awk -F# "{ print \"$1\"; }"'
@@ -50,9 +52,11 @@ HELPTEXT
     printf '%q %s\n' "$(basename "$1")" "--eval \"FOO=BAR GAGA=HI\ HO 'test with spaces.sh' foo bar\""
     printf '%q %s\n' "$(basename "$1")" '-n /usr/bin/python /tmp/testscript.py arg1 arg2'
 }
+
 isEval=
 isDropInterpreter=
 undefined=undefined
+printer=printFilename
 while [ $# -ne 0 ]
 do
     case "$1" in
@@ -61,15 +65,28 @@ do
 	--undefined)	shift; undefined="$1"; shift;;
 	--no-interpreter|-n)
 			shift; isDropInterpreter=t;;
+	--full-filespec|-f)
+			shift; printer=printFullFilespec;;
 	--)		shift; break;;
 	-*)		{ echo "ERROR: Unknown option \"$1\"!"; echo; printUsage "$0"; } >&2; exit 2;;
 	*)		break;;
     esac
 done
 
+printFilename()
+{
+    printf '%s\n' "$(basename -- "${1?}")"
+}
+
+printFullFilespec()
+{
+    printf '%s\n' "${1?}"
+}
+
 dropInterpreter()
 {
-    case "$commandFilespec" in
+    local commandFilename="$(basename -- "$commandFilespec")"
+    case "$commandFilename" in
 	@(${COMMANDNAME_INVOKERS}))
 	    # Eat individual appended VAR=VAL arguments (e.g. for env VAR=VAL).
 	    while [[ "$2" =~ ^[[:alpha:]_][[:alnum:]_]+=(\\[[:space:]]|[^[:space:]\\])*$ ]]; do shift; done
@@ -82,23 +99,23 @@ dropInterpreter()
 		# as we cannot handle command-line parameters this way.
 		shift
 	    done
-	    commandFilespec="$(basename -- "$1")"
+	    commandFilespec="$1"
 	    # Recursive removal of additional wrapper(s) or interpreters inside
 	    # the COMMAND.
 	    [ $# -eq 0 ] || dropInterpreter "$@"
 	    return
 	    ;;
     esac
-    case "${commandFilespec,,}" in
+    case "${commandFilename,,}" in
 	@(${COMMANDNAME_INTERPRETERS})${COMMANDNAME_EXTENSIONS})
-	    commandFilespec="$(basename -- "${2:-$1}")"
+	    commandFilespec="${2:-$1}"
 	    ;;
 	@(${COMMANDNAME_SHELLS})${COMMANDNAME_EXTENSIONS})
-	    commandFilespec="$(basename -- "${2:-$1}")"
+	    commandFilespec="${2:-$1}"
 
 	    if commandStringIdx=$(INDEX_UNTIL=-- indexGlob '-*([a-zA-Z])c*([a-zA-Z])' "$@") && [ $((commandStringIdx + 1)) -le $# ]; then
 		typeset -a commandArguments=(${@:$((commandStringIdx + 2)):1})	# The -c command_string is a single argument, we need to split that into individual arguments, and also evaluate shell stuff.
-		commandFilespec="$(basename -- "${commandArguments[0]}")"
+		commandFilespec="${commandArguments[0]}"
 		# Recursive removal of another interpreter inside the COMMAND,
 		# e.g. bash -c 'perl script.pl'
 		dropInterpreter "${commandArguments[@]}"
@@ -107,7 +124,7 @@ dropInterpreter()
 
 	    allArgsIdx=$(indexGlob '*"$@"' "$@") && [ $((allArgsIdx + 3)) -le $# ] && case "${@:$((allArgsIdx + 2)):1}" in
 		@(${COMMANDNAME_SHELLS})${COMMANDNAME_EXTENSIONS})
-		    commandFilespec="$(basename -- "${@:$((allArgsIdx + 3)):1}")"
+		    commandFilespec="${*:$((allArgsIdx + 3)):1}"
 		    # Recursive removal of another interpreter inside the
 		    # COMMAND, e.g. bash -c "$@" bash perl script.pl
 		    dropInterpreter "${@:$((allArgsIdx + 3))}"
@@ -172,7 +189,7 @@ do
     break
 done
 
-commandFilespec="$(basename -- "${1:-${undefined}}")"
+commandFilespec="${1:-${undefined}}"
 [ "$isDropInterpreter" ] && dropInterpreter "$@"
 
-printf '%s\n' "$commandFilespec"
+$printer "$commandFilespec"
