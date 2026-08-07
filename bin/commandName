@@ -11,7 +11,7 @@ printShortUsage()
 {
     # Note: short followed by long option; if the user knows the short one, she can
     # skim the long one.
-    printf 'Usage: [COMMANDNAME_INTERPRETERS=CMD-GLOB] [COMMANDNAME_WRAPPERS=CMD-GLOB] [COMMANDNAME_INVOKERS=CMD-GLOB] [COMMANDNAME_SHELLS=CMD-GLOB] [COMMANDNAME_EXTENSIONS=EXT-GLOB] %q %s\n' "$(basename "$1")" '[--eval] [--undefined UNDEFINED] [-n|--no-interpreter] [-f|--full-filespec] [--] COMMANDLINE ... [-?|-h|--help]'
+    printf 'Usage: [COMMANDNAME_INTERPRETERS=CMD-GLOB] [COMMANDNAME_WRAPPERS=CMD-GLOB] [COMMANDNAME_INVOKERS=CMD-GLOB] [COMMANDNAME_SHELLS=CMD-GLOB] [COMMANDNAME_EXTENSIONS=EXT-GLOB] %q %s\n' "$(basename "$1")" '[--eval] [--undefined UNDEFINED] [-n|--no-interpreter] [-k|--keep-filespec|-f|--full-filespec] [--] COMMANDLINE ... [-?|-h|--help]'
 }
 printUsage()
 {
@@ -42,8 +42,15 @@ HELPDESCRIPTION
 		instead. Also detects the special shell-wrapping invocation
 		(bash -c "\$@" bash COMMAND) and invocation through
 		\$COMMANDNAME_INVOKERS.
-    --full-filespec|-f
+    --keep-filespec|-k
 		Keep any path in the command name instead of stripping it off.
+    --full-filespec|-f
+		Keep any path in the command name and also resolve commands
+		without one through PATH.
+EXIT STATUS:
+    0	Complete success.
+    1	Failed to resolve the full filespec and no --undefined was given.
+    2	Bad invocation, wrong or missing command-line arguments.
 Example:
 HELPTEXT
     printf '%q %s\n' "$(basename "$1")" 'FOO=BAR /usr/bin/awk -F# "{ print \"$1\"; }"'
@@ -55,16 +62,18 @@ HELPTEXT
 
 isEval=
 isDropInterpreter=
-undefined=undefined
+unset undefined
 printer=printFilename
 while [ $# -ne 0 ]
 do
     case "$1" in
 	--help|-h|-\?)	shift; printLongUsage "$0"; exit 0;;
 	--eval)		shift; isEval=t;;
-	--undefined)	shift; undefined="$1"; shift;;
+	--undefined)	shift; undefined="${1?}"; shift;;
 	--no-interpreter|-n)
 			shift; isDropInterpreter=t;;
+	--keep-filespec|-k)
+			shift; printer=printKeepFilespec;;
 	--full-filespec|-f)
 			shift; printer=printFullFilespec;;
 	--)		shift; break;;
@@ -75,12 +84,28 @@ done
 
 printFilename()
 {
-    printf '%s\n' "$(basename -- "${1?}")"
+    local commandFilespec="${1?}"; shift
+    printf '%s\n' "$(basename -- "${commandFilespec:-${undefined-undefined}}")"
+}
+
+printKeepFilespec()
+{
+    local commandFilespec="${1?}"; shift
+    printf '%s\n' "${commandFilespec:-${undefined-undefined}}"
 }
 
 printFullFilespec()
 {
-    printf '%s\n' "${1?}"
+    local commandFilespec="${1?}"; shift
+    [ -x "$commandFilespec" ] \
+	|| commandFilespec="$(which -- "$commandFilespec" 2>/dev/null)"
+    if [ -x "$commandFilespec" ]; then
+	printf '%s\n' "$commandFilespec"
+    elif [ -n "${undefined+t}" ]; then
+	printf '%s\n' "$undefined"
+    else
+	return 1
+    fi
 }
 
 dropInterpreter()
@@ -189,7 +214,7 @@ do
     break
 done
 
-commandFilespec="${1:-${undefined}}"
+commandFilespec="$1"
 [ "$isDropInterpreter" ] && dropInterpreter "$@"
 
 $printer "$commandFilespec"
