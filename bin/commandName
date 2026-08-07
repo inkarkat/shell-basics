@@ -75,12 +75,14 @@ done
 
 printFilename()
 {
-    printf '%s\n' "$(basename -- "${1?}")"
+    local commandFilespec="${1?}"; shift
+    printf '%s\n' "$(basename -- "${commandFilespec:-$undefined}")"
 }
 
 printFullFilespec()
 {
-    printf '%s\n' "${1?}"
+    local commandFilespec="${1?}"; shift
+    printf '%s\n' "${commandFilespec:-$undefined}"
 }
 
 dropInterpreter()
@@ -189,7 +191,7 @@ do
     break
 done
 
-commandFilespec="${1:-${undefined}}"
+commandFilespec="$1"
 [ "$isDropInterpreter" ] && dropInterpreter "$@"
 
 $printer "$commandFilespec"
