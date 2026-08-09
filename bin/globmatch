@@ -110,10 +110,7 @@ if [ "$isMatchFilename" ]; then
     typeset -a convertedGlobs=()
     for g in "${globs[@]}"
     do
-	g="${g/\/\*\*/}"
-	g="${g/\*/*([^/])}"
-	g="${g//?(/*)}"
-	convertedGlobs+=("$g")
+	convertedGlobs+=("$(pathnameGlobToGlob -- "$g")")
     done
     globs=("${convertedGlobs[@]}")
 fi
