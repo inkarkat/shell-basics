@@ -41,3 +41,24 @@ foo\\bar	foo\\bar	double backslash
 /foo/*\*/bar	/foo/*([^/])\*/bar	filespec with * glob + escaped *
 EOF
 }
+
+@test "handle character classes" {
+    while IFS=$'\t' read -r inputGlob expectedGlob description
+    do
+	run -0 pathnameGlobToGlob -- "$inputGlob" \
+	    && assert_output "$expectedGlob" \
+	    || fail "$inputGlob - $description"
+    done <<'EOF'
+*[]*	*([^/])[]*([^/])	no character class
+foob[aeiou]r	foob[aeiou]r	plain character class
+foob[aeiou	foob[aeiou	plain unclosed character class
+foob[^&*#	foob[^&*([^/])#	unclosed character class with *
+foob[^&?#]r	foob[^&?#]r	character class with ?
+foob[^&*#]r	foob[^&*#]r	character class with *
+foob[^&**#]r	foob[^&**#]r	(strange) character class with **
+foob[^&/**/#]r	foob[^&/**/#]r	(strange) character class with /**/
+foob[]^&*#]r	foob[]^&*#]r	character class starting with ] with *
+foob[^]^&*#]r	foob[^]^&*#]r	^-inverted character class starting with ] with *
+foob[!]^&*#]r	foob[!]^&*#]r	!-inverted character class starting with ] with *
+EOF
+}
