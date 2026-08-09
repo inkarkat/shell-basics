@@ -1,0 +1,56 @@
+#!/bin/bash
+
+printUsage()
+{
+    cat <<HELPTEXT
+Convert the passed GLOB with pathname expansion semantics (i.e. * is limited to
+a single path component, ** matches any number of path components including
+none) to a GLOB with standard shell globbing semantics (* matches any number of
+characters in a single path component, ** is the same as *).
+HELPTEXT
+    echo
+    printf 'Usage: %q %s\n' "$(basename "$1")" '[--] GLOB [...] [-?|-h|--help]'
+}
+
+case "$1" in
+    --help|-h|-\?)	shift; printUsage "$0"; exit 0;;
+    --)			shift;;
+esac
+if [ $# -eq 0 ]; then
+    printUsage "$0" >&2
+    exit 2
+fi
+
+for g
+do
+    r=''
+    glen=${#g}
+    for ((i = 0; i < glen; i++))
+    do
+	# Backslash takes the next character literally.
+	if [ "${g:i:1}" = \\ ] && ((i + 1 < glen)); then
+	    r+="${g:i:2}"
+	    let i+=1
+	# Double asterisk matches any number of path components, including none.
+	elif [ "${g:i:4}" = '/**/' ]; then
+	    let i+=3
+	    r+='?(/*/)'
+	elif ((i == 0)) && [ "${g:i:3}" = '**/' ]; then
+	    let i+=2
+	    r+='?(*/)'
+	elif ((i + 3 == glen)) && [ "${g:i:3}" = '/**' ]; then
+	    let i+=2
+	    r+='/*'
+	elif [ "${g:i:2}" = '**' ]; then
+	    let i+=1
+	    r+='*([^/])'
+	# Single asterisk matches any number of characters in a single path component.
+	elif [ "${g:i:1}" = '*' ]; then
+	    r+='*([^/])'
+	# Everything else is taken literally.
+	else
+	    r+="${g:i:1}"
+	fi
+    done
+    printf '%s\n' "$r"
+done
