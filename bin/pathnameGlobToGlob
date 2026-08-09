@@ -36,49 +36,91 @@ parseCharacterClass()
 	if [ "${s:i:1}" = ']' ]; then
 	    [ "$isFirst" ] && continue  # A ] may be matched by including it as the first character in the set.
 
-	    printf %d $((i + 1))
+	    printf '%d-%s' $((i + 1)) "${s:0:i+1}"
 	    return 0
 	fi
     done
     return 1
 }
 
+parseExtendedGlob()
+{
+    local s="${1?}" slen=${#1} i
+
+    [[ "${s:0:1}" = [?*+@!] ]] || return 1
+    [ "${s:1:1}" = '(' ] || return 1
+
+    for ((i = 2; i < slen; i++))
+    do
+	if [ "${s:i:1}" = ')' ]; then
+	    printf '%d-%s' $((i + 1)) "${s:0:i+1}"
+	    return 0
+	fi
+    done
+    return 1
+}
+
+parse()
+{
+    local s="${1?}" slen=${#1}; shift
+    local i="${1:?}"; shift
+
+    if ((slen == 0)); then
+	return 1
+    # Backslash takes the next character literally.
+    elif [ "${s:0:1}" = \\ ] && ((slen > 1)); then
+	printf '2-%s' "${s:0:2}"
+    elif [ "${s:0:1}" = '[' ]; then
+	if p=$(parseCharacterClass "${s:1}"); then
+	    n="${p%%-*}"; text="${p#*-}"
+	    printf '%d-%s' $((n+1)) "${s:0:1}$text"
+	else
+	    printf '1-%s' "${s:0:1}"
+	fi
+    # Double asterisk matches any number of path components, including none.
+    elif [ "${s:0:4}" = '/**/' ]; then
+	printf '4-?(/*/)'
+    elif ((i == 0)) && [ "${s:0:3}" = '**/' ]; then
+	printf '3-?(*/)'
+    elif ((slen == 3)) && [ "${s:0:3}" = '/**' ]; then
+	printf '3-/*'
+    # Double asterisk not delimited by slashes or at the beginning or end of the
+    # glob matches like a single asterisk.
+    elif [ "${s:0:2}" = '**' ]; then
+	if [ "${s:2:1}" = '(' ] \
+	    && p=$(parseExtendedGlob "${s:1}")
+	then
+	    # It's actually a single asterisk followed by an extended *(...) glob.
+	    n="${p%%-*}"; text="${p#*-}"
+	    printf '%d-%s' $((n+1)) "*([^/])$text"
+	else
+	    printf '2-*([^/])'
+	fi
+    # Single asterisk matches any number of characters in a single path component.
+    elif [ "${s:0:1}" = '*' ]; then
+	if [ "${s:1:1}" = '(' ] \
+	    && p=$(parseExtendedGlob "$s")
+	then
+	    n="${p%%-*}"; text="${p#*-}"
+	    printf '%d-%s' $n "$text"
+	else
+	    printf '1-*([^/])'
+	fi
+    # Everything else is taken literally.
+    else
+	printf '1-%s' "${s:0:1}"
+    fi
+}
+
 for g
 do
     r=''
-    glen=${#g}
-    for ((i = 0; i < glen; i++))
+    let i=0
+    while p="$(parse "${g:i}" $i)"
     do
-	# Backslash takes the next character literally.
-	if [ "${g:i:1}" = \\ ] && ((i + 1 < glen)); then
-	    r+="${g:i:2}"
-	    let i+=1
-	elif [ "${g:i:1}" = '[' ]; then
-	    r+="${g:i:1}"
-	    if n=$(parseCharacterClass "${g:i+1}"); then
-		r+="${g:i+1:n}"
-		let i+=n
-	    fi
-	# Double asterisk matches any number of path components, including none.
-	elif [ "${g:i:4}" = '/**/' ]; then
-	    let i+=3
-	    r+='?(/*/)'
-	elif ((i == 0)) && [ "${g:i:3}" = '**/' ]; then
-	    let i+=2
-	    r+='?(*/)'
-	elif ((i + 3 == glen)) && [ "${g:i:3}" = '/**' ]; then
-	    let i+=2
-	    r+='/*'
-	elif [ "${g:i:2}" = '**' ] && [ "${g:i+2:1}" != '(' ]; then
-	    let i+=1
-	    r+='*([^/])'
-	# Single asterisk matches any number of characters in a single path component.
-	elif [ "${g:i:1}" = '*' ] && [ "${g:i+1:1}" != '(' ]; then
-	    r+='*([^/])'
-	# Everything else is taken literally.
-	else
-	    r+="${g:i:1}"
-	fi
+	n="${p%%-*}"; text="${p#*-}"
+	r+="$text"
+	let i+=n
     done
     printf '%s\n' "$r"
 done
