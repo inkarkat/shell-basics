@@ -74,5 +74,31 @@ foo?(bar)	foo?(bar)	plain extended ?-glob
 foo*(bar)	foo*(bar)	plain extended *-glob
 foo**(bar)	foo*([^/])*(bar)	* glob followed by plain extended *-glob
 foo*(b?r|q*x)	foo*(b?r|q*([^/])x)	extended *-glob containing *
+foo*(b[aeiou]r)	foo*(b[aeiou]r)	plain extended *-glob with character class
+foo*(b[^&?#)]r)	foo*(b[^&?#)]r)	plain extended *-glob with character class containing )
+foo@(bar|f+([Oo]*(a|iz)))	foo@(bar|f+([Oo]*(a|iz)))	nested +-glob and *-glob inside @-glob
+EOF
+}
+
+@test "convert pathname glob to glob within extended glob does not apply globstar inside" {
+    while IFS=$'\t' read -r inputGlob expectedGlob description
+    do
+	run -0 pathnameGlobToGlob -- "$inputGlob" \
+	    && assert_output "$expectedGlob" \
+	    || fail "$inputGlob - $description"
+    done <<'EOF'
+@(/foo/**/bar)	@(/foo/*([^/])/bar)	filespec with inner ** glob only matches a single path component
+@(**/bar)	@(*([^/])/bar)	filespec with leading ** glob only matches a single path component
+@(/foo/bar/**)	@(/foo/bar/*([^/]))	filespec with trailing ** glob only matches a single path component
+**/@(/foo/**/bar)	?(*/)@(/foo/*([^/])/bar)	leading ** glob + filespec with inner ** glob only matches a single path component
+@(/foo/**/bar)/**	@(/foo/*([^/])/bar)/*	trailing ** glob + filespec with inner ** glob only matches a single path component
+@(/blah|/f*/bar)	@(/blah|/f*([^/])/bar)	filespec alternatives with * glob
+@(/blah|/f**/bar)	@(/blah|/f*([^/])/bar)	filespec alternatives with inapplicable f** glob
+@(/blah|/foo/**r)	@(/blah|/foo/*([^/])r)	filespec alternatives with inapplicable **r glob
+@(/blah|/foo/**/bar)	@(/blah|/foo/*([^/])/bar)	filespec alternatives with inner ** glob also only matches a single path component
+@(/blah|**/bar)	@(/blah|*([^/])/bar)	filespec alternatives with leading ** glob also only matches a single path component
+@(/blah|/foo/bar/**)	@(/blah|/foo/bar/*([^/]))	filespec alternatives with trailing ** glob also only matches a single path component
+foo?(b[^&?#)]r)/**/lala	foo?(b[^&?#)]r)?(/*/)lala	plain extended ?-glob with character class containing ) only matches a single path component but translates a following **
+foo?(b[^&?#)]r/**/lala)	foo?(b[^&?#)]r/*([^/])/lala)	plain extended ?-glob with character class containing ) only matches a single path component, also for a following ** inside the extended glob
 EOF
 }

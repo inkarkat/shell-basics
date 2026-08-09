@@ -50,12 +50,20 @@ parseExtendedGlob()
     [[ "${s:0:1}" = [?*+@!] ]] || return 1
     [ "${s:1:1}" = '(' ] || return 1
 
-    for ((j = 2; j < slen; j++))
+    local parsedExtendedGlob="${s:0:2}"
+    for ((j = 2; j < slen; ))
     do
 	if [ "${s:j:1}" = ')' ]; then
-	    printf '%d-%s' $((j + 1)) "${s:0:j+1}"
+	    parsedExtendedGlob+=')'
+	    printf '%d-%s' $((j + 1)) "$parsedExtendedGlob" #"${s:0:j+1}"
 	    return 0
 	fi
+
+	local p n text
+	p="$(parse "${s:j}" $j '')" || return $?    # Extended globs can only cover a single path components, therefore no globstar inside them.
+	n="${p%%-*}"; text="${p#*-}"
+	parsedExtendedGlob+="$text"
+	let j+=n
     done
     return 1
 }
@@ -64,6 +72,7 @@ parse()
 {
     local s="${1?}" slen=${#1}; shift
     local j="${1:?}"; shift
+    local isAllowGlobStar="${1?}"; shift
 
     if ((slen == 0)); then
 	return 1
@@ -78,11 +87,11 @@ parse()
 	    printf '1-%s' "${s:0:1}"
 	fi
     # Double asterisk matches any number of path components, including none.
-    elif [ "${s:0:4}" = '/**/' ]; then
+    elif [ "$isAllowGlobStar" ] && [ "${s:0:4}" = '/**/' ]; then
 	printf '4-?(/*/)'
-    elif ((i == 0)) && [ "${s:0:3}" = '**/' ]; then	# Need to check for the actual start of the glob, not the start of the parse, so i, not j.
+    elif [ "$isAllowGlobStar" ] && ((i == 0)) && [ "${s:0:3}" = '**/' ]; then	# Need to check for the actual start of the glob, not the start of the parse, so i, not j.
 	printf '3-?(*/)'
-    elif ((slen == 3)) && [ "${s:0:3}" = '/**' ]; then
+    elif [ "$isAllowGlobStar" ] && ((slen == 3)) && [ "${s:0:3}" = '/**' ]; then
 	printf '3-/*'
     # Double asterisk not delimited by slashes or at the beginning or end of the
     # glob matches like a single asterisk.
@@ -106,6 +115,11 @@ parse()
 	else
 	    printf '1-*([^/])'
 	fi
+    elif [[ "${s:0:2}" = [?*+@!]\( ]] \
+	&& p=$(parseExtendedGlob "$s")
+    then
+	n="${p%%-*}"; text="${p#*-}"
+	printf '%d-%s' $n "$text"
     # Everything else is taken literally.
     else
 	printf '1-%s' "${s:0:1}"
@@ -116,7 +130,7 @@ for g
 do
     r=''
     let i=0
-    while p="$(parse "${g:i}" $i)"
+    while p="$(parse "${g:i}" $i t)"
     do
 	n="${p%%-*}"; text="${p#*-}"
 	r+="$text"
