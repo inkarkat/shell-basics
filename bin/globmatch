@@ -23,8 +23,8 @@ printLongUsage()
     # This is the long "man page" when launched with the help argument.
     # It is printed to stdout to allow paging with 'more'.
     cat <<HELPDESCRIPTION
-Test whether the passed (anchored, extended) GLOB(s) match either the path or
-just the filename of the passed FILESPEC(s).
+Test whether (any of) the passed (anchored, extended) GLOB(s) match either the
+path or just the filename of the passed FILESPEC(s).
 HELPDESCRIPTION
     echo
     printShortUsage "$1"
@@ -37,8 +37,9 @@ HELPDESCRIPTION
     --subpath|-s	Also match subpaths (e.g. bar/file in foo/bar/file) in
 			addition to the full passed path.
     --values|-v		Only perform a full match on the passed VALUE(s), don't
-			consider the filename, directories, or subpaths. This is
-			for generic matching of non-file VALUEs.
+			consider the filename, directories, or subpaths. * isn't
+			limited to single path components, ** the same as *.
+			This is for generic matching of non-file VALUEs.
 SEE ALSO:
 - expandglob directly matches a passed GLOB (unlike here just a single one) for
   full filespecs on the file system; FILESPECs do not have to be passed, but it
@@ -104,6 +105,18 @@ if [ "$isMatchDirectories" ] && [ "$isExcludeDirectories" ]; then
     printUsage "$0"
     exit 2
 fi >&2
+
+if [ "$isMatchFilename" ]; then
+    typeset -a convertedGlobs=()
+    for g in "${globs[@]}"
+    do
+	g="${g/\/\*\*/}"
+	g="${g/\*/*([^/])}"
+	g="${g//?(/*)}"
+	convertedGlobs+=("$g")
+    done
+    globs=("${convertedGlobs[@]}")
+fi
 
 isDirectoryMatch()
 {
