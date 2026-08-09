@@ -23,20 +23,20 @@ fi
 
 parseCharacterClass()
 {
-    local s="${1?}" slen=${#1} i
-    for ((i = 0; i < slen; i++))
+    local s="${1?}" slen=${#1} j
+    for ((j = 0; j < slen; j++))
     do
 	local isFirst=
-	if ((i == 0)); then
+	if ((j == 0)); then
 	    isFirst=t
-	    if [ "${s:i:1}" = '!' ] || [ "${s:i:1}" = '^' ]; then	# Character class negation.
-		let i+=1
+	    if [ "${s:j:1}" = '!' ] || [ "${s:j:1}" = '^' ]; then	# Character class negation.
+		let j+=1
 	    fi
 	fi
-	if [ "${s:i:1}" = ']' ]; then
+	if [ "${s:j:1}" = ']' ]; then
 	    [ "$isFirst" ] && continue  # A ] may be matched by including it as the first character in the set.
 
-	    printf '%d-%s' $((i + 1)) "${s:0:i+1}"
+	    printf '%d-%s' $((j + 1)) "${s:0:j+1}"
 	    return 0
 	fi
     done
@@ -45,15 +45,15 @@ parseCharacterClass()
 
 parseExtendedGlob()
 {
-    local s="${1?}" slen=${#1} i
+    local s="${1?}" slen=${#1} j
 
     [[ "${s:0:1}" = [?*+@!] ]] || return 1
     [ "${s:1:1}" = '(' ] || return 1
 
-    for ((i = 2; i < slen; i++))
+    for ((j = 2; j < slen; j++))
     do
-	if [ "${s:i:1}" = ')' ]; then
-	    printf '%d-%s' $((i + 1)) "${s:0:i+1}"
+	if [ "${s:j:1}" = ')' ]; then
+	    printf '%d-%s' $((j + 1)) "${s:0:j+1}"
 	    return 0
 	fi
     done
@@ -63,7 +63,7 @@ parseExtendedGlob()
 parse()
 {
     local s="${1?}" slen=${#1}; shift
-    local i="${1:?}"; shift
+    local j="${1:?}"; shift
 
     if ((slen == 0)); then
 	return 1
@@ -80,7 +80,7 @@ parse()
     # Double asterisk matches any number of path components, including none.
     elif [ "${s:0:4}" = '/**/' ]; then
 	printf '4-?(/*/)'
-    elif ((i == 0)) && [ "${s:0:3}" = '**/' ]; then
+    elif ((i == 0)) && [ "${s:0:3}" = '**/' ]; then	# Need to check for the actual start of the glob, not the start of the parse, so i, not j.
 	printf '3-?(*/)'
     elif ((slen == 3)) && [ "${s:0:3}" = '/**' ]; then
 	printf '3-/*'
