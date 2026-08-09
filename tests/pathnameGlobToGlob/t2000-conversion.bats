@@ -62,3 +62,17 @@ foob[^]^&*#]r	foob[^]^&*#]r	^-inverted character class starting with ] with *
 foob[!]^&*#]r	foob[!]^&*#]r	!-inverted character class starting with ] with *
 EOF
 }
+
+@test "handle extended globs" {
+    while IFS=$'\t' read -r inputGlob expectedGlob description
+    do
+	run -0 pathnameGlobToGlob -- "$inputGlob" \
+	    && assert_output "$expectedGlob" \
+	    || fail "$inputGlob - $description"
+    done <<'EOF'
+foo?(bar)	foo?(bar)	plain extended ?-glob
+foo*(bar)	foo*(bar)	plain extended *-glob
+foo**(bar)	foo*([^/])*(bar)	* glob followed by plain extended *-glob
+foo*(b?r|q*x)	foo*(b?r|q*([^/])x)	extended *-glob containing *
+EOF
+}

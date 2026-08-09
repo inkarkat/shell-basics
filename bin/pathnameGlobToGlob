@@ -69,11 +69,11 @@ do
 	elif ((i + 3 == glen)) && [ "${g:i:3}" = '/**' ]; then
 	    let i+=2
 	    r+='/*'
-	elif [ "${g:i:2}" = '**' ]; then
+	elif [ "${g:i:2}" = '**' ] && [ "${g:i+2:1}" != '(' ]; then
 	    let i+=1
 	    r+='*([^/])'
 	# Single asterisk matches any number of characters in a single path component.
-	elif [ "${g:i:1}" = '*' ]; then
+	elif [ "${g:i:1}" = '*' ] && [ "${g:i+1:1}" != '(' ]; then
 	    r+='*([^/])'
 	# Everything else is taken literally.
 	else
