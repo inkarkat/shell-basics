@@ -13,6 +13,6 @@ load fixture
 foo/bar
 
 foo/*([^/])/bar
-foo?(/*/)bar
+foo/?(*/)bar
 EOF
 }

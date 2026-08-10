@@ -15,9 +15,10 @@ foobar	foobar	string with no glob characters
 /f*/bar	/f*([^/])/bar	filespec with * glob
 /f**/bar	/f*([^/])/bar	filespec with inapplicable f** glob
 /foo/**r	/foo/*([^/])r	filespec with inapplicable **r glob
-/foo/**/bar	/foo?(/*/)bar	filespec with inner ** glob
+/foo/**/bar	/foo/?(*/)bar	filespec with inner ** glob
 **/bar	?(*/)bar	filespec with leading ** glob
 /foo/bar/**	/foo/bar/*	filespec with trailing ** glob
+tests/joinWith/**/t[0-9]*.bats	tests/joinWith/?(*/)t[0-9]*([^/]).bats	filespec with inner ** glob and character class + glob
 EOF
 }
 
@@ -98,7 +99,7 @@ EOF
 @(/blah|/foo/**/bar)	@(/blah|/foo/*([^/])/bar)	filespec alternatives with inner ** glob also only matches a single path component
 @(/blah|**/bar)	@(/blah|*([^/])/bar)	filespec alternatives with leading ** glob also only matches a single path component
 @(/blah|/foo/bar/**)	@(/blah|/foo/bar/*([^/]))	filespec alternatives with trailing ** glob also only matches a single path component
-foo?(b[^&?#)]r)/**/lala	foo?(b[^&?#)]r)?(/*/)lala	plain extended ?-glob with character class containing ) only matches a single path component but translates a following **
+foo?(b[^&?#)]r)/**/lala	foo?(b[^&?#)]r)/?(*/)lala	plain extended ?-glob with character class containing ) only matches a single path component but translates a following **
 foo?(b[^&?#)]r/**/lala)	foo?(b[^&?#)]r/*([^/])/lala)	plain extended ?-glob with character class containing ) only matches a single path component, also for a following ** inside the extended glob
 EOF
 }

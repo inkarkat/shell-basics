@@ -88,7 +88,7 @@ parse()
 	fi
     # Double asterisk matches any number of path components, including none.
     elif [ "$isAllowGlobStar" ] && [ "${s:0:4}" = '/**/' ]; then
-	printf '4-?(/*/)'
+	printf '4-/?(*/)'
     elif [ "$isAllowGlobStar" ] && ((i == 0)) && [ "${s:0:3}" = '**/' ]; then	# Need to check for the actual start of the glob, not the start of the parse, so i, not j.
 	printf '3-?(*/)'
     elif [ "$isAllowGlobStar" ] && ((slen == 3)) && [ "${s:0:3}" = '/**' ]; then
