@@ -20,7 +20,7 @@ if [ $# -eq 0 ]; then
     exit 2
 elif [ $# -eq 0 -o "$1" = '-' ]; then
     TMPFILE="$(mktemp --tmpdir "$(basename -- "$0")-XXXXXX" 2>/dev/null || echo "${TMPDIR:-/tmp}/$(basename -- "$0").$$$RANDOM")"
-    ! ${DEBUG:+debugenabled --invert-match --} ${DEBUG:-:} || trap 'rm -f -- "$TMPFILE" 2>/dev/null' EXIT
+    trap '${DEBUG:+debugcommand --} rm -f -- "$TMPFILE" 2>/dev/null' EXIT
     cat > "$TMPFILE" || exit 3
     shift
     set -- "$TMPFILE" "$@"
