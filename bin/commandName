@@ -186,8 +186,8 @@ do
 	netCommandLine="${netCommandLine#! }"
 
 	# DWIM: Drop the chdir in a "cd DIR && COMMAND" or "cd DIR; COMMAND" commandline.
-	if [[ "$netCommandLine" =~ ^cd[[:space:]] ]] && [[ "$*" =~ \&\&|\;[[:space:]]*([^[:space:]].*)$ ]]; then
-	    set -- "${BASH_REMATCH[1]}"
+	if [[ "$netCommandLine" =~ ^cd[[:space:]] ]] && [[ "$*" =~ (\&\&|\;)[[:space:]]*([^[:space:]].*)$ ]]; then
+	    set -- "${BASH_REMATCH[2]}"
 	    continue
 	fi
 
