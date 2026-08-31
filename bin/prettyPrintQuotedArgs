@@ -16,12 +16,20 @@ case "$1" in
     --)			shift;;
 esac
 
+isMultilineRendering=; [[ "$PRETTYPRINTQUOTEDARGS_IFS" =~ $'\n' ]] && isMultilineRendering=t
 for arg
 do
     # Enclose in single quotes if it contains special characters (but not
     # non-space whitespace), and does not solely consist of that special
     # character (then, it's shorter to escape: \( vs. '(').
-    if [[ "$arg" =~ [][$\ \`\"?\*{}()\&\;\!~] ]] && [[ ! "$arg" =~ [$'\n\r\t\v'] ]] &&  [ ${#arg} -gt 1 ]; then
+    # If we're rendering across multiple lines, anyway, don't necessarily use %q
+    # shell quoting just because the argument contains whitespace. Single-quoted
+    # text broken across multiple lines is much more readable than a single line of
+    # %q shell quoting with embedded \n and \t.
+    if [[ "$arg" =~ [][$\ \`\"?\*{}()\&\;\!~] ]] \
+	&& { [ "$isMultilineRendering" ] || [[ ! "$arg" =~ [$'\n\r\t\v'] ]]; } \
+	&& [ ${#arg} -gt 1 ]
+    then
 	if [[ "$arg" =~ \' ]]; then
 	    # Decide based on length whether to .\ \ \'\ \ . or '   '\''  .'
 	    printf -v sqArg %s "'${arg//\'/\'\\\'\'}'"
