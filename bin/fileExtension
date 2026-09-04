@@ -56,7 +56,7 @@ HELPTEXT
 
 isSingle=
 typeset -a actions=()
-output=ext
+output=
 insertion=
 defaultExtension=
 addExtension=
@@ -67,13 +67,13 @@ do
 	--single|-1)	shift; isSingle=t;;
 	--strip|-d)	shift; output=strip;;
 	--basename|-b)	shift; output=strip; actions+=(keepBasename);;
-	--rebase|-o)	shift; targetDirspec="${1:?}"; shift; output=asIs; actions+=(rebase);;
+	--rebase|-o)	shift; targetDirspec="${1:?}"; shift; : ${output:=asIs}; actions+=(rebase);;
 	--split|-s)	shift; output=split;;
 	--split-all|-3)	shift; output=splitall;;
-	--splice|-c)	shift; insertion="$1"; shift; output=asIs; actions+=(splice);;
-	--default|-f)	shift; defaultExtension="${1:?}"; shift; output=asIs; actions+=(defaultExtension);;
-	--modify|-m)	shift; defaultExtension="${1:?}"; shift; output=asIs; actions+=(modifyExtension);;
-	--add|-a)	shift; addExtension="${1:?}"; shift; output=asIs; actions+=(addExtension);;
+	--splice|-c)	shift; insertion="${1?}"; shift; output=asIs; actions+=(splice);;
+	--default|-f)	shift; defaultExtension="${1:?}"; shift; : ${output:=asIs}; actions+=(defaultExtension);;
+	--modify|-m)	shift; defaultExtension="${1:?}"; shift; : ${output:=asIs}; actions+=(modifyExtension);;
+	--add|-a)	shift; addExtension="${1:?}"; shift; : ${output:=asIs}; actions+=(addExtension);;
 	--)		shift; break;;
 	-*)		{ echo "ERROR: Unknown option \"$1\"!"; echo; printUsage "$0"; } >&2; exit 2;;
 	*)		break;;
