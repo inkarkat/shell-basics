@@ -42,6 +42,8 @@ modifications:
 			INSERTION is inserted at the end of the file name,
 			before the extension(s). If you want to prepend an EXT,
 			use --splice .EXT
+    --unprefix PREFIX	Remove PREFIX from the beginning of the file name.
+    --unsuffix SUFFIX	Remove SUFFIX from the end of the file name.
     --default|-f EXT	Append EXT to FILENAME if it doesn't have one yet.
     --modify|-m EXT	Change any existing file extension to EXT.
     --add|-a EXT	Append EXT to the existing file extension.
@@ -56,8 +58,10 @@ HELPTEXT
 
 isSingle=
 typeset -a actions=()
-output=ext
+output=
 insertion=
+prefix=
+suffix=
 defaultExtension=
 addExtension=
 while [ $# -ne 0 ]
@@ -67,13 +71,15 @@ do
 	--single|-1)	shift; isSingle=t;;
 	--strip|-d)	shift; output=strip;;
 	--basename|-b)	shift; output=strip; actions+=(keepBasename);;
-	--rebase|-o)	shift; targetDirspec="${1:?}"; shift; output=asIs; actions+=(rebase);;
+	--rebase|-o)	shift; targetDirspec="${1:?}"; shift; : ${output:=asIs}; actions+=(rebase);;
 	--split|-s)	shift; output=split;;
 	--split-all|-3)	shift; output=splitall;;
-	--splice|-c)	shift; insertion="$1"; shift; output=asIs; actions+=(splice);;
-	--default|-f)	shift; defaultExtension="${1:?}"; shift; output=asIs; actions+=(defaultExtension);;
-	--modify|-m)	shift; defaultExtension="${1:?}"; shift; output=asIs; actions+=(modifyExtension);;
-	--add|-a)	shift; addExtension="${1:?}"; shift; output=asIs; actions+=(addExtension);;
+	--splice|-c)	shift; insertion="${1?}"; shift; output=asIs; actions+=(splice);;
+	--unprefix)	shift; prefix="${1:?}"; shift; : ${output:=asIs}; actions+=(unprefix);;
+	--unsuffix)	shift; suffix="${1:?}"; shift; : ${output:=asIs}; actions+=(unsuffix);;
+	--default|-f)	shift; defaultExtension="${1:?}"; shift; : ${output:=asIs}; actions+=(defaultExtension);;
+	--modify|-m)	shift; defaultExtension="${1:?}"; shift; : ${output:=asIs}; actions+=(modifyExtension);;
+	--add|-a)	shift; addExtension="${1:?}"; shift; : ${output:=asIs}; actions+=(addExtension);;
 	--)		shift; break;;
 	-*)		{ echo "ERROR: Unknown option \"$1\"!"; echo; printUsage "$0"; } >&2; exit 2;;
 	*)		break;;
@@ -128,6 +134,16 @@ splice()
     name="${name}${insertion}"
 }
 
+unprefix()
+{
+    name="${name#"$prefix"}"
+}
+
+unsuffix()
+{
+    name="${name%"$suffix"}"
+}
+
 defaultExtension()
 {
     : ${ext:=$defaultExtension}
@@ -152,7 +168,6 @@ case "${output:-ext}" in
     asIs)	printf '%s%s\n' "$name" "${ext:+.}$ext";;
     ext)	printf '%s\n' "$ext";;
     strip)	printf '%s\n' "$name";;
-    basename)	printf '%s\n' "$(basename -- "$name")";;
     split)	printf '%s\n%s\n' "$name" "$ext";;
     splitall)	printf '%s\n%s\n%s\n' "$(dirname -- "$name")" "$(basename -- "$name")" "$ext";;
     *)          printf >&2 'ASSERT: Invalid output: %s\n' "$output"; exit 2;;
