@@ -6,7 +6,7 @@ printShortUsage()
 {
     # Note: short followed by long option; if the user knows the short one, she can
     # skim the long one.
-    printf 'Usage: %q %s\n' "$(basename "$1")" '[--prefix PREFIX] [--suffix SUFFIX] [--empty TEXT] [--omit-empty] [--last-separator LAST-SEPARATOR] [--truncate-after "N[ TRAIL-OFF]"] [--summarize-larger "N[ ENTRIES]"] [--] SEPARATOR [ARG ...] [-?|-h|--help]'
+    printf 'Usage: %q %s\n' "$(basename "$1")" '[--prefix PREFIX] [--args-prefix ARGS-PREFIX] [--suffix SUFFIX] [--args-suffix ARGS-SUFFIX] [--empty TEXT] [--omit-empty] [--last-separator LAST-SEPARATOR] [--truncate-after "N[ TRAIL-OFF]"|--summarize-larger "N[ ENTRIES]"] [--] SEPARATOR [ARG ...] [-?|-h|--help]'
     printf 'Usage: cat FILE [...] | %q %s\n' "$(basename "$1")" '[...] - SEPARATOR'
 }
 printUsage()
@@ -28,7 +28,13 @@ HELPDESCRIPTION
     echo
     cat <<HELPTEXT
     --prefix PREFIX	Put PREFIX before anything else.
+    --args-prefix ARGS-PREFIX
+			Put ARGS-PREFIX before anything else (except PREFIX) if
+			ARGs are printed (i.e. not empty and not summarized).
     --suffix SUFFIX	Append SUFFIX at the end.
+    --args-suffix ARGS-SUFFIX
+			Put ARGS-SUFFIX after anything else (except SUFFIX) if
+			ARGs are printed (i.e. not empty and not summarized).
     --empty TEXT	Print TEXT instead of nothing when there are no ARGs at
 			all.
     --omit-empty	Do not put a SEPARATOR around completely empty ARGs
@@ -58,7 +64,9 @@ HELPTEXT
 unset separator
 unset lastSeparator
 prefix=
+argsPrefix=
 suffix=
+argsSuffix=
 emptyText=
 isOmitEmpty=
 truncateNum=
@@ -69,9 +77,11 @@ while [ $# -ne 0 ]
 do
     case "$1" in
 	--help|-h|-\?)	shift; printLongUsage "$0"; exit 0;;
-	--prefix)	shift; prefix="$1"; shift;;
-	--suffix)	shift; suffix="$1"; shift;;
-	--empty)	shift; emptyText="$1"; shift;;
+	--prefix)	shift; prefix="${1?}"; shift;;
+	--args-prefix)	shift; argsPrefix="${1?}"; shift;;
+	--args-suffix)	shift; argsSuffix="${1?}"; shift;;
+	--suffix)	shift; suffix="${1?}"; shift;;
+	--empty)	shift; emptyText="${1?}"; shift;;
 	--omit-empty)	shift; isOmitEmpty=t;;
 	--last-separator)
 			shift; lastSeparator="$1"; shift;;
@@ -146,7 +156,7 @@ fi
 if [ -n "$summarizeNum" ] && [ $# -gt $summarizeNum ]; then
     printf '%s%d%s%s\n' "$prefix" $# "$summarizeText" "$suffix"
 else
-    printf '%s%s' "$prefix" "$1"; shift
+    printf '%s%s' "${prefix}${argsPrefix}" "$1"; shift
     if [ -n "$truncateNum" ] && [ $# -ge $truncateNum ]; then
 	set -- "${@:1:$((truncateNum - 1))}"
 	printf %s "${@/#/$separator}"
@@ -159,5 +169,5 @@ else
     else
 	printf %s "${@/#/$separator}"
     fi
-    printf '%s\n' "$suffix"
+    printf '%s\n' "${argsSuffix}${suffix}"
 fi
