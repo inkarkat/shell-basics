@@ -152,7 +152,6 @@ case "${output:-ext}" in
     asIs)	printf '%s%s\n' "$name" "${ext:+.}$ext";;
     ext)	printf '%s\n' "$ext";;
     strip)	printf '%s\n' "$name";;
-    basename)	printf '%s\n' "$(basename -- "$name")";;
     split)	printf '%s\n%s\n' "$name" "$ext";;
     splitall)	printf '%s\n%s\n%s\n' "$(dirname -- "$name")" "$(basename -- "$name")" "$ext";;
     *)          printf >&2 'ASSERT: Invalid output: %s\n' "$output"; exit 2;;
