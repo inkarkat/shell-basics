@@ -42,6 +42,8 @@ modifications:
 			INSERTION is inserted at the end of the file name,
 			before the extension(s). If you want to prepend an EXT,
 			use --splice .EXT
+    --unprefix PREFIX	Remove PREFIX from the beginning of the file name.
+    --unsuffix SUFFIX	Remove SUFFIX from the end of the file name.
     --default|-f EXT	Append EXT to FILENAME if it doesn't have one yet.
     --modify|-m EXT	Change any existing file extension to EXT.
     --add|-a EXT	Append EXT to the existing file extension.
@@ -58,6 +60,8 @@ isSingle=
 typeset -a actions=()
 output=
 insertion=
+prefix=
+suffix=
 defaultExtension=
 addExtension=
 while [ $# -ne 0 ]
@@ -71,6 +75,8 @@ do
 	--split|-s)	shift; output=split;;
 	--split-all|-3)	shift; output=splitall;;
 	--splice|-c)	shift; insertion="${1?}"; shift; output=asIs; actions+=(splice);;
+	--unprefix)	shift; prefix="${1:?}"; shift; : ${output:=asIs}; actions+=(unprefix);;
+	--unsuffix)	shift; suffix="${1:?}"; shift; : ${output:=asIs}; actions+=(unsuffix);;
 	--default|-f)	shift; defaultExtension="${1:?}"; shift; : ${output:=asIs}; actions+=(defaultExtension);;
 	--modify|-m)	shift; defaultExtension="${1:?}"; shift; : ${output:=asIs}; actions+=(modifyExtension);;
 	--add|-a)	shift; addExtension="${1:?}"; shift; : ${output:=asIs}; actions+=(addExtension);;
@@ -126,6 +132,16 @@ keepBasename()
 splice()
 {
     name="${name}${insertion}"
+}
+
+unprefix()
+{
+    name="${name#"$prefix"}"
+}
+
+unsuffix()
+{
+    name="${name%"$suffix"}"
 }
 
 defaultExtension()
