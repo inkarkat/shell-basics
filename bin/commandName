@@ -84,13 +84,13 @@ done
 
 printFilename()
 {
-    local commandFilespec="${1?}"; shift
+    local commandFilespec="$1"; shift
     printf '%s\n' "$(basename -- "${commandFilespec:-${undefined-undefined}}")"
 }
 
 printKeepFilespec()
 {
-    local commandFilespec="${1?}"; shift
+    local commandFilespec="$1"; shift
     printf '%s\n' "${commandFilespec:-${undefined-undefined}}"
 }
 
@@ -110,7 +110,7 @@ printFullFilespec()
 
 dropInterpreter()
 {
-    local commandFilename="$(basename -- "$commandFilespec")"
+    local commandFilename="$(basename -- "$1")"
     case "$commandFilename" in
 	@(${COMMANDNAME_INVOKERS}))
 	    # Eat individual appended VAR=VAL arguments (e.g. for env VAR=VAL).
@@ -124,40 +124,44 @@ dropInterpreter()
 		# as we cannot handle command-line parameters this way.
 		shift
 	    done
-	    commandFilespec="$1"
 	    # Recursive removal of additional wrapper(s) or interpreters inside
 	    # the COMMAND.
+	    args=("$@")
 	    [ $# -eq 0 ] || dropInterpreter "$@"
 	    return
 	    ;;
     esac
     case "${commandFilename,,}" in
 	@(${COMMANDNAME_INTERPRETERS})${COMMANDNAME_EXTENSIONS})
-	    commandFilespec="${2:-$1}"
+	    [ -n "$2" ] && shift
+	    args=("$@")
+	    return
 	    ;;
 	@(${COMMANDNAME_SHELLS})${COMMANDNAME_EXTENSIONS})
-	    commandFilespec="${2:-$1}"
+	    [ -n "$2" ] && shift
 
 	    allArgsIdx=$(indexGlob '*"$@"' "$@") && [ $((allArgsIdx + 3)) -le $# ] && case "${@:$((allArgsIdx + 2)):1}" in
 		@(${COMMANDNAME_SHELLS})${COMMANDNAME_EXTENSIONS})
-		    commandFilespec="${*:$((allArgsIdx + 3)):1}"
 		    # Recursive removal of another interpreter inside the
 		    # COMMAND, e.g. bash -c "$@" bash perl script.pl
-		    dropInterpreter "${@:$((allArgsIdx + 3))}"
+		    args=("${@:$((allArgsIdx + 3))}")
+		    dropInterpreter "${args[@]}"
 		    return
 		    ;;
 	    esac
 
 	    if commandStringIdx=$(INDEX_UNTIL=-- indexGlob '-*([a-zA-Z])c*([a-zA-Z])' "$@") && [ $((commandStringIdx + 1)) -le $# ]; then
-		typeset -a commandArguments=(${@:$((commandStringIdx + 2)):1})	# The -c command_string is a single argument, we need to split that into individual arguments, and also evaluate shell stuff.
-		commandFilespec="${commandArguments[0]}"
+		args=(${@:$((commandStringIdx + 2)):1})	# The -c command_string is a single argument, we need to split that into individual arguments, and also evaluate shell stuff.
 		# Recursive removal of another interpreter inside the COMMAND,
 		# e.g. bash -c 'perl script.pl'
-		dropInterpreter "${commandArguments[@]}"
+		dropInterpreter "${args[@]}"
 		return
 	    fi
+	    args=("$@")
+	    return
 	    ;;
     esac
+    shift; args=("$commandFilename" "$@")
 }
 
 if [ "$isEval" ]; then
@@ -202,7 +206,7 @@ fi
 # Eat individual preceding VAR=VAL arguments.
 while [[ "$1" =~ ^[[:alpha:]_][[:alnum:]_]+= ]]; do shift; done
 
-commandFilespec="$1"
-[ "$isDropInterpreter" ] && dropInterpreter "$@"
+args=("$@")
+[ ! "$isDropInterpreter" ] || dropInterpreter "${args[@]}"
 
-$printer "$commandFilespec"
+$printer "${args[@]}"
