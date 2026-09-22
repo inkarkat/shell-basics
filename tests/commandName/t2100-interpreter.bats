@@ -16,6 +16,7 @@ load fixture
 	["sh -c 'simpleScript.sh -x foo'"]='simpleScript.sh'
 	["ksh -ic simpleScript.ksh"]='simpleScript.ksh'
 	["bash -c 'perl script.pl'"]='script.pl'
+	['bash -c "$@" bash perl script.pl']='script.pl'
     )
 
     for commandLine in "${!data[@]}"
