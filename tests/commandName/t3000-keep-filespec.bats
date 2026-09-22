@@ -16,7 +16,7 @@ load fixture
 
     for commandLine in "${!data[@]}"
     do
-	run -0 commandName --keep-filespec --eval "$commandLine" \
+	run -0 commandName --keep-filespec --no-include-files --no-include-subcommands --eval "$commandLine" \
 	    && assert_output "${data["$commandLine"]}" \
 	    || fail "$commandLine should yield ${data["$commandLine"]}"
     done

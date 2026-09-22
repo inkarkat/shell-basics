@@ -13,7 +13,7 @@ load fixture
     for commandLine in "${!data[@]}"
     do
 	local expected="$(command -v "${data["$commandLine"]}")"
-	run -0 commandName --full-filespec --eval "$commandLine" \
+	run -0 commandName --full-filespec --no-include-files --no-include-subcommands --eval "$commandLine" \
 	    && assert_output "$expected" \
 	    || fail "$commandLine should yield $expected"
     done

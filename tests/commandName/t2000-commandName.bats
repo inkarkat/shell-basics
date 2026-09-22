@@ -7,7 +7,7 @@ load fixture
     run -0 commandName simpleCommandName -x -y -z
     assert_output 'simpleCommandName'
 
-    run -0 commandName VAR1=VAL1 VAR2=VAL2 /usr/bin/python3 simplePythonScript.py -x -y -z
+    run -0 commandName --no-include-files --no-include-subcommands VAR1=VAL1 VAR2=VAL2 /usr/bin/python3 simplePythonScript.py -x -y -z
     assert_output 'python3'
 }
 
@@ -30,7 +30,7 @@ load fixture
 
     for commandLine in "${!data[@]}"
     do
-	run -0 commandName --eval "$commandLine" \
+	run -0 commandName --no-include-files --no-include-subcommands --eval "$commandLine" \
 	    && assert_output "${data["$commandLine"]}" \
 	    || fail "$commandLine should yield ${data["$commandLine"]}"
     done
