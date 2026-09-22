@@ -6,12 +6,15 @@ shopt -qs extglob
 : ${COMMANDNAME_INVOKERS='.|source|nohup|env|xargs'}
 : ${COMMANDNAME_SHELLS='?(ba|da|[cakz])sh'}
 : ${COMMANDNAME_EXTENSIONS='?(.exe)'}
+: ${COMMANDNAME_INCLUDED_FILES:=1}
+: ${COMMANDNAME_INCLUDED_SUBCOMMANDS:=3}
+: ${COMMANDNAME_TRUNCATION='...'}
 
 printShortUsage()
 {
     # Note: short followed by long option; if the user knows the short one, she can
     # skim the long one.
-    printf 'Usage: [COMMANDNAME_INTERPRETERS=CMD-GLOB] [COMMANDNAME_WRAPPERS=CMD-GLOB] [COMMANDNAME_INVOKERS=CMD-GLOB] [COMMANDNAME_SHELLS=CMD-GLOB] [COMMANDNAME_EXTENSIONS=EXT-GLOB] %q %s\n' "$(basename "$1")" '[--eval] [--undefined UNDEFINED] [-n|--no-interpreter] [-k|--keep-filespec|-f|--full-filespec] [--] COMMANDLINE ... [-?|-h|--help]'
+    printf 'Usage: [COMMANDNAME_INTERPRETERS=CMD-GLOB] [COMMANDNAME_WRAPPERS=CMD-GLOB] [COMMANDNAME_INVOKERS=CMD-GLOB] [COMMANDNAME_SHELLS=CMD-GLOB] [COMMANDNAME_EXTENSIONS=EXT-GLOB] %q %s\n' "$(basename "$1")" '[--eval] [--undefined UNDEFINED] [-n|--no-interpreter] [--no-include-files|--include-files N] [--no-include-subcommands|--include-subcommands N] [-k|--keep-filespec|-f|--full-filespec] [--] COMMANDLINE ... [-?|-h|--help]'
 }
 printUsage()
 {
@@ -47,10 +50,23 @@ HELPDESCRIPTION
     --full-filespec|-f
 		Keep any path in the command name and also resolve commands
 		without one through PATH.
+    --no-include-files
+		Do not include any (default: up to ${COMMANDNAME_INCLUDED_FILES}) file arguments.
+    --include-files N
+		Also include up to N (default: ${COMMANDNAME_INCLUDED_FILES}) file arguments (referencing
+		existing files, also non-existing after a -- separator). If
+		there are more, these are indicated by $COMMANDNAME_TRUNCATION
+    --no-include-subcommands
+		Do not include any (default: up to ${COMMANDNAME_INCLUDED_SUBCOMMANDS}) non-option arguments.
+    --include-subcommands N
+		Also include non-option arguments (i.e. those not starting with
+		a dash) up to N (default: ${COMMANDNAME_INCLUDED_SUBCOMMANDS}). If there are more, these are
+		indicated by $COMMANDNAME_TRUNCATION
 EXIT STATUS:
     0	Complete success.
     1	Failed to resolve the full filespec and no --undefined was given.
     2	Bad invocation, wrong or missing command-line arguments.
+
 Example:
 HELPTEXT
     printf '%q %s\n' "$(basename "$1")" 'FOO=BAR /usr/bin/awk -F# "{ print \"$1\"; }"'
@@ -64,6 +80,8 @@ isEval=
 isDropInterpreter=
 unset undefined
 printer=printFilename
+includeFileNum=$COMMANDNAME_INCLUDED_FILES
+includeSubcommandNum=$COMMANDNAME_INCLUDED_SUBCOMMANDS
 while [ $# -ne 0 ]
 do
     case "$1" in
@@ -76,22 +94,73 @@ do
 			shift; printer=printKeepFilespec;;
 	--full-filespec|-f)
 			shift; printer=printFullFilespec;;
+	--include-files)
+			shift; includeFileNum="${1:?}"; shift;;
+	--no-include-files)
+			shift; includeFileNum=0;;
+	--include-subcommands)
+			shift; includeSubcommandNum="${1:?}"; shift;;
+	--no-include-subcommands)
+			shift; includeSubcommandNum=0;;
 	--)		shift; break;;
 	-*)		{ echo "ERROR: Unknown option \"$1\"!"; echo; printUsage "$0"; } >&2; exit 2;;
 	*)		break;;
     esac
 done
 
+printArgs()
+{
+    typeset -a files=() subcommands=()
+    local isAllowedFiles=t forcedFiles hasFiles hasOptions
+
+    while [ $# -gt 0 ]
+    do
+	if [ "$forcedFiles" ]; then
+	    hasFiles=t
+	    if [ ${#files[@]} -lt $includeFileNum ]; then
+		files+=("$1")
+	    elif [ $includeFileNum -gt 0 ]; then
+		files+=("$COMMANDNAME_TRUNCATION")
+		break
+	    fi
+	elif [ "${1:0:1}" = '-' ]; then
+	    hasOptions=t
+	    [ "$1" = '--' ] \
+		&& forcedFiles=t
+	elif [ ! "$hasFiles" ] && [ ! "$hasOptions" ] && [ ! -e "$1"  ]; then
+	    if [ ${#subcommands[@]} -lt $includeSubcommandNum ]; then
+		subcommands+=("$1")
+	    elif [ ${#subcommands[@]} -eq $includeSubcommandNum -a $includeSubcommandNum -gt 0 ]; then
+		subcommands+=("$COMMANDNAME_TRUNCATION")
+	    fi
+	elif [ ! "$hasOptions" ] && [ "$isAllowedFiles" ] && [ -e "$1" ]; then
+	    hasFiles=t
+	    if [ ${#files[@]} -lt $includeFileNum ]; then
+		files+=("$1")
+	    elif [ $includeFileNum -gt 0 ]; then
+		files+=("$COMMANDNAME_TRUNCATION")
+		break
+	    fi
+	else
+	    isAllowedFiles=
+	fi
+	shift
+    done
+
+    [ ${#subcommands[@]} -eq 0 ] || printf ' %s' "${subcommands[@]}"
+    [ ${#files[@]} -eq 0 ] || printf ' %q' "${files[@]}"
+}
+
 printFilename()
 {
-    local commandFilespec="${1?}"; shift
-    printf '%s\n' "$(basename -- "${commandFilespec:-${undefined-undefined}}")"
+    local commandFilespec="$1"; shift
+    printf '%s%s\n' "$(basename -- "${commandFilespec:-${undefined-undefined}}")" "$(printArgs "$@")"
 }
 
 printKeepFilespec()
 {
-    local commandFilespec="${1?}"; shift
-    printf '%s\n' "${commandFilespec:-${undefined-undefined}}"
+    local commandFilespec="$1"; shift
+    printf '%s%s\n' "${commandFilespec:-${undefined-undefined}}" "$(printArgs "$@")"
 }
 
 printFullFilespec()
@@ -100,7 +169,7 @@ printFullFilespec()
     [ -x "$commandFilespec" ] \
 	|| commandFilespec="$(which -- "$commandFilespec" 2>/dev/null)"
     if [ -x "$commandFilespec" ]; then
-	printf '%s\n' "$commandFilespec"
+	printf '%s%s\n' "$commandFilespec" "$(printArgs "$@")"
     elif [ -n "${undefined+t}" ]; then
 	printf '%s\n' "$undefined"
     else
@@ -110,7 +179,7 @@ printFullFilespec()
 
 dropInterpreter()
 {
-    local commandFilename="$(basename -- "$commandFilespec")"
+    local commandFilename="$(basename -- "$1")"
     case "$commandFilename" in
 	@(${COMMANDNAME_INVOKERS}))
 	    # Eat individual appended VAR=VAL arguments (e.g. for env VAR=VAL).
@@ -124,40 +193,44 @@ dropInterpreter()
 		# as we cannot handle command-line parameters this way.
 		shift
 	    done
-	    commandFilespec="$1"
 	    # Recursive removal of additional wrapper(s) or interpreters inside
 	    # the COMMAND.
+	    args=("$@")
 	    [ $# -eq 0 ] || dropInterpreter "$@"
 	    return
 	    ;;
     esac
     case "${commandFilename,,}" in
 	@(${COMMANDNAME_INTERPRETERS})${COMMANDNAME_EXTENSIONS})
-	    commandFilespec="${2:-$1}"
+	    [ -n "$2" ] && shift
+	    args=("$@")
+	    return
 	    ;;
 	@(${COMMANDNAME_SHELLS})${COMMANDNAME_EXTENSIONS})
-	    commandFilespec="${2:-$1}"
-
-	    if commandStringIdx=$(INDEX_UNTIL=-- indexGlob '-*([a-zA-Z])c*([a-zA-Z])' "$@") && [ $((commandStringIdx + 1)) -le $# ]; then
-		typeset -a commandArguments=(${@:$((commandStringIdx + 2)):1})	# The -c command_string is a single argument, we need to split that into individual arguments, and also evaluate shell stuff.
-		commandFilespec="${commandArguments[0]}"
-		# Recursive removal of another interpreter inside the COMMAND,
-		# e.g. bash -c 'perl script.pl'
-		dropInterpreter "${commandArguments[@]}"
-		return
-	    fi
+	    [ -n "$2" ] && shift
 
 	    allArgsIdx=$(indexGlob '*"$@"' "$@") && [ $((allArgsIdx + 3)) -le $# ] && case "${@:$((allArgsIdx + 2)):1}" in
 		@(${COMMANDNAME_SHELLS})${COMMANDNAME_EXTENSIONS})
-		    commandFilespec="${*:$((allArgsIdx + 3)):1}"
 		    # Recursive removal of another interpreter inside the
 		    # COMMAND, e.g. bash -c "$@" bash perl script.pl
-		    dropInterpreter "${@:$((allArgsIdx + 3))}"
+		    args=("${@:$((allArgsIdx + 3))}")
+		    dropInterpreter "${args[@]}"
 		    return
 		    ;;
 	    esac
+
+	    if commandStringIdx=$(INDEX_UNTIL=-- indexGlob '-*([a-zA-Z])c*([a-zA-Z])' "$@") && [ $((commandStringIdx + 1)) -le $# ]; then
+		args=(${@:$((commandStringIdx + 2)):1})	# The -c command_string is a single argument, we need to split that into individual arguments, and also evaluate shell stuff.
+		# Recursive removal of another interpreter inside the COMMAND,
+		# e.g. bash -c 'perl script.pl'
+		dropInterpreter "${args[@]}"
+		return
+	    fi
+	    args=("$@")
+	    return
 	    ;;
     esac
+    shift; args=("$commandFilename" "$@")
 }
 
 if [ "$isEval" ]; then
@@ -202,7 +275,7 @@ fi
 # Eat individual preceding VAR=VAL arguments.
 while [[ "$1" =~ ^[[:alpha:]_][[:alnum:]_]+= ]]; do shift; done
 
-commandFilespec="$1"
-[ "$isDropInterpreter" ] && dropInterpreter "$@"
+args=("$@")
+[ ! "$isDropInterpreter" ] || dropInterpreter "${args[@]}"
 
-$printer "$commandFilespec"
+$printer "${args[@]}"
