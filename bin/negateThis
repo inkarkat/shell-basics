@@ -5,7 +5,7 @@ printShortUsage()
 {
     # Note: short followed by long option; if the user knows the short one, she can
     # skim the long one.
-    printf 'Usage: %q %s\n' "$(basename "$1")" '[--] COMMAND [ARG ...] [-?|-h|--help]'
+    printf 'Usage: %q %s\n' "$(basename "$1")" '[--status-99-is-noop] [--] COMMAND [ARG ...] [-?|-h|--help]'
 }
 printUsage()
 {
@@ -24,13 +24,18 @@ failure into 0.
 HELPDESCRIPTION
     echo
     cat <<HELPTEXT
+    --status-99-is-noop An exit status of 99 from COMMAND signifies no action or
+			inapplicability, and is treated like success.
 SEE ALSO:
 - succeedThis, failThis, acceptStatus
 HELPTEXT
 }
 
+additionalSuccessStatus=
 case "$1" in
     --help|-h|-\?)	shift; printLongUsage "$0"; exit 0;;
+    --status-99-is-noop)
+			shift; additionalSuccessStatus=99;;
     --)			shift;;
 esac
 if [ $# -eq 0 ]; then
@@ -41,4 +46,9 @@ if [ $# -eq 0 ]; then
 fi
 
 printf -v quotedSimpleCommand '%q ' "$@"
-eval "${quotedSimpleCommand% }" && exit 1 || exit 0
+eval "${quotedSimpleCommand% }"; status=$?
+if [ $status -eq 0 -o $status -eq ${additionalSuccessStatus:--1} ]; then
+    exit 1
+else
+    exit 0
+fi
