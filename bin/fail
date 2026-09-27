@@ -54,8 +54,8 @@ export ALERT_FAIL_COMMAND="$(basename -- "$1")"
 export AUDIBLE_FAIL_STATUS=$expectedStatus
 export ALERT_FAIL_STATUS=$expectedStatus
 
-"$@"
-status=$?
+printf -v quotedSimpleCommand '%q ' "$@"
+eval "${quotedSimpleCommand% }"; status=$?
 
 if [ $status -eq 0 ]; then
     printf >&2 '%s was expected to fail, but did succeed.\n' "$1"

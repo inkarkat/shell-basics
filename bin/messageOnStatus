@@ -45,8 +45,8 @@ elif [ $# -eq 0 ]; then
     exit 2
 fi >&2
 
-"$@"
-status=$?
+printf -v quotedSimpleCommand '%q ' "$@"
+eval "${quotedSimpleCommand% }"; status=$?
 
 evaluateRange()
 {
