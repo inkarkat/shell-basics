@@ -4,6 +4,7 @@ load fixture
 
 @test "commandName --no-interpreter --eval lookup" {
     typeset -A data=(
+	[/usr/local/bin/absoluteCommand]='absoluteCommand'
 	[. simpleBashScript.sh -x foo]='simpleBashScript.sh'
 	[source simpleBashScript.sh -x foo]='simpleBashScript.sh'
 	[env FOO=BAR HEY=HO simpleCommandName -x -y -z]='simpleCommandName'
@@ -11,7 +12,8 @@ load fixture
 	[sudo --login --user=public simpleCommandName -x -y -z]='simpleCommandName'
 	[sudo.exe simpleCommandName -x -y -z]='simpleCommandName'
 	[perl simplePerlScript.py]='simplePerlScript.py'
-	[python3 simplePythonScript.py -x foo]='simplePythonScript.py'
+	[python3 /usr/local/bin/absolutePythonScript.py -x foo]='absolutePythonScript.py'
+	[python3 ${BATS_TEST_DIRNAME}/fixture.bash -x foo]='fixture.bash'
 	[sh simpleScript.sh -x foo]='simpleScript.sh'
 	["sh -c 'simpleScript.sh -x foo'"]='simpleScript.sh'
 	["ksh -ic simpleScript.ksh"]='simpleScript.ksh'

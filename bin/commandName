@@ -230,7 +230,7 @@ dropInterpreter()
 	    return
 	    ;;
     esac
-    shift; args=("$commandFilename" "$@")
+    args=("$@")
 }
 
 if [ "$isEval" ]; then
