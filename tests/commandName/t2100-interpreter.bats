@@ -10,6 +10,7 @@ load fixture
 	[env FOO=BAR HEY=HO simpleCommandName -x -y -z]='simpleCommandName'
 	[sudo simpleCommandName -x -y -z]='simpleCommandName'
 	[sudo --login --user=public simpleCommandName -x -y -z]='simpleCommandName'
+	[sudo --login --user=public FOO=BAR HEY=HO simpleCommandName -x -y -z]='simpleCommandName'
 	[sudo.exe simpleCommandName -x -y -z]='simpleCommandName'
 	[perl simplePerlScript.py]='simplePerlScript.py'
 	[python3 /usr/local/bin/absolutePythonScript.py -x foo]='absolutePythonScript.py'

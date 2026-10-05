@@ -182,17 +182,20 @@ dropInterpreter()
     local commandFilename="$(basename -- "$1")"
     case "$commandFilename" in
 	@(${COMMANDNAME_INVOKERS}))
-	    # Eat individual appended VAR=VAL arguments (e.g. for env VAR=VAL).
-	    while [[ "$2" =~ ^[[:alpha:]_][[:alnum:]_]+=(\\[[:space:]]|[^[:space:]\\])*$ ]]; do shift; done
 	    ;&
 	@(${COMMANDNAME_WRAPPERS})${COMMANDNAME_EXTENSIONS})
 	    shift
+
+	    # Remove any -s|--short|-- arguments. Note: This isn't perfect, as we cannot
+	    # handle command-line parameters this way.
 	    while [ $# -gt 0 ] && [[ "$1" =~ ^- ]]
 	    do
-		# Remove any -s|--short|-- arguments. Note: This isn't perfect,
-		# as we cannot handle command-line parameters this way.
 		shift
 	    done
+
+	    # Eat individual appended VAR=VAL arguments (e.g. for env VAR=VAL).
+	    while [[ "$1" =~ ^[[:alpha:]_][[:alnum:]_]+=(\\[[:space:]]|[^[:space:]\\])*$ ]]; do shift; done
+
 	    # Recursive removal of additional wrapper(s) or interpreters inside
 	    # the COMMAND.
 	    args=("$@")
