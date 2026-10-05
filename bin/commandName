@@ -2,8 +2,8 @@
 shopt -qs extglob
 
 : ${COMMANDNAME_INTERPRETERS='perl|python?(3)|ruby'}
-: ${COMMANDNAME_WRAPPERS='sudo'}
-: ${COMMANDNAME_INVOKERS='.|source|nohup|env|xargs'}
+: ${COMMANDNAME_WRAPPERS='sudo|env|xargs'}
+: ${COMMANDNAME_INVOKERS='.|source|nohup'}
 : ${COMMANDNAME_SHELLS='?(ba|da|[cakz])sh'}
 : ${COMMANDNAME_EXTENSIONS='?(.exe)'}
 : ${COMMANDNAME_INCLUDED_FILES:=1}
@@ -44,7 +44,8 @@ HELPDESCRIPTION
 		command-line and use the next (script filename) argument
 		instead. Also detects the special shell-wrapping invocation
 		(bash -c "\$@" bash COMMAND) and invocation through
-		\$COMMANDNAME_INVOKERS.
+		\$COMMANDNAME_INVOKERS (which don't take arguments and VAR=VAL)
+		and \$COMMANDNAME_WRAPPERS (which do).
     --keep-filespec|-k
 		Keep any path in the command name instead of stripping it off.
     --full-filespec|-f
@@ -180,19 +181,25 @@ printFullFilespec()
 dropInterpreter()
 {
     local commandFilename="$(basename -- "$1")"
+    local isDropArgs=t
+    local isDropVarVal=t
     case "$commandFilename" in
 	@(${COMMANDNAME_INVOKERS}))
-	    # Eat individual appended VAR=VAL arguments (e.g. for env VAR=VAL).
-	    while [[ "$2" =~ ^[[:alpha:]_][[:alnum:]_]+=(\\[[:space:]]|[^[:space:]\\])*$ ]]; do shift; done
+	    isDropArgs=
+	    isDropVarVal=
 	    ;&
 	@(${COMMANDNAME_WRAPPERS})${COMMANDNAME_EXTENSIONS})
 	    shift
-	    while [ $# -gt 0 ] && [[ "$1" =~ ^- ]]
-	    do
-		# Remove any -s|--short|-- arguments. Note: This isn't perfect,
-		# as we cannot handle command-line parameters this way.
-		shift
-	    done
+
+	    # Remove any -s|--short|-- arguments. Note: This isn't perfect, as we cannot
+	    # handle command-line parameters this way.
+	    [ ! "$isDropArgs" ] \
+		||  while [ $# -gt 0 ] && [[ "$1" =~ ^- ]]; do shift; done
+
+	    # Eat individual appended VAR=VAL arguments (e.g. for env VAR=VAL).
+	    [ ! "$isDropVarVal" ] \
+		|| while [[ "$1" =~ ^[[:alpha:]_][[:alnum:]_]+=(\\[[:space:]]|[^[:space:]\\])*$ ]]; do shift; done
+
 	    # Recursive removal of additional wrapper(s) or interpreters inside
 	    # the COMMAND.
 	    args=("$@")
