@@ -7,6 +7,8 @@ load fixture
 	[/usr/local/bin/absoluteCommand]='absoluteCommand'
 	[. simpleBashScript.sh -x foo]='simpleBashScript.sh'
 	[source simpleBashScript.sh -x foo]='simpleBashScript.sh'
+	[nohup simpleBashScript.sh -x foo]='simpleBashScript.sh'
+	[nohup --version simpleBashScript.sh -x foo]='--version'
 	[env FOO=BAR HEY=HO simpleCommandName -x -y -z]='simpleCommandName'
 	[sudo simpleCommandName -x -y -z]='simpleCommandName'
 	[sudo --login --user=public simpleCommandName -x -y -z]='simpleCommandName'
