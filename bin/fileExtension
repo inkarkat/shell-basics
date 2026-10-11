@@ -4,7 +4,7 @@ printShortUsage()
 {
     # Note: short followed by long option; if the user knows the short one, she can
     # skim the long one.
-    printf 'Usage: %q %s\n' "$(basename "$1")" '[-1|--single] [-d|--strip|-s|--split|-3|--split-all] [-o|--rebase TARGETDIR|-b|--basename] [-c|--splice INSERTION] [-f|--default EXT|-m|--modify EXT|-a|--add EXT] [--] FILENAME [DEFAULT-EXT] [-?|-h|--help]'
+    printf 'Usage: %q %s\n' "$(basename "$1")" '[-1|--single] [-d|--strip|-s|--split|-3|--split-all] [-n|--rename NEWNAME] [-o|--rebase TARGETDIR|-b|--basename] [-c|--splice INSERTION] [-f|--default EXT|-m|--modify EXT|-a|--add EXT] [--] FILENAME [DEFAULT-EXT] [-?|-h|--help]'
 }
 printUsage()
 {
@@ -34,6 +34,7 @@ HELPDESCRIPTION
 			separate lines.
 The following options can be used alone or combined with one of the above output
 modifications:
+    --rename|-n NEWNAME	Change the name part of FILENAME to NEWNAME.
     --rebase|-o TARGETDIR
 			Change the directory part of FILENAME to TARGETDIR.
     --basename|-b	Both path and extension are removed; the bare name
@@ -59,6 +60,8 @@ HELPTEXT
 isSingle=
 typeset -a actions=()
 output=
+targetDirspec=
+targetName=
 insertion=
 prefix=
 suffix=
@@ -71,6 +74,7 @@ do
 	--single|-1)	shift; isSingle=t;;
 	--strip|-d)	shift; output=strip;;
 	--basename|-b)	shift; output=strip; actions+=(keepBasename);;
+	--rename|-n)	shift; targetName="${1:?}"; shift; : ${output:=asIs}; actions+=(rename);;
 	--rebase|-o)	shift; targetDirspec="${1:?}"; shift; : ${output:=asIs}; actions+=(rebase);;
 	--split|-s)	shift; output=split;;
 	--split-all|-3)	shift; output=splitall;;
@@ -118,6 +122,11 @@ else
     ext="$defaultExtension"
 fi
 
+
+rename()
+{
+    name="$targetName"
+}
 
 rebase()
 {
