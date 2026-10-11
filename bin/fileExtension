@@ -4,7 +4,7 @@ printShortUsage()
 {
     # Note: short followed by long option; if the user knows the short one, she can
     # skim the long one.
-    printf 'Usage: %q %s\n' "$(basename "$1")" '[-1|--single] [-d|--strip|-s|--split|-3|--split-all] [-b|--basename] [-c|--splice INSERTION] [-f|--default EXT|-m|--modify EXT|-a|--add EXT] [--] FILENAME [DEFAULT-EXT] [-?|-h|--help]'
+    printf 'Usage: %q %s\n' "$(basename "$1")" '[-1|--single] [-d|--strip|-s|--split|-3|--split-all] [-o|--rebase TARGETDIR|-b|--basename] [-c|--splice INSERTION] [-f|--default EXT|-m|--modify EXT|-a|--add EXT] [--] FILENAME [DEFAULT-EXT] [-?|-h|--help]'
 }
 printUsage()
 {
