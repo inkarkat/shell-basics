@@ -1,5 +1,7 @@
 #!/bin/bash
 
+${DEBUG:+eval $(debugtrace -o $- -- "$@")}
+
 printUsage()
 {
     cat <<HELPTEXT
@@ -26,6 +28,7 @@ elif [ $# -eq 0 -o "$1" = '-' ]; then
     set -- "$TMPFILE" "$@"
 fi
 
+${DEBUG:+eval $(debugtrace --point main -o $- --)}
 
 typeset -A taken=()
 for ((i = 0; i < count; i++))
