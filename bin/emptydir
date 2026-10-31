@@ -1,31 +1,46 @@
 #!/bin/bash
 shopt -s nullglob dotglob
 
-printUsage()
+LONGUSAGE=
+printLongUsage()
 {
-    cat <<HELPTEXT
+    # This is the long "man page" when launched with the help argument.
+    # It is printed to stdout to allow paging with 'more'.
+    $LONGUSAGE cat <<HELPTEXT
 Check whether all of the passed DIRs do not (with -v|--invert: do) contain any
 files (or are not a directory, or do not exist). Non-existing DIRs and
 non-directories are ignored.
 Returns 1 only if any is a directory and contains at least one (with
 -v|--invert: no) file or subdirectory.
 HELPTEXT
-    echo
+    $LONGUSAGE echo
     printf 'Usage: %q %s\n' "$(basename "$1")" '[-v|--invert] [--] DIR [...] [-?|-h|--help]'
-    echo
-    cat <<HELPTEXT
+    $LONGUSAGE echo
+    $LONGUSAGE cat <<HELPTEXT
 Print those DIRs that do not (with -v|--invert: do) contain any files (or are
 not a directory, or do not exist).
 HELPTEXT
-    echo
+    $LONGUSAGE echo
     printf 'Usage: %q %s\n' "$(basename "$1")" '-p|--print [-v|--invert] [--] DIR [...] [-?|-h|--help]'
 }
+printShortUsage()
+{
+    LONGUSAGE=: printLongUsage "$1"
+}
+printUsage()
+{
+    # This is the short help when launched with no or incorrect arguments.
+    # It is printed to stderr to avoid accidental processing.
+    printShortUsage "$1" >&2
+    printf >&2 '\nTry %q --help for more information.\n' "$(basename "$1")"
+}
+
 compareOp=-ne
 isPrint=
 while [ $# -ne 0 ]
 do
     case "$1" in
-	--help|-h|-\?)	shift; printUsage "$0"; exit 0;;
+	--help|-h|-\?)	shift; printLongUsage "$0"; exit 0;;
 	--print|-p)	shift; isPrint=t;;
 	--invert|-v)	shift; compareOp=-eq;;
 	--)		shift; break;;
